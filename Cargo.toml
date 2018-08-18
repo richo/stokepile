@@ -1,0 +1,8 @@
+[package]
+name = "archiver"
+version = "0.1.0"
+authors = ["Richo Healey <richo@psych0tik.net>"]
+
+[dependencies]
+toml = "0.4.6"
+clap = "2.32.0"
