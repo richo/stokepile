@@ -6,3 +6,5 @@ authors = ["Richo Healey <richo@psych0tik.net>"]
 [dependencies]
 toml = "0.4.6"
 clap = "2.32.0"
+serde = "1.0.71"
+serde_derive = "1.0.71"

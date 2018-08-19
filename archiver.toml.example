@@ -1,0 +1,42 @@
+# Configuration for archiver.
+# Comment out any section to disable that feature.
+
+[archiver]
+
+storage_backend="dropbox"
+
+[dropbox]
+token="DROPBOX_TOKEN_GOES_HERE"
+
+# [vimeo]
+# token="TOKEN_GOES_HERE"
+
+# [youtube]
+# access_token = "TOKEN_GOES_HERE"
+# client_id = "TOKEN_GOES_HERE"
+# client_secret = "TOKEN_GOES_HERE"
+# refresh_token = "TOKEN_GOES_HERE"
+# token_uri = "https://accounts.google.com/o/oauth2/token"
+
+[[flysight]]
+name = "data"
+mountpoint = "/mnt/archiver/flysight"
+# uuid = false
+
+[[gopro]]
+name = "video"
+mountpoint="/mnt/archiver/gopro"
+# uuid = false
+
+#  [gswoop]
+#  binary = "/Applications/gSwoop.app/Contents/MacOS/gswoop"
+
+# [sendgrid]
+# token = "TOKEN_GOES_HERE"
+# from = "richo@psych0tik.net"
+# to = "richo@example.org"
+# subject = "flysight upload report"
+
+# [pushover]
+# token = "TOKEN_GOES_HERE"
+# user = "USER_TOKEN_GOES_HERE"

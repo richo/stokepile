@@ -1,7 +1,11 @@
+#[macro_use]
+extern crate serde_derive;
+
 extern crate clap;
 use clap::App;
 
 mod version;
+mod config;
 
 fn main() {
     App::new("archiver")
