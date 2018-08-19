@@ -1,48 +1,52 @@
-use std::collections::HashMap;
+use std::path::PathBuf;
 
 use super::config::Peripheral;
 
-pub struct UploadDescriptor;
+pub struct UploadDescriptor {
+    local_path: PathBuf,
+    remote_path: PathBuf,
+}
 
 pub struct UploadPlan {
-    //            day             device      content
-    plan: HashMap<String, HashMap<String, Vec<UploadDescriptor>>>,
-}
-
-pub struct LogicalDay {
-}
-
-impl LogicalDay {
-    fn as_upload_format(&self) -> String {
-        "01-01-2018".to_string()
-    }
-
-    fn files(&self) -> Vec<LogicalFile> {
-        vec![]
-    }
+    plan: Vec<UploadDescriptor>,
 }
 
 pub struct LogicalFile {
+    local_path: PathBuf,
+    device_name: String,
 }
 
 impl LogicalFile {
+    pub fn upload_formatted_date(&self) -> String {
+        "01-01-2018".to_string()
+    }
+
+    pub fn remote_path(&self) -> String {
+        format!("{}/{}/{}",
+                self.upload_formatted_date(),
+                self.device_name,
+                self.file_basename(),
+                )
+    }
+
+    pub fn file_basename(&self) -> &str {
+        self.local_path.file_name().unwrap().to_str().unwrap()
+    }
 }
 
 impl UploadPlan {
     pub fn new() -> UploadPlan {
         UploadPlan {
-            plan: HashMap::new(),
+            plan: Vec::new(),
         }
     }
 
     pub fn from_peripheral(&mut self, peripheral: Box<Peripheral>) {
-        for day in peripheral.days() {
-            let mut mapped_day = self.plan.entry(day.as_upload_format()).or_insert_with(|| HashMap::new());
-            let mut device = mapped_day.entry(peripheral.name().clone()).or_insert_with(|| Vec::new());
-            for file in day.files() {
-                device.push(UploadDescriptor {
-                })
-            }
+        for file in peripheral.files() {
+            self.plan.push(UploadDescriptor {
+                local_path: file.local_path.clone(),
+                remote_path: PathBuf::from(file.remote_path()),
+            })
         }
     }
 

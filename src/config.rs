@@ -7,12 +7,12 @@ use std::path::Path;
 
 use failure::Error;
 
-use super::plan::LogicalDay;
+use super::plan::LogicalFile;
 
 pub trait Peripheral {
     fn attached(&self) -> bool;
     fn name(&self) -> &String;
-    fn days(&self) -> Vec<LogicalDay>;
+    fn files(&self) -> Vec<LogicalFile>;
 }
 
 impl Peripheral for GoproConfig {
@@ -27,7 +27,8 @@ impl Peripheral for GoproConfig {
         &self.name
     }
 
-    fn days(&self) -> Vec<LogicalDay> {
+    fn files(&self) -> Vec<LogicalFile> {
+        // TODO(richo)
         vec![]
     }
 }
@@ -44,7 +45,8 @@ impl Peripheral for FlysightConfig {
         &self.name
     }
 
-    fn days(&self) -> Vec<LogicalDay> {
+    fn files(&self) -> Vec<LogicalFile> {
+        // TODO(richo)
         vec![]
     }
 }
