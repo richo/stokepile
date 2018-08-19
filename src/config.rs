@@ -3,9 +3,40 @@ extern crate failure;
 
 use std::fs::File;
 use std::io::Read;
+use std::path::Path;
 
 use failure::Error;
 
+pub trait Peripheral {
+    fn attached(&self) -> bool;
+    fn name(&self) -> &str;
+}
+
+impl Peripheral for GoproConfig {
+    fn attached(&self) -> bool {
+        let path = Path::new(&self.mountpoint);
+        let dcim = path.join(Path::new("DCIM"));
+
+        path.exists() && dcim.exists()
+    }
+
+    fn name(&self) -> &str {
+        &self.name
+    }
+}
+
+impl Peripheral for FlysightConfig {
+    fn attached(&self) -> bool {
+        let path = Path::new(&self.mountpoint);
+        let dcim = path.join(Path::new("config.txt"));
+
+        path.exists() && dcim.exists()
+    }
+
+    fn name(&self) -> &str {
+        &self.name
+    }
+}
 
 #[allow(non_camel_case_types)]
 #[derive(Deserialize,Debug,Eq,PartialEq)]
@@ -82,6 +113,22 @@ impl Config {
             None => &EMPTY_FLYSIGHTS,
             Some(ref v) => v,
         }
+    }
+
+    pub fn attached_peripherals(&self) -> Vec<Box<&Peripheral>> {
+        // TODO(richo) I think there's some way to make a chain of trait objects
+        let mut vec: Vec<Box<&Peripheral>> = vec![];
+        for i in self.gopros().iter() {
+            if i.attached() {
+                vec.push(Box::new(i))
+            }
+        }
+        for i in self.flysights().iter() {
+            if i.attached() {
+                vec.push(Box::new(i))
+            }
+        }
+        vec
     }
 }
 
@@ -254,5 +301,12 @@ mountpoint="/mnt/archiver/comp"
 "#).unwrap();
         assert_gopros(&config);
         assert_flysights(&config);
+    }
+
+    #[test]
+    fn test_attached_devices() {
+        let config = Config::from_file("test-data/archiver.toml").unwrap();
+        let vec: Vec<_> = config.attached_peripherals().iter().map(|x| x.name()).collect();
+        assert_eq!(vec, vec!["video", "data"]);
     }
 }

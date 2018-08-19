@@ -57,8 +57,7 @@ fn main() {
             unimplemented!();
         },
         ("run", Some(subm)) => {
-
-
+            // Figure out which cameras we're gunna be operating on
         },
         _ => {unreachable!()}, // Either no subcommand or one not tested for...
     }
