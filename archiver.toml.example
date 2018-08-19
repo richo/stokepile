@@ -21,12 +21,10 @@ token="DROPBOX_TOKEN_GOES_HERE"
 [[flysight]]
 name = "data"
 mountpoint = "/mnt/archiver/flysight"
-# uuid = false
 
 [[gopro]]
 name = "video"
 mountpoint="/mnt/archiver/gopro"
-# uuid = false
 
 #  [gswoop]
 #  binary = "/Applications/gSwoop.app/Contents/MacOS/gswoop"
