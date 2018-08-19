@@ -1,0 +1,21 @@
+# Configuration for archiver.
+# Comment out any section to disable that feature.
+
+[archiver]
+
+storage_backend="dropbox"
+
+[dropbox]
+token="DROPBOX_TOKEN_GOES_HERE"
+
+[[flysight]]
+name = "data"
+mountpoint = "test-data/flysight"
+
+[[gopro]]
+name = "video"
+mountpoint="test-data/gopro"
+
+[[gopro]]
+name = "dummy"
+mountpoint="test-data/nonexistant"

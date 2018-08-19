@@ -9,6 +9,7 @@ use clap::{App,SubCommand,Arg};
 
 mod version;
 mod config;
+mod plan;
 
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
     App::new("archiver")
@@ -57,7 +58,13 @@ fn main() {
             unimplemented!();
         },
         ("run", Some(subm)) => {
+            let mut plan = plan::UploadPlan::new();
             // Figure out which cameras we're gunna be operating on
+            let peripherals = config.attached_peripherals();
+            for peripheral in peripherals {
+                plan.from_peripheral(peripheral)
+            }
+            plan.execute();
         },
         _ => {unreachable!()}, // Either no subcommand or one not tested for...
     }

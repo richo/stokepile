@@ -7,9 +7,12 @@ use std::path::Path;
 
 use failure::Error;
 
+use super::plan::LogicalDay;
+
 pub trait Peripheral {
     fn attached(&self) -> bool;
-    fn name(&self) -> &str;
+    fn name(&self) -> &String;
+    fn days(&self) -> Vec<LogicalDay>;
 }
 
 impl Peripheral for GoproConfig {
@@ -20,8 +23,12 @@ impl Peripheral for GoproConfig {
         path.exists() && dcim.exists()
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> &String {
         &self.name
+    }
+
+    fn days(&self) -> Vec<LogicalDay> {
+        vec![]
     }
 }
 
@@ -33,8 +40,12 @@ impl Peripheral for FlysightConfig {
         path.exists() && dcim.exists()
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> &String {
         &self.name
+    }
+
+    fn days(&self) -> Vec<LogicalDay> {
+        vec![]
     }
 }
 
@@ -72,13 +83,13 @@ pub struct DropboxConfig {
     token: String,
 }
 
-#[derive(Deserialize,Debug,Eq,PartialEq)]
+#[derive(Deserialize,Debug,Eq,PartialEq,Clone)]
 pub struct FlysightConfig {
     name: String,
     mountpoint: String,
 }
 
-#[derive(Deserialize,Debug,Eq,PartialEq)]
+#[derive(Deserialize,Debug,Eq,PartialEq,Clone)]
 pub struct GoproConfig {
     name: String,
     mountpoint: String,
@@ -115,17 +126,17 @@ impl Config {
         }
     }
 
-    pub fn attached_peripherals(&self) -> Vec<Box<&Peripheral>> {
+    pub fn attached_peripherals(&self) -> Vec<Box<Peripheral>> {
         // TODO(richo) I think there's some way to make a chain of trait objects
-        let mut vec: Vec<Box<&Peripheral>> = vec![];
+        let mut vec: Vec<Box<Peripheral>> = vec![];
         for i in self.gopros().iter() {
             if i.attached() {
-                vec.push(Box::new(i))
+                vec.push(Box::new(i.clone()))
             }
         }
         for i in self.flysights().iter() {
             if i.attached() {
-                vec.push(Box::new(i))
+                vec.push(Box::new(i.clone()))
             }
         }
         vec
@@ -306,7 +317,8 @@ mountpoint="/mnt/archiver/comp"
     #[test]
     fn test_attached_devices() {
         let config = Config::from_file("test-data/archiver.toml").unwrap();
-        let vec: Vec<_> = config.attached_peripherals().iter().map(|x| x.name()).collect();
+        let peripherals = config.attached_peripherals();
+        let vec: Vec<_> = peripherals.iter().map(|x| x.name()).collect();
         assert_eq!(vec, vec!["video", "data"]);
     }
 }
