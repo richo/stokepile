@@ -14,6 +14,7 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
         .about("Footage archiver")
         .author("richö butts")
         .arg(Arg::with_name("config")
+             .long("config")
              .takes_value(true)
              .help("Path to configuration file"))
         .subcommand(SubCommand::with_name("daemon")
