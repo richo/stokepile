@@ -2,6 +2,8 @@
 #[macro_use] extern crate failure;
 #[macro_use] extern crate lazy_static;
 
+use std::process;
+
 extern crate clap;
 use clap::{App,SubCommand,Arg};
 
@@ -32,19 +34,22 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
                          .help("Upload only from device")))
 }
 
-// fn load_config(path: &str) -> config::Config {
-//     match config::Config::from_file(path) {
-//         Ok(cfg) => cfg,
-//         _ => unimplemented!(),
-//     }
-// }
+fn load_config(path: &str) -> config::Config {
+    match config::Config::from_file(path) {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            println!("Couldn't load configuration");
+            println!("{}", e);
+            process::exit(1);
+        },
+    }
+}
 
 fn main() {
     let matches = cli_opts().get_matches();
 
     // Loading config here lets us bail at a convenient time before we get in the weeds
-
-    // let config = load_config(matches.value_of("config").unwrap_or("archiver.toml"));
+    let config = load_config(matches.value_of("config").unwrap_or("archiver.toml"));
 
     match matches.subcommand() {
         ("daemon", Some(subm))  => {
