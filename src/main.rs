@@ -27,11 +27,12 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
                     .about("Runs archiver in persistent mode")
                     .version(version::VERSION)
                     .author("richö butts")
-                    .arg(Arg::with_name("device")
-                         .short("d")
-                         .takes_value(true)
-                         .multiple(true)
-                         .help("Upload only from device")))
+                    // .arg(Arg::with_name("device")
+                    //      .short("d")
+                    //      .takes_value(true)
+                    //      .multiple(true)
+                    //      .help("Upload only from device"))
+                    )
 }
 
 fn load_config(path: &str) -> config::Config {
