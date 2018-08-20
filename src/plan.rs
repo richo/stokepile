@@ -6,8 +6,14 @@ use std::path::PathBuf;
 use super::device;
 
 #[derive(Debug)]
+enum UploadSource {
+    LocalFile(PathBuf),
+    PtpDevice(), // TODO(richo) closure probably?
+}
+
+#[derive(Debug)]
 pub struct UploadDescriptor {
-    local_path: PathBuf,
+    local_path: UploadSource,
     capture_time: DateTime<Local>,
     device_name: String,
     extension: String,
@@ -74,7 +80,7 @@ mod tests {
         let path = PathBuf::from("/path/to/whatever");
 
         let upload = UploadDescriptor {
-            local_path: path,
+            local_path: UploadSource::LocalFile(path),
             capture_time: datetime,
             device_name: "test".to_string(),
             extension: "mp4".to_string(),
@@ -89,7 +95,7 @@ mod tests {
         let path = PathBuf::from("/path/to/whatever");
 
         let upload = UploadDescriptor {
-            local_path: path,
+            local_path: UploadSource::LocalFile(path),
             capture_time: datetime,
             device_name: "test".to_string(),
             extension: "mp4".to_string(),
