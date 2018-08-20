@@ -2,6 +2,8 @@
 #[macro_use] extern crate failure;
 #[macro_use] extern crate lazy_static;
 
+extern crate regex;
+
 use std::process;
 
 extern crate clap;
@@ -15,6 +17,7 @@ use failure::Error;
 mod config;
 mod ctx;
 mod device;
+mod peripheral;
 mod plan;
 mod ptp_device;
 mod version;

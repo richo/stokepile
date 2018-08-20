@@ -7,47 +7,7 @@ use std::path::Path;
 
 use failure::Error;
 
-pub trait Peripheral {
-    fn attached(&self) -> bool;
-    fn name(&self) -> &String;
-    fn files(&self) -> Vec<File>;
-}
-
-impl Peripheral for MassStorageConfig {
-    fn attached(&self) -> bool {
-        let path = Path::new(&self.mountpoint);
-        let dcim = path.join(Path::new("DCIM"));
-
-        path.exists() && dcim.exists()
-    }
-
-    fn name(&self) -> &String {
-        &self.name
-    }
-
-    fn files(&self) -> Vec<File> {
-        // TODO(richo)
-        vec![]
-    }
-}
-
-impl Peripheral for FlysightConfig {
-    fn attached(&self) -> bool {
-        let path = Path::new(&self.mountpoint);
-        let dcim = path.join(Path::new("config.txt"));
-
-        path.exists() && dcim.exists()
-    }
-
-    fn name(&self) -> &String {
-        &self.name
-    }
-
-    fn files(&self) -> Vec<File> {
-        // TODO(richo)
-        vec![]
-    }
-}
+use super::peripheral::Peripheral;
 
 #[allow(non_camel_case_types)]
 #[derive(Deserialize,Debug,Eq,PartialEq)]
