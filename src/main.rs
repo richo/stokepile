@@ -64,6 +64,7 @@ fn main() {
             for peripheral in peripherals {
                 plan.from_peripheral(peripheral)
             }
+            println!("{:?}", plan);
             plan.execute();
         },
         _ => {unreachable!()}, // Either no subcommand or one not tested for...

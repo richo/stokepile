@@ -2,11 +2,13 @@ use std::path::PathBuf;
 
 use super::config::Peripheral;
 
+#[derive(Debug)]
 pub struct UploadDescriptor {
     local_path: PathBuf,
     remote_path: PathBuf,
 }
 
+#[derive(Debug)]
 pub struct UploadPlan {
     plan: Vec<UploadDescriptor>,
 }
@@ -18,6 +20,7 @@ pub struct LogicalFile {
 
 impl LogicalFile {
     pub fn upload_formatted_date(&self) -> String {
+        // TODO(richo) Come up with a plan for timezones?
         "01-01-2018".to_string()
     }
 
