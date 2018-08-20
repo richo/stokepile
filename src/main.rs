@@ -8,6 +8,7 @@ extern crate clap;
 use clap::{App,SubCommand,Arg};
 
 extern crate libusb;
+extern crate chrono;
 
 use failure::Error;
 

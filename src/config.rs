@@ -7,12 +7,10 @@ use std::path::Path;
 
 use failure::Error;
 
-use super::plan::LogicalFile;
-
 pub trait Peripheral {
     fn attached(&self) -> bool;
     fn name(&self) -> &String;
-    fn files(&self) -> Vec<LogicalFile>;
+    fn files(&self) -> Vec<File>;
 }
 
 impl Peripheral for MassStorageConfig {
@@ -27,7 +25,7 @@ impl Peripheral for MassStorageConfig {
         &self.name
     }
 
-    fn files(&self) -> Vec<LogicalFile> {
+    fn files(&self) -> Vec<File> {
         // TODO(richo)
         vec![]
     }
@@ -45,7 +43,7 @@ impl Peripheral for FlysightConfig {
         &self.name
     }
 
-    fn files(&self) -> Vec<LogicalFile> {
+    fn files(&self) -> Vec<File> {
         // TODO(richo)
         vec![]
     }

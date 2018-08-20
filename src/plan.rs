@@ -1,3 +1,6 @@
+extern crate chrono;
+use chrono::prelude::*;
+
 use std::path::PathBuf;
 
 use super::config::Peripheral;
@@ -5,36 +8,35 @@ use super::config::Peripheral;
 #[derive(Debug)]
 pub struct UploadDescriptor {
     local_path: PathBuf,
-    remote_path: PathBuf,
+    capture_time: DateTime<Local>,
+    device_name: String,
+    extension: String,
+    // TODO store the data in an efficient manner
+    // Especially for PTP where we might accidentally materialise the full storage of a gopro
+}
+
+impl UploadDescriptor {
+    pub fn remote_path(&self) -> String {
+        format!("{}/{}/{}.{}",
+                self.date_component(),
+                self.device_name,
+                self.time_component(),
+                self.extension
+                )
+    }
+
+    fn date_component(&self) -> String {
+        self.capture_time.format("%y-%m-%d").to_string()
+    }
+
+    fn time_component(&self) -> String {
+        self.capture_time.format("%H-%M-%S").to_string()
+    }
 }
 
 #[derive(Debug)]
 pub struct UploadPlan {
     plan: Vec<UploadDescriptor>,
-}
-
-pub struct LogicalFile {
-    local_path: PathBuf,
-    device_name: String,
-}
-
-impl LogicalFile {
-    pub fn upload_formatted_date(&self) -> String {
-        // TODO(richo) Come up with a plan for timezones?
-        "01-01-2018".to_string()
-    }
-
-    pub fn remote_path(&self) -> String {
-        format!("{}/{}/{}",
-                self.upload_formatted_date(),
-                self.device_name,
-                self.file_basename(),
-                )
-    }
-
-    pub fn file_basename(&self) -> &str {
-        self.local_path.file_name().unwrap().to_str().unwrap()
-    }
 }
 
 impl UploadPlan {
@@ -43,16 +45,41 @@ impl UploadPlan {
             plan: Vec::new(),
         }
     }
+    pub fn execute(self) {
+    }
+}
 
-    pub fn from_peripheral(&mut self, peripheral: Box<Peripheral>) {
-        for file in peripheral.files() {
-            self.plan.push(UploadDescriptor {
-                local_path: file.local_path.clone(),
-                remote_path: PathBuf::from(file.remote_path()),
-            })
-        }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_formats_correctly() {
+        let datetime = Local.ymd(2017, 11, 22).and_hms(15, 36, 10);
+        let path = PathBuf::from("/path/to/whatever");
+
+        let upload = UploadDescriptor {
+            local_path: path,
+            capture_time: datetime,
+            device_name: "test".to_string(),
+            extension: "mp4".to_string(),
+        };
+
+        assert_eq!(upload.remote_path(), "17-11-22/test/15-36-10.mp4".to_string());
     }
 
-    pub fn execute(self) {
+    #[test]
+    fn test_pads_correctly() {
+        let datetime = Local.ymd(2001, 1, 2).and_hms(3, 4, 5);
+        let path = PathBuf::from("/path/to/whatever");
+
+        let upload = UploadDescriptor {
+            local_path: path,
+            capture_time: datetime,
+            device_name: "test".to_string(),
+            extension: "mp4".to_string(),
+        };
+
+        assert_eq!(upload.remote_path(), "01-01-02/test/03-04-05.mp4".to_string());
     }
 }
