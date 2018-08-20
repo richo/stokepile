@@ -7,9 +7,16 @@ use std::process;
 extern crate clap;
 use clap::{App,SubCommand,Arg};
 
-mod version;
+extern crate libusb;
+
+use failure::Error;
+
 mod config;
+mod ctx;
+mod device;
 mod plan;
+mod ptp_device;
+mod version;
 
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
     App::new("archiver")
@@ -24,6 +31,10 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
                     .version(version::VERSION)
                     .author("richö butts")
                     .about("Runs archiver in persistent mode"))
+        .subcommand(SubCommand::with_name("scan")
+                    .version(version::VERSION)
+                    .author("richö butts")
+                    .about("Scan for attached devices"))
         .subcommand(SubCommand::with_name("run")
                     .about("Runs archiver in persistent mode")
                     .version(version::VERSION)
@@ -36,22 +47,26 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
                     )
 }
 
-fn load_config(path: &str) -> config::Config {
-    match config::Config::from_file(path) {
-        Ok(cfg) => cfg,
-        Err(e) => {
-            println!("Couldn't load configuration");
-            println!("{}", e);
-            process::exit(1);
-        },
-    }
+fn create_ctx(matches: &clap::ArgMatches) -> Result<ctx::Ctx, Error> {
+    Ok(ctx::Ctx {
+        // Loading config here lets us bail at a convenient time before we get in the weeds
+        usb_ctx: libusb::Context::new()?,
+        cfg: config::Config::from_file(matches.value_of("config").unwrap_or("archiver.toml"))?,
+    })
 }
 
 fn main() {
     let matches = cli_opts().get_matches();
 
-    // Loading config here lets us bail at a convenient time before we get in the weeds
-    let config = load_config(matches.value_of("config").unwrap_or("archiver.toml"));
+    // TODO(richo) run -> Result<(), Error> so I can use ?
+    let ctx = match create_ctx(&matches) {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            println!("Error initializing archiver");
+            println!("{}", e);
+            process::exit(1);
+        },
+    };
 
     match matches.subcommand() {
         ("daemon", Some(subm))  => {
@@ -60,12 +75,13 @@ fn main() {
         ("run", Some(subm)) => {
             let mut plan = plan::UploadPlan::new();
             // Figure out which cameras we're gunna be operating on
-            let peripherals = config.attached_peripherals();
-            for peripheral in peripherals {
-                plan.from_peripheral(peripheral)
-            }
+            let devices = device::attached_devices(&ctx);
             println!("{:?}", plan);
             plan.execute();
+        },
+
+        ("scan", Some(subm)) => {
+            println!("{:#?}", ptp_device::locate_gopros(&ctx));
         },
         _ => {unreachable!()}, // Either no subcommand or one not tested for...
     }

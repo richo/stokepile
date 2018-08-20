@@ -89,20 +89,20 @@ pub struct DropboxConfig {
 
 #[derive(Deserialize,Debug,Eq,PartialEq,Clone)]
 pub struct FlysightConfig {
-    name: String,
-    mountpoint: String,
+    pub name: String,
+    pub mountpoint: String,
 }
 
 #[derive(Deserialize,Debug,Eq,PartialEq,Clone)]
 pub struct MassStorageConfig {
-    name: String,
-    mountpoint: String,
+    pub name: String,
+    pub mountpoint: String,
 }
 
 #[derive(Deserialize,Debug,Eq,PartialEq,Clone)]
 pub struct GoproConfig {
-    name: String,
-    serial: String,
+    pub name: String,
+    pub serial: String,
 }
 
 impl Config {

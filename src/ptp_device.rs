@@ -6,6 +6,8 @@ use std::io::prelude::*;
 
 use failure::Error;
 
+use super::ctx;
+
 enum GoproObjectFormat {
     Directory = 0x3001,
     File = 0x300d,
@@ -16,7 +18,7 @@ const GOPRO_MANUFACTURER: &'static str = "GoPro";
 
 #[repr(u16)]
 #[derive(Debug)]
-enum GoproKind {
+pub enum GoproKind {
     Hero4Silver,
 }
 
@@ -33,15 +35,14 @@ impl GoproKind {
 // Specialising to PTP devices later might be neat, but for now this is fine
 #[derive(Debug)]
 pub struct Gopro {
-    kind: GoproKind,
-    serial: String,
+    pub kind: GoproKind,
+    pub serial: String,
 }
 
-pub fn locate_gopros() -> Result<Vec<Gopro>, Error> {
+pub fn locate_gopros(ctx: &ctx::Ctx) -> Result<Vec<Gopro>, Error> {
     let mut res = vec![];
-    let context = libusb::Context::new()?;
 
-    for mut device in context.devices()?.iter() {
+    for mut device in ctx.usb_ctx.devices()?.iter() {
         let device_desc = device.device_descriptor().unwrap();
 
         if device_desc.vendor_id() != GOPRO_VENDOR {
