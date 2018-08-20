@@ -64,6 +64,7 @@ pub struct Config {
     // vimeo: Option<VimeoConfig>,
     // youtube: Option<YoutubeConfig>,
     flysight: Option<Vec<FlysightConfig>>,
+    gopro: Option<Vec<GoproConfig>>,
     mass_storage: Option<Vec<MassStorageConfig>>,
     // gswoop: Option<GswoopConfig>,
     // sendgrid: Option<SendgridConfig>,
@@ -71,8 +72,9 @@ pub struct Config {
 }
 
 lazy_static! {
-    static ref EMPTY_GOPROS: Vec<MassStorageConfig> = vec![];
+    static ref EMPTY_MASS_STORAGES: Vec<MassStorageConfig> = vec![];
     static ref EMPTY_FLYSIGHTS: Vec<FlysightConfig> = vec![];
+    static ref EMPTY_GOPROS: Vec<GoproConfig> = vec![];
 }
 
 #[derive(Deserialize,Debug,Eq,PartialEq)]
@@ -97,6 +99,12 @@ pub struct MassStorageConfig {
     mountpoint: String,
 }
 
+#[derive(Deserialize,Debug,Eq,PartialEq,Clone)]
+pub struct GoproConfig {
+    name: String,
+    serial: String,
+}
+
 impl Config {
     pub fn from_file(path: &str) -> Result<Config, Error> {
         let mut fh = File::open(path)?;
@@ -116,7 +124,7 @@ impl Config {
     // Do we eventually want to make a camera/mass_storage distinction?
     pub fn mass_storages(&self) -> &Vec<MassStorageConfig> {
         match self.mass_storage {
-            None => &EMPTY_GOPROS,
+            None => &EMPTY_MASS_STORAGES,
             Some(ref v) => v,
         }
     }
@@ -124,6 +132,13 @@ impl Config {
     pub fn flysights(&self) -> &Vec<FlysightConfig> {
         match self.flysight {
             None => &EMPTY_FLYSIGHTS,
+            Some(ref v) => v,
+        }
+    }
+
+    pub fn gopros(&self) -> &Vec<GoproConfig> {
+        match self.gopro {
+            None => &EMPTY_GOPROS,
             Some(ref v) => v,
         }
     }
@@ -235,6 +250,19 @@ token="DROPBOX_TOKEN_GOES_HERE"
         ])
     }
 
+    fn assert_gopros(cfg: &Config) {
+        assert_eq!(cfg.gopros(),
+        &vec![GoproConfig {
+                name: "gopro4".into(),
+                serial: "C3131127500000".into(),
+            },
+            GoproConfig {
+                name: "gopro5".into(),
+                serial: "C3131127500001".into(),
+            }
+        ])
+    }
+
     fn assert_flysights(cfg: &Config) {
         assert_eq!(cfg.flysights(),
         &vec![FlysightConfig {
@@ -265,6 +293,27 @@ name = "back"
 mountpoint="/mnt/archiver/back"
 "#).unwrap();
         assert_mass_storages(&config);
+        assert_no_flysights(&config);
+    }
+
+    #[test]
+    fn test_gopros() {
+        let config = Config::from_str(r#"
+[archiver]
+storage_backend="dropbox"
+[dropbox]
+token="DROPBOX_TOKEN_GOES_HERE"
+
+[[gopro]]
+name = "gopro4"
+serial = "C3131127500000"
+
+[[gopro]]
+name = "gopro5"
+serial = "C3131127500001"
+"#).unwrap();
+        assert_gopros(&config);
+        assert_no_mass_storages(&config);
         assert_no_flysights(&config);
     }
 
