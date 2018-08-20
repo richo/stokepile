@@ -56,17 +56,18 @@ fn create_ctx(matches: &clap::ArgMatches) -> Result<ctx::Ctx, Error> {
 }
 
 fn main() {
+    if let Err(e) = run() {
+        println!("Error running archiver");
+        println!("{}", e);
+        process::exit(1);
+    }
+}
+
+fn run() -> Result<(), Error> {
     let matches = cli_opts().get_matches();
 
     // TODO(richo) run -> Result<(), Error> so I can use ?
-    let ctx = match create_ctx(&matches) {
-        Ok(cfg) => cfg,
-        Err(e) => {
-            println!("Error initializing archiver");
-            println!("{}", e);
-            process::exit(1);
-        },
-    };
+    let ctx = create_ctx(&matches)?;
 
     match matches.subcommand() {
         ("daemon", Some(subm))  => {
@@ -76,13 +77,18 @@ fn main() {
             let mut plan = plan::UploadPlan::new();
             // Figure out which cameras we're gunna be operating on
             let devices = device::attached_devices(&ctx);
-            println!("{:?}", plan);
+            println!("{:?}", devices);
             plan.execute();
         },
 
         ("scan", Some(subm)) => {
-            println!("{:#?}", ptp_device::locate_gopros(&ctx));
+            println!("Found the following gopros:");
+            for gopro in ptp_device::locate_gopros(&ctx)?.iter() {
+                println!("  {:?} : {}", gopro.kind, gopro.serial);
+            }
         },
         _ => {unreachable!()}, // Either no subcommand or one not tested for...
     }
+
+    Ok(())
 }

@@ -5,12 +5,16 @@ use failure::Error;
 use super::ctx;
 use super::ptp_device;
 
+#[derive(Debug)]
 pub struct GoproConnection {
 
 }
+#[derive(Debug)]
 pub struct MassStorageConnection;
+#[derive(Debug)]
 pub struct FlysightConnection;
 
+#[derive(Debug)]
 pub enum Device {
     Gopro(GoproConnection),
     MassStorage(MassStorageConnection),
