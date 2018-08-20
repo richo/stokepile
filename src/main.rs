@@ -77,8 +77,15 @@ fn run() -> Result<(), Error> {
         ("run", Some(subm)) => {
             let mut plan = plan::UploadPlan::new();
             // Figure out which cameras we're gunna be operating on
-            let devices = device::attached_devices(&ctx);
+            let devices = device::attached_devices(&ctx)?;
+            println!("Attached devices:");
             println!("{:?}", devices);
+
+            // Let the cameras populate the plan
+            for device in devices {
+                plan.update(device);
+            }
+
             plan.execute();
         },
 

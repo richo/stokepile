@@ -3,7 +3,7 @@ use chrono::prelude::*;
 
 use std::path::PathBuf;
 
-use super::config::Peripheral;
+use super::device;
 
 #[derive(Debug)]
 pub struct UploadDescriptor {
@@ -45,6 +45,21 @@ impl UploadPlan {
             plan: Vec::new(),
         }
     }
+
+    /// Interrogates the device, populating the plan
+    pub fn update(&mut self, device: device::Device) {
+        match device {
+            device::Device::Gopro(desc, gopro) => {
+                for file in gopro.files() {
+                    println!("file: {:?}", file);
+                }
+            },
+            device::Device::MassStorage(_) |
+            device::Device::Flysight(_) => {
+            },
+        }
+    }
+
     pub fn execute(self) {
     }
 }
