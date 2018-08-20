@@ -22,9 +22,9 @@ token="DROPBOX_TOKEN_GOES_HERE"
 name = "data"
 mountpoint = "/mnt/archiver/flysight"
 
-[[gopro]]
+[[mass_storage]]
 name = "video"
-mountpoint="/mnt/archiver/gopro"
+mountpoint="/mnt/archiver/mass_storage"
 
 #  [gswoop]
 #  binary = "/Applications/gSwoop.app/Contents/MacOS/gswoop"

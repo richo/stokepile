@@ -12,10 +12,10 @@ token="DROPBOX_TOKEN_GOES_HERE"
 name = "data"
 mountpoint = "test-data/flysight"
 
-[[gopro]]
+[[mass_storage]]
 name = "video"
-mountpoint="test-data/gopro"
+mountpoint="test-data/mass_storage"
 
-[[gopro]]
+[[mass_storage]]
 name = "dummy"
 mountpoint="test-data/nonexistant"

@@ -15,7 +15,7 @@ pub trait Peripheral {
     fn files(&self) -> Vec<LogicalFile>;
 }
 
-impl Peripheral for GoproConfig {
+impl Peripheral for MassStorageConfig {
     fn attached(&self) -> bool {
         let path = Path::new(&self.mountpoint);
         let dcim = path.join(Path::new("DCIM"));
@@ -64,14 +64,14 @@ pub struct Config {
     // vimeo: Option<VimeoConfig>,
     // youtube: Option<YoutubeConfig>,
     flysight: Option<Vec<FlysightConfig>>,
-    gopro: Option<Vec<GoproConfig>>,
+    mass_storage: Option<Vec<MassStorageConfig>>,
     // gswoop: Option<GswoopConfig>,
     // sendgrid: Option<SendgridConfig>,
     // pushover: Option<PushoverConfig>,
 }
 
 lazy_static! {
-    static ref EMPTY_GOPROS: Vec<GoproConfig> = vec![];
+    static ref EMPTY_GOPROS: Vec<MassStorageConfig> = vec![];
     static ref EMPTY_FLYSIGHTS: Vec<FlysightConfig> = vec![];
 }
 
@@ -92,7 +92,7 @@ pub struct FlysightConfig {
 }
 
 #[derive(Deserialize,Debug,Eq,PartialEq,Clone)]
-pub struct GoproConfig {
+pub struct MassStorageConfig {
     name: String,
     mountpoint: String,
 }
@@ -113,9 +113,9 @@ impl Config {
         }
     }
 
-    // Do we eventually want to make a camera/gopro distinction?
-    pub fn gopros(&self) -> &Vec<GoproConfig> {
-        match self.gopro {
+    // Do we eventually want to make a camera/mass_storage distinction?
+    pub fn mass_storages(&self) -> &Vec<MassStorageConfig> {
+        match self.mass_storage {
             None => &EMPTY_GOPROS,
             Some(ref v) => v,
         }
@@ -131,7 +131,7 @@ impl Config {
     pub fn attached_peripherals(&self) -> Vec<Box<Peripheral>> {
         // TODO(richo) I think there's some way to make a chain of trait objects
         let mut vec: Vec<Box<Peripheral>> = vec![];
-        for i in self.gopros().iter() {
+        for i in self.mass_storages().iter() {
             if i.attached() {
                 vec.push(Box::new(i.clone()))
             }
@@ -164,10 +164,10 @@ mod tests {
                             mountpoint: "/mnt/archiver/flysight".into(),
                    }]));
 
-        assert_eq!(config.gopro,
-                   Some(vec![GoproConfig {
+        assert_eq!(config.mass_storage,
+                   Some(vec![MassStorageConfig {
                             name: "video".into(),
-                            mountpoint: "/mnt/archiver/gopro".into(),
+                            mountpoint: "/mnt/archiver/mass_storage".into(),
                    }]));
     }
 
@@ -208,13 +208,13 @@ storage_backend="dropbox"
 [dropbox]
 token="DROPBOX_TOKEN_GOES_HERE"
 "#).unwrap();
-        assert_no_gopros(&config);
+        assert_no_mass_storages(&config);
         assert_no_flysights(&config);
     }
 
-    fn assert_no_gopros(cfg: &Config) {
-        assert_eq!(cfg.gopro, None);
-        assert_eq!(cfg.gopros(), &vec![]);
+    fn assert_no_mass_storages(cfg: &Config) {
+        assert_eq!(cfg.mass_storage, None);
+        assert_eq!(cfg.mass_storages(), &vec![]);
     }
 
     fn assert_no_flysights(cfg: &Config) {
@@ -222,13 +222,13 @@ token="DROPBOX_TOKEN_GOES_HERE"
         assert_eq!(cfg.flysights(), &vec![]);
     }
 
-    fn assert_gopros(cfg: &Config) {
-        assert_eq!(cfg.gopros(),
-        &vec![GoproConfig {
+    fn assert_mass_storages(cfg: &Config) {
+        assert_eq!(cfg.mass_storages(),
+        &vec![MassStorageConfig {
                 name: "front".into(),
                 mountpoint: "/mnt/archiver/front".into(),
             },
-            GoproConfig {
+            MassStorageConfig {
                 name: "back".into(),
                 mountpoint: "/mnt/archiver/back".into(),
             }
@@ -249,22 +249,22 @@ token="DROPBOX_TOKEN_GOES_HERE"
     }
 
     #[test]
-    fn test_gopros() {
+    fn test_mass_storages() {
         let config = Config::from_str(r#"
 [archiver]
 storage_backend="dropbox"
 [dropbox]
 token="DROPBOX_TOKEN_GOES_HERE"
 
-[[gopro]]
+[[mass_storage]]
 name = "front"
 mountpoint="/mnt/archiver/front"
 
-[[gopro]]
+[[mass_storage]]
 name = "back"
 mountpoint="/mnt/archiver/back"
 "#).unwrap();
-        assert_gopros(&config);
+        assert_mass_storages(&config);
         assert_no_flysights(&config);
     }
 
@@ -285,22 +285,22 @@ name = "comp"
 mountpoint="/mnt/archiver/comp"
 "#).unwrap();
         assert_flysights(&config);
-        assert_no_gopros(&config);
+        assert_no_mass_storages(&config);
     }
 
     #[test]
-    fn test_gopros_and_flysights() {
+    fn test_mass_storages_and_flysights() {
         let config = Config::from_str(r#"
 [archiver]
 storage_backend="dropbox"
 [dropbox]
 token="DROPBOX_TOKEN_GOES_HERE"
 
-[[gopro]]
+[[mass_storage]]
 name = "front"
 mountpoint="/mnt/archiver/front"
 
-[[gopro]]
+[[mass_storage]]
 name = "back"
 mountpoint="/mnt/archiver/back"
 
@@ -312,7 +312,7 @@ mountpoint="/mnt/archiver/training"
 name = "comp"
 mountpoint="/mnt/archiver/comp"
 "#).unwrap();
-        assert_gopros(&config);
+        assert_mass_storages(&config);
         assert_flysights(&config);
     }
 
