@@ -3,6 +3,7 @@ extern crate ptp;
 
 use std::fs::File;
 use std::io::prelude::*;
+use std::fmt;
 
 use failure::Error;
 
@@ -33,10 +34,20 @@ impl GoproKind {
 }
 
 // Specialising to PTP devices later might be neat, but for now this is fine
-#[derive(Debug)]
-pub struct Gopro {
+pub struct Gopro<'a> {
     pub kind: GoproKind,
     pub serial: String,
+    pub device: libusb::Device<'a>,
+}
+
+impl<'a> fmt::Debug for Gopro<'a> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("Gopro")
+            .field("kind", &self.kind)
+            .field("serial", &self.serial)
+            .field("device", &"libusb::Device")
+            .finish()
+    }
 }
 
 pub fn locate_gopros(ctx: &ctx::Ctx) -> Result<Vec<Gopro>, Error> {
@@ -63,6 +74,7 @@ pub fn locate_gopros(ctx: &ctx::Ctx) -> Result<Vec<Gopro>, Error> {
                 res.push(Gopro {
                     kind: kind,
                     serial: info.SerialNumber,
+                    device: device,
                 })
             },
             None => { continue },
