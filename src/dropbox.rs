@@ -42,6 +42,12 @@ struct MetadataResponse {
     content_hash: String,
 }
 
+#[derive(Deserialize)]
+#[derive(Debug)]
+struct StartUploadSessionResponse {
+    session_id: String,
+}
+
 impl DropboxFilesClient {
     fn new(token: String) -> DropboxFilesClient {
         let client = reqwest::Client::new();
@@ -52,8 +58,8 @@ impl DropboxFilesClient {
         }
     }
 
-    fn request(&self, path: &str, body: Option<Vec<u8>>) -> Result<reqwest::Response, Error> {
-        let url = format!("https://api.dropbox.com/{}", path);
+    fn request(&self, url: (&str, &str), body: Option<Vec<u8>>) -> Result<reqwest::Response, Error> {
+        let url = format!("https://{}.dropbox.com/{}", url.0, url.1);
         // let url = format!("http://localhost:8080/{}", path);
         self.client.post(&url)
         .header(header::Authorization(header::Bearer { token: self.token.clone() }))
@@ -65,7 +71,13 @@ impl DropboxFilesClient {
 
     pub fn get_metadata<'a>(&self, path: &'a str) -> Result<MetadataResponse, Error> {
         let req = serde_json::to_vec(&MetadataRequest { path })?;
-        let mut res = self.request("2/files/get_metadata", Some(req))?;
+        let mut res = self.request(("api", "2/files/get_metadata"), Some(req))?;
+        let meta: MetadataResponse = serde_json::from_str(&res.text()?)?;
+        Ok(meta)
+    }
+
+    fn start_upload_session<'a>(&self, path: &'a str) -> Result<MetadataResponse, Error> {
+        let mut res = self.request(("content", "2/files/upload_session/start"), Some(vec![b'{', b'}']))?;
         let meta: MetadataResponse = serde_json::from_str(&res.text()?)?;
         Ok(meta)
     }

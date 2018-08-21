@@ -97,7 +97,6 @@ impl<'a> Gopro<'a> {
     }
 
     fn handle_file(&self, file: ptp::PtpObjectInfo, handle: u32, out: &mut Vec<GoproFile>) {
-// PtpObjectInfo { StorageID: 65537, ObjectFormat: 12301, ProtectionStatus: 0, ObjectCompressedSize: 14853083, ThumbFormat: 14337, ThumbCompressedSize: 14233, ThumbPixWidth: 0, ThumbPixHeight: 0, ImagePixWidth: 1920, ImagePixHeight: 1080, ImageBitDepth: 0, ParentObject: 2, AssociationType: 1, AssociationDesc: 0, SequenceNumber: 0, Filename: "GOPR9833.MP4", CaptureDate: "20150101T000649", ModificationDate: "", Keywords: "" }
         out.push(GoproFile {
             capturedate: file.CaptureDate,
             filename: file.Filename,
