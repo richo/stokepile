@@ -2,6 +2,7 @@
 #[macro_use] extern crate failure;
 #[macro_use] extern crate lazy_static;
 
+extern crate serde_json;
 extern crate regex;
 
 use std::process;
@@ -12,11 +13,14 @@ use clap::{App,SubCommand,Arg};
 extern crate libusb;
 extern crate chrono;
 
+extern crate reqwest;
+
 use failure::Error;
 
 mod config;
 mod ctx;
 mod device;
+mod dropbox;
 mod peripheral;
 mod plan;
 mod ptp_device;
