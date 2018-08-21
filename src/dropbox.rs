@@ -13,9 +13,24 @@ use failure::Error;
 
 use reqwest::header::{self, Header};
 
-use std::path::PathBuf;
+use std::path::Path;
+use std::fs;
 
 header! { (DropboxAPIArg, "Dropbox-API-Arg") => [String] }
+
+struct LocalFile {
+    file: fs::File,
+    size: u64,
+}
+
+impl LocalFile {
+    fn new<P: AsRef<Path>>(path: P) -> Result<LocalFile, Error> {
+        Ok(LocalFile {
+            file: fs::File::open(&path)?,
+            size: fs::metadata(&path)?.len(),
+        })
+    }
+}
 
 struct DropboxFilesClient {
     token: String,
@@ -56,28 +71,28 @@ struct StartUploadSessionResponse {
 
 #[derive(Serialize)]
 #[derive(Debug)]
-struct UploadSessionAppendRequest {
-    cursor: Cursor,
+struct UploadSessionAppendRequest<'a> {
+    cursor: &'a Cursor,
 }
 
 #[derive(Serialize)]
 #[derive(Debug)]
-struct UploadSessionFinishRequest {
-    cursor: Cursor,
-    commit: Commit,
+struct UploadSessionFinishRequest<'a> {
+    cursor: &'a Cursor,
+    commit: &'a Commit<'a>,
 }
 
 #[derive(Serialize)]
 #[derive(Debug)]
 struct Cursor {
     session_id: String,
-    offset: usize,
+    offset: u64,
 }
 
 #[derive(Serialize)]
 #[derive(Debug)]
-struct Commit {
-    path: PathBuf,
+struct Commit<'a> {
+    path: &'a Path,
     mode: String,
     autorename: bool,
     mute: bool,
@@ -111,39 +126,44 @@ impl DropboxFilesClient {
         Ok(meta)
     }
 
+    pub fn upload_large_file(&self, file: LocalFile, remote_path: &Path) -> Result<MetadataResponse, Error> {
+        let id = self.start_upload_session()?;
+        let mut cursor = Cursor {
+            session_id: id.session_id,
+            offset: 0,
+        };
+
+        while cursor.offset < file.size {
+        }
+
+        let commit = Commit {
+            path: &remote_path,
+            mode: "overwrite".to_string(),
+            autorename: false,
+            mute: false,
+            strict_conflict: false,
+        };
+        self.upload_session_finish(&cursor, &commit)
+    }
+
     fn start_upload_session<'a>(&self) -> Result<StartUploadSessionResponse, Error> {
         let mut res = self.request(("content", "2/files/upload_session/start"), Some(vec![b'{', b'}']), &[])?;
         let resp: StartUploadSessionResponse = serde_json::from_str(&res.text()?)?;
         Ok(resp)
     }
 
-    fn upload_session_append<'a>(&self, session_id: String, data: &[u8], cursor: usize) -> Result<(), Error> {
-        let req = serde_json::to_vec(&UploadSessionAppendRequest {
-                                        cursor: Cursor {
-                                            session_id: session_id,
-                                            offset: cursor,
-                                        }
-        })?;
+    fn upload_session_append<'a>(&self, session_id: String, data: &[u8], cursor: &Cursor) -> Result<(), Error> {
+        let req = serde_json::to_vec(&UploadSessionAppendRequest { cursor })?;
         let header = DropboxAPIArg(String::from_utf8(req)?);
         let mut res = self.request(("content", "2/files/upload_session/start"), Some(data.to_vec()), &[&header])?;
         res.text()?;
         Ok(())
     }
 
-    fn upload_session_finish(&self, session_id: String, path: PathBuf) -> Result<MetadataResponse, Error> {
+    fn upload_session_finish(&self, cursor: &Cursor, commit: &Commit) -> Result<MetadataResponse, Error> {
         let req = serde_json::to_vec(&UploadSessionFinishRequest {
-                                        cursor: Cursor {
-                                            session_id: session_id,
-                                            offset: 0,
-                                        },
-                                        commit: Commit {
-                                            path: path,
-                                            mode: "overwrite".to_string(),
-                                            autorename: false,
-                                            mute: false,
-                                            strict_conflict: false,
-                                        }
-        })?;
+                                        cursor: cursor,
+                                        commit: commit })?;
         let header = DropboxAPIArg(String::from_utf8(req)?);
         let mut res = self.request(("content", "2/files/upload_session/finish"), None, &[&header])?;
         let meta: MetadataResponse = serde_json::from_str(&res.text()?)?;
