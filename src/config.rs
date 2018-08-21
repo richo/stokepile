@@ -3,7 +3,6 @@ extern crate failure;
 
 use std::fs::File;
 use std::io::Read;
-use std::path::Path;
 
 use failure::Error;
 

@@ -5,7 +5,6 @@ use failure::Error;
 
 use std::fs::{self, File};
 use std::os::unix::ffi::OsStrExt;
-use std::io::Read;
 use std::path::{Path,PathBuf};
 
 pub trait Peripheral {

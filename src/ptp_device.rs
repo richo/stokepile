@@ -1,8 +1,6 @@
 extern crate libusb;
 extern crate ptp;
 
-use std::fs::File;
-use std::io::prelude::*;
 use std::fmt;
 
 use failure::Error;
@@ -73,7 +71,7 @@ impl<'a> Gopro<'a> {
 
         // TODO(richo) Encapsulate this into some object that actually lets you poke around in the
         // libusb::Device and won't let you not close your session, etc.
-        camera.open_session(timeout);
+        camera.open_session(timeout)?;
         for storage_id in camera.get_storageids(timeout)? {
             // let storage_info = camera.get_storage_info(storage_id, timeout);
             // println!("storage_info: {:?}", storage_info);
@@ -91,7 +89,7 @@ impl<'a> Gopro<'a> {
                 }
             }
         }
-        camera.close_session(timeout);
+        camera.close_session(timeout)?;
 
         Ok(out)
     }

@@ -7,12 +7,10 @@ extern crate reqwest;
 
 extern crate hyper;
 
-use std::collections::BTreeMap;
 use super::version;
 
 use failure::Error;
 
-use std::fmt;
 use reqwest::header::{self, Header};
 
 header! { (DropboxAPIArg, "Dropbox-API-Arg") => [String] }
@@ -123,6 +121,6 @@ mod tests {
     #[ignore]
     fn test_sample_request() {
         let client = DropboxFilesClient::new(env::var("ARCHIVER_TEST_DROPBOX_KEY").expect("Didn't provide test key"));
-        let res = client.get_metadata("/15-01-01/rearcam/GOPR0001.MP4").expect("Couldn't make test request");
+        client.get_metadata("/15-01-01/rearcam/GOPR0001.MP4").expect("Couldn't make test request");
     }
 }
