@@ -83,6 +83,8 @@ const GOPRO_MANUFACTURER: &'static str = "GoPro";
 #[derive(Debug)]
 pub enum GoproKind {
     Hero4Silver,
+    Hero5Black,
+    UnknownGopro,
 }
 
 impl GoproKind {
@@ -90,7 +92,8 @@ impl GoproKind {
         use self::GoproKind::*;
         match ty {
             0x000d => Some(Hero4Silver),
-            _ => None,
+            0x002d => Some(Hero5Black),
+            _ => Some(UnknownGopro),
         }
     }
 }
@@ -180,7 +183,7 @@ pub fn locate_gopros(ctx: &ctx::Ctx) -> Result<Vec<Gopro>, Error> {
     let mut res = vec![];
 
     for mut device in ctx.usb_ctx.devices()?.iter() {
-        let device_desc = device.device_descriptor().unwrap();
+        let device_desc = device.device_descriptor()?;
 
         if device_desc.vendor_id() != GOPRO_VENDOR {
             continue
@@ -195,6 +198,7 @@ pub fn locate_gopros(ctx: &ctx::Ctx) -> Result<Vec<Gopro>, Error> {
             continue
         }
 
+        // TODO(richo) include the product from info so we can do something useful with unknowns
         match GoproKind::from_u16(device_desc.product_id()) {
             Some(kind) => {
                 res.push(Gopro::new(kind, info.SerialNumber, device)?);
