@@ -56,31 +56,14 @@ pub struct Gopro<'a> {
     pub kind: GoproKind,
     pub serial: String,
     device: libusb::Device<'a>,
+}
+
+pub struct GoproConnection<'a> {
+    gopro: Gopro<'a>,
     camera: ptp::PtpCamera<'a>,
 }
 
-impl<'a> Drop for Gopro<'a> {
-    fn drop(&mut self) {
-        // If this fails.. who cares I guess
-        let _ = self.camera.close_session(None);
-    }
-}
-
-impl<'a> Gopro<'a> {
-    pub fn new(kind: GoproKind, serial: String, device: libusb::Device) -> Result<Gopro, Error> {
-        let mut camera = ptp::PtpCamera::new(&device)?;
-        camera.open_session(None)?;
-        Ok(Gopro {
-            kind: kind,
-            serial: serial,
-            device: device,
-            camera: camera,
-        })
-    }
-    // TODO(richo) This should be an iterator
-    // The GoproFile (and friends) can implement a Materialise trait, which should at least make
-    // sure I can only have a single file in memory. Once I figure out what all the upload
-    // endpoints look like we can figure out how to make sure streaming works
+impl<'a> GoproConnection<'a> {
     pub fn files(&mut self) -> Result<Vec<GoproFile>, Error> {
         let mut out = vec![];
         let timeout = None;
@@ -117,6 +100,33 @@ impl<'a> Gopro<'a> {
     }
 }
 
+impl<'a> Drop for GoproConnection<'a> {
+    fn drop(&mut self) {
+        // If this fails.. who cares I guess
+        let _ = self.camera.close_session(None);
+    }
+}
+
+impl<'a> Gopro<'a> {
+    pub fn new(kind: GoproKind, serial: String, device: libusb::Device) -> Result<Gopro, Error> {
+        Ok(Gopro {
+            kind: kind,
+            serial: serial,
+            device: device,
+        })
+    }
+
+    pub fn connect(self) -> Result<GoproConnection<'a>, Error> {
+        let mut camera = ptp::PtpCamera::new(&self.device)?;
+        camera.open_session(None)?;
+
+        Ok(GoproConnection {
+            gopro: self,
+            camera: camera,
+        })
+    }
+}
+
 impl<'a> fmt::Debug for Gopro<'a> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_struct("Gopro")
@@ -124,6 +134,12 @@ impl<'a> fmt::Debug for Gopro<'a> {
             .field("serial", &self.serial)
             .field("device", &"libusb::Device")
             .finish()
+    }
+}
+
+impl<'a> fmt::Debug for GoproConnection<'a> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        self.gopro.fmt(fmt)
     }
 }
 

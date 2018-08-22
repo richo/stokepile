@@ -4,6 +4,7 @@ use chrono::prelude::*;
 use std::path::PathBuf;
 
 use super::device;
+use failure::Error;
 
 #[derive(Debug)]
 enum UploadSource {
@@ -53,10 +54,10 @@ impl UploadPlan {
     }
 
     /// Interrogates the device, populating the plan
-    pub fn update(&mut self, device: device::Device) {
+    pub fn update(&mut self, device: device::Device) -> Result<(), Error> {
         match device {
             device::Device::Gopro(desc, mut gopro) => {
-                for file in gopro.files() {
+                for file in gopro.connect()?.files() {
                     println!("file: {:?}", file);
                 }
             },
@@ -64,6 +65,7 @@ impl UploadPlan {
             device::Device::Flysight(_) => {
             },
         }
+        Ok(())
     }
 
     pub fn execute(self) {
