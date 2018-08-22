@@ -119,6 +119,28 @@ struct Commit<'a> {
     mode: String,
 }
 
+struct UploadSession<'a> {
+    client: &'a DropboxFilesClient,
+    cursor: Cursor,
+}
+
+impl<'a> UploadSession<'a> {
+    fn append(&mut self, data: &[u8]) -> Result<(), Error> {
+        self.client.upload_session_append(data, &self.cursor)?;
+        self.cursor.offset += data.len() as u64;
+        Ok(())
+    }
+
+    fn finish(self, path: &Path) -> Result<UploadMetadataResponse, Error> {
+        let commit = Commit {
+            path: &path,
+            mode: "overwrite".to_string(),
+        };
+        self.client.upload_session_finish(&[], self.cursor, commit)
+    }
+}
+
+
 impl DropboxFilesClient {
     fn new(token: String) -> DropboxFilesClient {
         let client = reqwest::Client::new();
@@ -154,6 +176,19 @@ impl DropboxFilesClient {
         let mut res = self.request(("api", "2/files/get_metadata"), JSON(req), headers)?;
         let meta: MetadataResponse = serde_json::from_str(&res.text()?)?;
         Ok(meta)
+    }
+
+    pub fn new_session<'a>(&'a self) -> Result<UploadSession<'a>, Error> {
+        let id = self.start_upload_session()?.session_id;
+        let cursor = Cursor {
+            session_id: id,
+            offset: 0,
+        };
+
+        Ok(UploadSession {
+            client: self,
+            cursor: cursor,
+        })
     }
 
     pub fn upload_large_file(&self, mut file: LocalFile, remote_path: &Path) -> Result<UploadMetadataResponse, Error> {
@@ -229,6 +264,23 @@ mod tests {
         let client = DropboxFilesClient::new(env::var("ARCHIVER_TEST_DROPBOX_KEY").expect("Didn't provide test key"));
         let localfile = LocalFile::new("/usr/share/dict/web2").expect("Couldn't open dummy dictionary");
         if let Err(e) = client.upload_large_file(localfile, Path::new("/web2.txt")) {
+            panic!("{:?}", e);
+        }
+    }
+
+    #[test]
+    #[ignore]
+    fn test_uploaded_chunks_work() {
+        fn inner() -> Result<(), Error> {
+            let client = DropboxFilesClient::new(env::var("ARCHIVER_TEST_DROPBOX_KEY")?);
+            let mut sess = client.new_session()?;
+            sess.append(b"BUTTSBUTTS")?;
+            sess.append(b"LOLOLOL")?;
+            sess.finish(Path::new("/butts.txt"))?;
+            Ok(())
+        }
+
+        if let Err(e) = inner() {
             panic!("{:?}", e);
         }
     }
