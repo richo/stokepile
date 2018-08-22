@@ -55,31 +55,46 @@ impl GoproKind {
 pub struct Gopro<'a> {
     pub kind: GoproKind,
     pub serial: String,
-    pub device: libusb::Device<'a>,
+    device: libusb::Device<'a>,
+    camera: ptp::PtpCamera<'a>,
+}
+
+impl<'a> Drop for Gopro<'a> {
+    fn drop(&mut self) {
+        // If this fails.. who cares I guess
+        self.camera.close_session(None);
+    }
 }
 
 impl<'a> Gopro<'a> {
+    pub fn new(kind: GoproKind, serial: String, device: libusb::Device) -> Result<Gopro, Error> {
+        let mut camera = ptp::PtpCamera::new(&device)?;
+        camera.open_session(None)?;
+        Ok(Gopro {
+            kind: kind,
+            serial: serial,
+            device: device,
+            camera: camera,
+        })
+    }
     // TODO(richo) This should be an iterator
     // The GoproFile (and friends) can implement a Materialise trait, which should at least make
     // sure I can only have a single file in memory. Once I figure out what all the upload
     // endpoints look like we can figure out how to make sure streaming works
-    pub fn files(&self) -> Result<Vec<GoproFile>, Error> {
+    pub fn files(&mut self) -> Result<Vec<GoproFile>, Error> {
         let mut out = vec![];
         let timeout = None;
 
-        let mut camera = ptp::PtpCamera::new(&self.device)?;
-
         // TODO(richo) Encapsulate this into some object that actually lets you poke around in the
         // libusb::Device and won't let you not close your session, etc.
-        camera.open_session(timeout)?;
-        for storage_id in camera.get_storageids(timeout)? {
-            // let storage_info = camera.get_storage_info(storage_id, timeout);
+        for storage_id in self.camera.get_storageids(timeout)? {
+            // let storage_info = self.camera.get_storage_info(storage_id, timeout);
             // println!("storage_info: {:?}", storage_info);
 
-            for handle in camera.get_objecthandles_all(storage_id, None, timeout)? {
-                for innerhandle in camera.get_objecthandles(storage_id, handle, None, timeout)? {
+            for handle in self.camera.get_objecthandles_all(storage_id, None, timeout)? {
+                for innerhandle in self.camera.get_objecthandles(storage_id, handle, None, timeout)? {
                     // println!("innerhandle: {:?}", innerhandle);
-                    let object = camera.get_objectinfo(innerhandle, timeout)?;
+                    let object = self.camera.get_objectinfo(innerhandle, timeout)?;
                     println!("object: {:?}", object);
                     match GoproObjectFormat::from_u16(object.ObjectFormat) {
                         Some(GoproObjectFormat::Directory) => {},
@@ -89,7 +104,6 @@ impl<'a> Gopro<'a> {
                 }
             }
         }
-        camera.close_session(timeout)?;
 
         Ok(out)
     }
@@ -134,11 +148,7 @@ pub fn locate_gopros(ctx: &ctx::Ctx) -> Result<Vec<Gopro>, Error> {
 
         match GoproKind::from_u16(device_desc.product_id()) {
             Some(kind) => {
-                res.push(Gopro {
-                    kind: kind,
-                    serial: info.SerialNumber,
-                    device: device,
-                })
+                res.push(Gopro::new(kind, info.SerialNumber, device)?);
             },
             None => { continue },
         }

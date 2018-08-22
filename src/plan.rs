@@ -55,7 +55,7 @@ impl UploadPlan {
     /// Interrogates the device, populating the plan
     pub fn update(&mut self, device: device::Device) {
         match device {
-            device::Device::Gopro(desc, gopro) => {
+            device::Device::Gopro(desc, mut gopro) => {
                 for file in gopro.files() {
                     println!("file: {:?}", file);
                 }
