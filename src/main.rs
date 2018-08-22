@@ -58,17 +58,19 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
 }
 
 fn create_ctx(matches: &clap::ArgMatches) -> Result<ctx::Ctx, Error> {
+    let usb_ctx = libusb::Context::new()?;
+    let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("archiver.toml"))?;
     Ok(ctx::Ctx {
         // Loading config here lets us bail at a convenient time before we get in the weeds
-        usb_ctx: libusb::Context::new()?,
-        cfg: config::Config::from_file(matches.value_of("config").unwrap_or("archiver.toml"))?,
+        usb_ctx,
+        cfg,
     })
 }
 
 fn main() {
     if let Err(e) = run() {
         println!("Error running archiver");
-        println!("{}", e);
+        println!("{:?}", e);
         process::exit(1);
     }
 }
@@ -84,20 +86,20 @@ fn run() -> Result<(), Error> {
             unimplemented!();
         },
         ("run", Some(subm)) => {
-            let mut plan = plan::UploadPlan::new();
-            // Figure out which cameras we're gunna be operating on
             let devices = device::attached_devices(&ctx)?;
             println!("Attached devices:");
-            println!("{:?}", devices);
+            for device in &devices {
+                println!("  {:?}", device);
+            }
+            println!("");
 
             // Let the cameras populate the plan
             for device in devices {
-                plan.update(device);
+                let plan = plan::create_plan(device)?;
+                println!("{:?}", plan);
+                plan.execute(ctx.cfg.backend());
             }
-
-            plan.execute();
         },
-
         ("scan", Some(subm)) => {
             println!("Found the following gopros:");
             for gopro in ptp_device::locate_gopros(&ctx)?.iter() {

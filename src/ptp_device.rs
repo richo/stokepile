@@ -2,6 +2,8 @@ extern crate libusb;
 extern crate ptp;
 
 use std::fmt;
+use std::cmp;
+use std::io::{self, Read};
 
 use failure::Error;
 
@@ -9,16 +11,57 @@ use super::ctx;
 
 #[derive(Debug)]
 pub struct GoproFile {
-    capturedate: String,
-    filename: String,
+    pub capturedate: String,
+    pub filename: String,
     // TODO(richo) I think this handle gets invalidated when we close the session down
     handle: u32,
+    size: u32,
+}
+
+impl GoproFile {
+    pub fn reader<'a, 'b>(self, conn: &'a mut GoproConnection<'b>) -> GoproFileReader<'a, 'b> {
+        GoproFileReader {
+            conn: conn,
+            handle: self.handle,
+            offset: 0,
+            size: self.size,
+        }
+    }
+}
+
+pub struct GoproFileReader<'a, 'b: 'a> {
+    conn: &'a mut GoproConnection<'b>,
+    handle: u32,
+    offset: u32,
+    size: u32,
+}
+
+impl<'a, 'b> Read for GoproFileReader<'a, 'b> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        // Tragically, ptp really wants to allocate it's own memory :(
+        // If I have luck with my other patches, we can try to upstream something
+        let mut size = buf.len();
+        if self.offset + size as u32 > self.size {
+            size = (self.size - self.offset) as usize;
+        }
+        let vec = self.conn.camera.get_partialobject(self.handle,
+                                                     self.offset,
+                                                     size as u32,
+                                                     None).expect("FIXME couldn't read from buf");
+        println!("Got {} bytes from the camera", vec.len());
+        buf.copy_from_slice(&vec[..]);
+        println!("Telling the consumer we read {}", vec.len());
+        self.offset += vec.len() as u32;
+        return Ok(vec.len());
+    }
 }
 
 #[repr(u16)]
+#[derive(Eq,PartialEq,Debug)]
 enum GoproObjectFormat {
     Directory = 0x3001,
-    File = 0x300d,
+    Video = 0x300d,
+    GetStarted = 0x3005,
 }
 
 impl GoproObjectFormat {
@@ -26,7 +69,8 @@ impl GoproObjectFormat {
         use self::GoproObjectFormat::*;
         match format {
             0x3001 => Some(Directory),
-            0x300d => Some(File),
+            0x300d => Some(Video),
+            0x3005 => Some(GetStarted),
             _ => None,
         }
     }
@@ -70,33 +114,22 @@ impl<'a> GoproConnection<'a> {
 
         // TODO(richo) Encapsulate this into some object that actually lets you poke around in the
         // libusb::Device and won't let you not close your session, etc.
-        for storage_id in self.camera.get_storageids(timeout)? {
-            // let storage_info = self.camera.get_storage_info(storage_id, timeout);
-            // println!("storage_info: {:?}", storage_info);
-
-            for handle in self.camera.get_objecthandles_all(storage_id, None, timeout)? {
-                for innerhandle in self.camera.get_objecthandles(storage_id, handle, None, timeout)? {
-                    // println!("innerhandle: {:?}", innerhandle);
-                    let object = self.camera.get_objectinfo(innerhandle, timeout)?;
-                    println!("object: {:?}", object);
-                    match GoproObjectFormat::from_u16(object.ObjectFormat) {
-                        Some(GoproObjectFormat::Directory) => {},
-                        Some(GoproObjectFormat::File) => { self.handle_file(object, handle, &mut out) },
-                        _ => {},
-                    }
-                }
-            }
+        let filehandles = self.camera.get_objecthandles_all(0xFFFFFFFF,
+                                                            Some(GoproObjectFormat::Video as u32),
+                                                            timeout)?;
+        for filehandle in filehandles {
+            let object = self.camera.get_objectinfo(filehandle, timeout)?;
+            assert_eq!(GoproObjectFormat::from_u16(object.ObjectFormat),
+                       Some(GoproObjectFormat::Video));
+            out.push(GoproFile {
+                capturedate: object.CaptureDate,
+                filename: object.Filename,
+                handle: filehandle,
+                size: object.ObjectCompressedSize,
+            })
         }
 
         Ok(out)
-    }
-
-    fn handle_file(&self, file: ptp::PtpObjectInfo, handle: u32, out: &mut Vec<GoproFile>) {
-        out.push(GoproFile {
-            capturedate: file.CaptureDate,
-            filename: file.Filename,
-            handle: handle,
-        })
     }
 }
 

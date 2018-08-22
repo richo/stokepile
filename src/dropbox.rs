@@ -22,21 +22,7 @@ header! { (DropboxAPIArg, "Dropbox-API-Arg") => [String] }
 
 const DEFAULT_CHUNK_SIZE: usize = 4 * 1024 * 1024;
 
-struct LocalFile {
-    file: fs::File,
-    size: u64,
-}
-
-impl LocalFile {
-    fn new<P: AsRef<Path>>(path: P) -> Result<LocalFile, Error> {
-        Ok(LocalFile {
-            file: fs::File::open(&path)?,
-            size: fs::metadata(&path)?.len(),
-        })
-    }
-}
-
-struct DropboxFilesClient {
+pub struct DropboxFilesClient {
     token: String,
     user_agent: String,
     client: reqwest::Client,
@@ -49,7 +35,7 @@ struct MetadataRequest<'a> {
 
 #[derive(Deserialize)]
 #[derive(Debug)]
-struct MetadataResponse {
+pub struct MetadataResponse {
     #[serde(rename = ".tag")]
     tag: String,
     name: String,
@@ -69,7 +55,7 @@ struct MetadataResponse {
 
 #[derive(Deserialize)]
 #[derive(Debug)]
-struct UploadMetadataResponse {
+pub struct UploadMetadataResponse {
     name: String,
     path_lower: String,
     path_display: String,
@@ -142,7 +128,7 @@ impl<'a> UploadSession<'a> {
 
 
 impl DropboxFilesClient {
-    fn new(token: String) -> DropboxFilesClient {
+    pub fn new(token: String) -> DropboxFilesClient {
         let client = reqwest::Client::new();
         DropboxFilesClient {
             token,
@@ -191,7 +177,7 @@ impl DropboxFilesClient {
         })
     }
 
-    pub fn upload_large_file(&self, mut file: LocalFile, remote_path: &Path) -> Result<UploadMetadataResponse, Error> {
+    pub fn upload_from_reader<T: Read>(&self, mut reader: T, remote_path: &Path) -> Result<UploadMetadataResponse, Error> {
         let id = self.start_upload_session()?;
         let mut buffer = vec![0; DEFAULT_CHUNK_SIZE];
         let mut cursor = Cursor {
@@ -199,13 +185,16 @@ impl DropboxFilesClient {
             offset: 0,
         };
 
-        while cursor.offset < file.size {
+        loop {
             // There's more juggling than I would really like here but ok :(
-            let read_bytes = file.file.read(&mut buffer)?;
+            let read_bytes = reader.read(&mut buffer)?;
+            if read_bytes == 0 {
+                // We're probably at EOF? Hopefully?
+                break
+            }
             self.upload_session_append(&buffer[..read_bytes], &cursor)?;
             cursor.offset += read_bytes as u64;
         }
-        assert_eq!(cursor.offset, file.size);
 
         let commit = Commit {
             path: &remote_path,
@@ -262,8 +251,8 @@ mod tests {
     #[ignore]
     fn test_uploads_large_file() {
         let client = DropboxFilesClient::new(env::var("ARCHIVER_TEST_DROPBOX_KEY").expect("Didn't provide test key"));
-        let localfile = LocalFile::new("/usr/share/dict/web2").expect("Couldn't open dummy dictionary");
-        if let Err(e) = client.upload_large_file(localfile, Path::new("/web2.txt")) {
+        let localfile = fs::File::open("/usr/share/dict/web2").expect("Couldn't open dummy dictionary");
+        if let Err(e) = client.upload_from_reader(localfile, Path::new("/web2.txt")) {
             panic!("{:?}", e);
         }
     }

@@ -1,15 +1,20 @@
 extern crate chrono;
 use chrono::prelude::*;
 
-use std::path::PathBuf;
+use std::path::{Path,PathBuf};
+use std::fmt;
+use std::collections::BTreeMap;
 
 use super::device;
+use super::dropbox;
 use failure::Error;
+
+use super::ptp_device;
 
 #[derive(Debug)]
 enum UploadSource {
     LocalFile(PathBuf),
-    PtpDevice(), // TODO(richo) closure probably?
+    PtpFile(ptp_device::GoproFile), // TODO(richo) closure probably?
 }
 
 #[derive(Debug)]
@@ -18,8 +23,10 @@ pub struct UploadDescriptor {
     capture_time: DateTime<Local>,
     device_name: String,
     extension: String,
-    // TODO store the data in an efficient manner
-    // Especially for PTP where we might accidentally materialise the full storage of a gopro
+}
+
+fn parse_gopro_date(date: &str) -> Result<DateTime<Local>, chrono::ParseError> {
+    Local.datetime_from_str(date, "%Y%m%dT%H%M%S")
 }
 
 impl UploadDescriptor {
@@ -41,34 +48,81 @@ impl UploadDescriptor {
     }
 }
 
-#[derive(Debug)]
-pub struct UploadPlan {
+pub trait ExecutePlan : fmt::Debug {
+    fn execute(self: Box<Self>, dropbox::DropboxFilesClient) -> Result<(), Error>;
+}
+
+pub struct GoproPlan<'a> {
+    name: String,
+    connection: ptp_device::GoproConnection<'a>,
     plan: Vec<UploadDescriptor>,
 }
 
-impl UploadPlan {
-    pub fn new() -> UploadPlan {
-        UploadPlan {
-            plan: Vec::new(),
+impl<'a> fmt::Debug for GoproPlan<'a> {
+    fn fmt(&self, mut fmt: &mut fmt::Formatter) -> fmt::Result {
+        if fmt.alternate() {
+            fmt.debug_struct("GoproPlan")
+                .field("connection", &"ptp_device::GoproConnection")
+                .field("plan", &self.plan)
+                .finish()
+        } else {
+            write!(fmt, "{}:\n", &self.name)?;
+            for desc in &self.plan {
+                write!(fmt, "  ")?;
+                desc.local_path.fmt(&mut fmt)?;
+                write!(fmt, "\n")?;
+            }
+            write!(fmt, "")
         }
     }
+}
 
-    /// Interrogates the device, populating the plan
-    pub fn update(&mut self, device: device::Device) -> Result<(), Error> {
-        match device {
-            device::Device::Gopro(desc, mut gopro) => {
-                for file in gopro.connect()?.files() {
-                    println!("file: {:?}", file);
+impl<'a> ExecutePlan for GoproPlan<'a> {
+    fn execute(self: Box<Self>, dropbox: dropbox::DropboxFilesClient) -> Result<(), Error> {
+        let values = *self;
+        let GoproPlan { name, mut connection, plan } = values;
+        for file in plan {
+            match file.local_path {
+                UploadSource::PtpFile(gopro_file) => {
+                    let path = PathBuf::from(&gopro_file.filename);
+                    let reader = gopro_file.reader(&mut connection);
+
+                    // dropbox.upload_from_reader(reader, &path)?;
                 }
-            },
-            device::Device::MassStorage(_) |
-            device::Device::Flysight(_) => {
-            },
+                UploadSource::LocalFile(_) => {
+                    unreachable!();
+                }
+            }
         }
         Ok(())
     }
+}
 
-    pub fn execute(self) {
+pub fn create_plan<'a>(device: device::Device<'a>) -> Result<Box<ExecutePlan + 'a>, Error> {
+    let mut plan = Vec::new();
+    match device {
+        device::Device::Gopro(desc, gopro) => {
+            let name = desc.name;
+            let mut connection = gopro.connect()?;
+            for file in connection.files()? {
+                let capture_time = parse_gopro_date(&file.capturedate)?;
+                plan.push(UploadDescriptor {
+                    local_path: UploadSource::PtpFile(file),
+                    capture_time: capture_time,
+                    device_name: name.clone(),
+                    extension: "mp4".to_string(),
+                });
+            }
+            Ok(Box::new(GoproPlan {
+                name,
+                connection,
+                plan,
+            }))
+        },
+        device::Device::MassStorage(_) |
+            device::Device::Flysight(_) => {
+                unreachable!()
+            },
     }
 }
 
@@ -104,5 +158,13 @@ mod tests {
         };
 
         assert_eq!(upload.remote_path(), "01-01-02/test/03-04-05.mp4".to_string());
+    }
+
+    #[test]
+    fn test_parses_gopro_date_correctly() {
+        let dt = Local.ymd(2015, 1, 1).and_hms(0, 6, 49);
+        // TODO(richo) get better testcases
+        assert_eq!(parse_gopro_date("20150101T000649"),
+                   Ok(dt.clone()));
     }
 }

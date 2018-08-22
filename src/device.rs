@@ -7,7 +7,7 @@ use super::ptp_device;
 
 #[derive(Debug)]
 pub struct DeviceDescription {
-    name: String,
+    pub name: String,
 }
 
 #[derive(Debug)]

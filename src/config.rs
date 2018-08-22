@@ -7,6 +7,7 @@ use std::io::Read;
 use failure::Error;
 
 use super::peripheral::Peripheral;
+use super::dropbox;
 
 #[allow(non_camel_case_types)]
 #[derive(Deserialize,Debug,Eq,PartialEq)]
@@ -114,6 +115,14 @@ impl Config {
             }
         }
         vec
+    }
+
+    pub fn backend(&self) -> dropbox::DropboxFilesClient {
+        match self.archiver.storage_backend {
+            StorageBackend::dropbox => {
+                dropbox::DropboxFilesClient::new(self.dropbox.token.clone())
+            }
+        }
     }
 }
 
