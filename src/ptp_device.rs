@@ -62,7 +62,7 @@ pub struct Gopro<'a> {
 impl<'a> Drop for Gopro<'a> {
     fn drop(&mut self) {
         // If this fails.. who cares I guess
-        self.camera.close_session(None);
+        let _ = self.camera.close_session(None);
     }
 }
 
