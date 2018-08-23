@@ -48,9 +48,7 @@ impl<'a, 'b> Read for GoproFileReader<'a, 'b> {
                                                      self.offset,
                                                      size as u32,
                                                      None).expect("FIXME couldn't read from buf");
-        println!("Got {} bytes from the camera", vec.len());
-        buf.copy_from_slice(&vec[..]);
-        println!("Telling the consumer we read {}", vec.len());
+        &buf[..vec.len()].copy_from_slice(&vec[..]);
         self.offset += vec.len() as u32;
         return Ok(vec.len());
     }

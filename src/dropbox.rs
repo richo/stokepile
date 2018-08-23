@@ -230,7 +230,8 @@ impl DropboxFilesClient {
         let mut headers = Headers::new();
         headers.set(DropboxAPIArg(String::from_utf8(req)?));
         let mut res = self.request(("content", "2/files/upload_session/finish"), Binary(data.to_vec()), headers)?;
-        let meta: UploadMetadataResponse = serde_json::from_str(&res.text()?)?;
+        let text = res.text()?;
+        let meta: UploadMetadataResponse = serde_json::from_str(&text)?;
         Ok(meta)
     }
 }

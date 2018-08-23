@@ -17,6 +17,16 @@ enum UploadSource {
     PtpFile(ptp_device::GoproFile), // TODO(richo) closure probably?
 }
 
+impl UploadSource {
+    fn path(&self) -> &str {
+        match self {
+            UploadSource::LocalFile(path) => path.as_path().to_str().unwrap(),
+            UploadSource::PtpFile(file) => file.filename.as_str(),
+        }
+    }
+}
+
+
 #[derive(Debug)]
 pub struct UploadDescriptor {
     local_path: UploadSource,
@@ -31,7 +41,7 @@ fn parse_gopro_date(date: &str) -> Result<DateTime<Local>, chrono::ParseError> {
 
 impl UploadDescriptor {
     pub fn remote_path(&self) -> String {
-        format!("{}/{}/{}.{}",
+        format!("/{}/{}/{}.{}",
                 self.date_component(),
                 self.device_name,
                 self.time_component(),
@@ -61,18 +71,16 @@ pub struct GoproPlan<'a> {
 impl<'a> fmt::Debug for GoproPlan<'a> {
     fn fmt(&self, mut fmt: &mut fmt::Formatter) -> fmt::Result {
         if fmt.alternate() {
+            write!(fmt, "{}:\n", &self.name)?;
+            for desc in &self.plan {
+                write!(fmt, "{} -> {}\n", desc.local_path.path(), &desc.remote_path())?
+            }
+            write!(fmt, "")
+        } else {
             fmt.debug_struct("GoproPlan")
                 .field("connection", &"ptp_device::GoproConnection")
                 .field("plan", &self.plan)
                 .finish()
-        } else {
-            write!(fmt, "{}:\n", &self.name)?;
-            for desc in &self.plan {
-                write!(fmt, "  ")?;
-                desc.local_path.fmt(&mut fmt)?;
-                write!(fmt, "\n")?;
-            }
-            write!(fmt, "")
         }
     }
 }
@@ -81,13 +89,13 @@ impl<'a> ExecutePlan for GoproPlan<'a> {
     fn execute(self: Box<Self>, dropbox: dropbox::DropboxFilesClient) -> Result<(), Error> {
         let values = *self;
         let GoproPlan { name, mut connection, plan } = values;
-        for file in plan {
-            match file.local_path {
+        for desc in plan {
+            let path = PathBuf::from(&desc.remote_path());
+            match desc.local_path {
                 UploadSource::PtpFile(gopro_file) => {
-                    let path = PathBuf::from(&gopro_file.filename);
                     let reader = gopro_file.reader(&mut connection);
 
-                    // dropbox.upload_from_reader(reader, &path)?;
+                    dropbox.upload_from_reader(reader, &path)?;
                 }
                 UploadSource::LocalFile(_) => {
                     unreachable!();
@@ -142,7 +150,7 @@ mod tests {
             extension: "mp4".to_string(),
         };
 
-        assert_eq!(upload.remote_path(), "17-11-22/test/15-36-10.mp4".to_string());
+        assert_eq!(upload.remote_path(), "/17-11-22/test/15-36-10.mp4".to_string());
     }
 
     #[test]
@@ -157,7 +165,7 @@ mod tests {
             extension: "mp4".to_string(),
         };
 
-        assert_eq!(upload.remote_path(), "01-01-02/test/03-04-05.mp4".to_string());
+        assert_eq!(upload.remote_path(), "/01-01-02/test/03-04-05.mp4".to_string());
     }
 
     #[test]

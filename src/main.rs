@@ -8,6 +8,7 @@ extern crate regex;
 
 
 use std::process;
+use std::env;
 
 extern crate clap;
 use clap::{App,SubCommand,Arg};
@@ -49,11 +50,9 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
                     .about("Runs archiver in persistent mode")
                     .version(version::VERSION)
                     .author("richö butts")
-                    // .arg(Arg::with_name("device")
-                    //      .short("d")
-                    //      .takes_value(true)
-                    //      .multiple(true)
-                    //      .help("Upload only from device"))
+                    .arg(Arg::with_name("plan-only")
+                         .long("plan-only")
+                         .help("Don't upload, only create a plan"))
                     )
 }
 
@@ -71,6 +70,9 @@ fn main() {
     if let Err(e) = run() {
         println!("Error running archiver");
         println!("{:?}", e);
+        if env::var("RUST_BACKTRACE").is_ok() {
+            println!("{:?}", e.backtrace());
+        }
         process::exit(1);
     }
 }
@@ -96,8 +98,10 @@ fn run() -> Result<(), Error> {
             // Let the cameras populate the plan
             for device in devices {
                 let plan = plan::create_plan(device)?;
-                println!("{:?}", plan);
-                plan.execute(ctx.cfg.backend());
+                println!("{:#?}", plan);
+                if ! subm.is_present("plan-only") {
+                    plan.execute(ctx.cfg.backend())?;
+                }
             }
         },
         ("scan", Some(subm)) => {
