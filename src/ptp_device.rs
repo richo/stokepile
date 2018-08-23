@@ -19,13 +19,19 @@ pub struct GoproFile {
 }
 
 impl GoproFile {
-    pub fn reader<'a, 'b>(self, conn: &'a mut GoproConnection<'b>) -> GoproFileReader<'a, 'b> {
+    pub fn reader<'a, 'b>(&'a self, conn: &'a mut GoproConnection<'b>) -> GoproFileReader<'a, 'b> {
         GoproFileReader {
             conn: conn,
             handle: self.handle,
             offset: 0,
             size: self.size,
         }
+    }
+
+    pub fn delete<'a, 'b>(self, conn: &'a mut GoproConnection<'b>) -> Result<(), Error> {
+        // lol how even does into
+        let ret = conn.camera.delete_object(self.handle, None)?;
+        Ok(ret)
     }
 }
 

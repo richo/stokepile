@@ -93,9 +93,12 @@ impl<'a> ExecutePlan for GoproPlan<'a> {
             let path = PathBuf::from(&desc.remote_path());
             match desc.local_path {
                 UploadSource::PtpFile(gopro_file) => {
-                    let reader = gopro_file.reader(&mut connection);
+                    {
+                        let reader = gopro_file.reader(&mut connection);
+                        dropbox.upload_from_reader(reader, &path)?;
+                    }
 
-                    dropbox.upload_from_reader(reader, &path)?;
+                    gopro_file.delete(&mut connection);
                 }
                 UploadSource::LocalFile(_) => {
                     unreachable!();
