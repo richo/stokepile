@@ -40,7 +40,8 @@ impl Peripheral for MassStorageConfig {
             let entry = entry?;
             // Enter into directories that are named appropriately
             if entry.file_type()?.is_dir() {
-                if let Some(date_captures) = VIDEO_PATH.captures(&entry.file_name().as_bytes()) {
+                // TODO(richo) Are we throwing away the path that we need?
+                if let Some(_date_captures) = VIDEO_PATH.captures(&entry.file_name().as_bytes()) {
                     for file in fs::read_dir(entry.path())? {
                         let file = file?;
                         if file.file_type()?.is_file() && VIDEO_FILE.is_match(&file.file_name().as_bytes()) {
@@ -80,11 +81,11 @@ impl Peripheral for FlysightConfig {
             let entry = entry?;
             // Enter into directories that are named appropriately
             if entry.file_type()?.is_dir() {
-                if let Some(date_captures) = DATE.captures(&entry.file_name().as_bytes()) {
+                if let Some(_date_captures) = DATE.captures(&entry.file_name().as_bytes()) {
                     for file in fs::read_dir(entry.path())? {
                         let file = file?;
                         if file.file_type()?.is_file() {
-                            if let Some(file_captures) = ENTRY.captures(&file.file_name().as_bytes()) {
+                            if let Some(_file_captures) = ENTRY.captures(&file.file_name().as_bytes()) {
                                 out.push(File::open(file.path())?);
                             }
                         }

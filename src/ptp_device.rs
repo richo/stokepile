@@ -2,7 +2,6 @@ extern crate libusb;
 extern crate ptp;
 
 use std::fmt;
-use std::cmp;
 use std::io::{self, Read};
 
 use failure::Error;

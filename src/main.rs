@@ -84,7 +84,7 @@ fn run() -> Result<(), Error> {
     let ctx = create_ctx(&matches)?;
 
     match matches.subcommand() {
-        ("daemon", Some(subm))  => {
+        ("daemon", Some(_subm))  => {
             unimplemented!();
         },
         ("run", Some(subm)) => {
@@ -104,7 +104,7 @@ fn run() -> Result<(), Error> {
                 }
             }
         },
-        ("scan", Some(subm)) => {
+        ("scan", Some(_subm)) => {
             println!("Found the following gopros:");
             for gopro in ptp_device::locate_gopros(&ctx)?.iter() {
                 println!("  {:?} : {}", gopro.kind, gopro.serial);

@@ -1,9 +1,8 @@
 extern crate chrono;
 use chrono::prelude::*;
 
-use std::path::{Path,PathBuf};
+use std::path::PathBuf;
 use std::fmt;
-use std::collections::BTreeMap;
 
 use super::device;
 use super::dropbox;
@@ -69,7 +68,7 @@ pub struct GoproPlan<'a> {
 }
 
 impl<'a> fmt::Debug for GoproPlan<'a> {
-    fn fmt(&self, mut fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         if fmt.alternate() {
             write!(fmt, "{}:\n", &self.name)?;
             for desc in &self.plan {
@@ -88,7 +87,7 @@ impl<'a> fmt::Debug for GoproPlan<'a> {
 impl<'a> ExecutePlan for GoproPlan<'a> {
     fn execute(self: Box<Self>, dropbox: dropbox::DropboxFilesClient) -> Result<(), Error> {
         let values = *self;
-        let GoproPlan { name, mut connection, plan } = values;
+        let GoproPlan { name: _, mut connection, plan } = values;
         for desc in plan {
             let path = PathBuf::from(&desc.remote_path());
             match desc.local_path {
@@ -98,7 +97,7 @@ impl<'a> ExecutePlan for GoproPlan<'a> {
                         dropbox.upload_from_reader(reader, &path)?;
                     }
 
-                    gopro_file.delete(&mut connection);
+                    gopro_file.delete(&mut connection)?;
                 }
                 UploadSource::LocalFile(_) => {
                     unreachable!();

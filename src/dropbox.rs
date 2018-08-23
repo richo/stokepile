@@ -69,7 +69,7 @@ pub struct UploadMetadataResponse {
 
 #[derive(Deserialize)]
 #[derive(Debug)]
-struct StartUploadSessionResponse {
+pub struct StartUploadSessionResponse {
     session_id: String,
 }
 
@@ -105,7 +105,7 @@ struct Commit<'a> {
     mode: String,
 }
 
-struct UploadSession<'a> {
+pub struct UploadSession<'a> {
     client: &'a DropboxFilesClient,
     cursor: Cursor,
 }
@@ -141,6 +141,7 @@ impl DropboxFilesClient {
         let url = format!("https://{}.dropboxapi.com/{}", url.0, url.1);
 
         headers.set(header::Authorization(header::Bearer { token: self.token.clone() }));
+        headers.set(header::UserAgent::new(self.user_agent.clone()));
         headers.set(match &body {
             DropboxBody::JSON(_) => header::ContentType::json(),
             DropboxBody::Binary(_) => header::ContentType::octet_stream(),
