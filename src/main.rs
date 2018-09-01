@@ -2,6 +2,9 @@
 #[macro_use] extern crate failure;
 #[macro_use] extern crate lazy_static;
 #[macro_use] extern crate hyper;
+#[macro_use] extern crate log;
+
+extern crate pretty_env_logger;
 
 extern crate serde_json;
 extern crate regex;
@@ -66,12 +69,21 @@ fn create_ctx(matches: &clap::ArgMatches) -> Result<ctx::Ctx, Error> {
     })
 }
 
+fn init_logging() {
+    if let None = env::var_os("RUST_LOG") {
+        env::set_var("RUST_LOG", "INFO");
+        pretty_env_logger::init();
+    }
+
+}
+
 fn main() {
+    init_logging();
     if let Err(e) = run() {
-        println!("Error running archiver");
-        println!("{:?}", e);
+        error!("Error running archiver");
+        error!("{:?}", e);
         if env::var("RUST_BACKTRACE").is_ok() {
-            println!("{:?}", e.backtrace());
+            error!("{:?}", e.backtrace());
         }
         process::exit(1);
     }
