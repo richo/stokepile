@@ -137,6 +137,10 @@ impl<'a> GoproConnection<'a> {
 
         Ok(out)
     }
+
+    pub fn power_down(&mut self) -> Result<(), ptp::Error> {
+        self.camera.power_down(None)
+    }
 }
 
 impl<'a> Drop for GoproConnection<'a> {
