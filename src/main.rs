@@ -32,7 +32,6 @@ mod ctx;
 mod device;
 mod dropbox;
 mod peripheral;
-mod plan;
 mod ptp_device;
 mod storage;
 mod staging;
