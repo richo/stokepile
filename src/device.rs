@@ -31,8 +31,8 @@ impl<'a> Device <'a> {
             Device::MassStorage(_desc) => {
                 unreachable!();
             },
-            Device::Flysight(_desc, flysight) => {
-                unreachable!();
+            Device::Flysight(desc, flysight) => {
+                flysight.stage_files(&desc.name, destination)
             },
         }
     }

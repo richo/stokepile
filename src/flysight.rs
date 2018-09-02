@@ -1,5 +1,7 @@
 extern crate regex;
+extern crate chrono;
 
+use chrono::prelude::*;
 use std::fs::{self, File};
 use std::path::{Path,PathBuf};
 use std::os::unix::ffi::OsStrExt;
@@ -13,6 +15,12 @@ pub struct Flysight {
     pub path: PathBuf,
 }
 
+pub struct FlysightFile {
+    capturedate: String,
+    capturetime: String,
+    file: File,
+}
+
 impl Flysight {
     fn attached(&self) -> bool {
         let dcim = self.path.join(Path::new("config.txt"));
@@ -24,7 +32,7 @@ impl Flysight {
         &self.name
     }
 
-    fn files(&self) -> Result<Vec<File>, Error> {
+    fn files(&self) -> Result<Vec<FlysightFile>, Error> {
         lazy_static! {
             static ref DATE: regex::bytes::Regex =
                 regex::bytes::Regex::new(r"(?P<year>\d{2})-(?P<month>\d{2})-(?P<day>\d{2})").expect("Failed to compile regex");
@@ -37,17 +45,21 @@ impl Flysight {
         for entry in fs::read_dir(path)? {
             let entry = entry?;
             // Enter into directories that are named appropriately
-            if entry.file_type()?.is_dir() {
-                if let Some(_date_captures) = DATE.captures(&entry.file_name().as_bytes()) {
-                    for file in fs::read_dir(entry.path())? {
-                        let file = file?;
-                        if file.file_type()?.is_file() {
-                            if let Some(_file_captures) = ENTRY.captures(&file.file_name().as_bytes()) {
-                                out.push(File::open(file.path())?);
-                            }
-                        }
+            if entry.file_type()?.is_dir() && DATE.is_match(&entry.file_name().as_bytes()) {
+                for file in fs::read_dir(entry.path())? {
+                    let file = file?;
+                    if file.file_type()?.is_file() && ENTRY.is_match(&file.file_name().as_bytes()) {
+                        out.push(FlysightFile {
+                            // TODO(richo) There's actually the very real chance that people will
+                            // end up with non utf8 garbage.
+                            capturedate: entry.file_name().into_string().unwrap(),
+                            capturetime: file.file_name().into_string().unwrap(),
+                            file: File::open(file.path())?
+                        });
+
                     }
                 }
+
             }
         }
         Ok(out)
@@ -58,8 +70,7 @@ impl Staging for Flysight {
     // Consumes self, purely because connect does
     fn stage_files<T>(self, name: &str, destination: T) -> Result<(), Error>
     where T: AsRef<Path> {
-        // let mut plan = Vec::new();
-        // for file in self.files()? {
+        for file in self.files()? {
         //     let capture_time = parse_gopro_date(&file.capturedate)?;
         //     let size = file.size as u64;
         //     plan.push((file, UploadDescriptor {
@@ -100,7 +111,7 @@ impl Staging for Flysight {
 
         //     // Once I'm more confident that I haven't fucked up staging
         //     // file.delete()
-        // }
+        }
 
         Ok(())
     }
