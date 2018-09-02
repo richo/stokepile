@@ -22,6 +22,7 @@ header! { (DropboxAPIArg, "Dropbox-API-Arg") => [String] }
 
 const DEFAULT_CHUNK_SIZE: usize = 4 * 1024 * 1024;
 
+#[derive(Clone)]
 pub struct DropboxFilesClient {
     token: String,
     user_agent: String,

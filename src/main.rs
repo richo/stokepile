@@ -34,6 +34,7 @@ mod dropbox;
 mod peripheral;
 mod plan;
 mod ptp_device;
+mod storage;
 mod staging;
 mod version;
 
@@ -136,8 +137,15 @@ fn run() -> Result<(), Error> {
                 device.stage_files(&ctx.staging)?;
             }
 
+
             // Run the uploader thread syncronously as a smoketest for the daemon mode
-            // thread::spawn(|| staging::run(&ctx.staging)).join();
+            let staging = ctx.staging.clone();
+            let backend = ctx.cfg.backend().clone();
+            match thread::spawn(move || storage::upload_from_staged(&staging, &backend)).join() {
+                Ok(Ok(())) => {},
+                Ok(Err(e)) => error!("{:?}", e),
+                Err(e) => error!("{:?}", e),
+            }
         },
         ("scan", Some(_subm)) => {
             println!("Found the following gopros:");
