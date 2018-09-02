@@ -12,6 +12,9 @@ extern crate regex;
 
 use std::process;
 use std::env;
+use std::fs;
+use std::io;
+use std::path::PathBuf;
 
 extern crate clap;
 use clap::{App,SubCommand,Arg};
@@ -62,10 +65,12 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
 fn create_ctx(matches: &clap::ArgMatches) -> Result<ctx::Ctx, Error> {
     let usb_ctx = libusb::Context::new()?;
     let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("archiver.toml"))?;
+    let staging = create_or_find_staging()?;
     Ok(ctx::Ctx {
         // Loading config here lets us bail at a convenient time before we get in the weeds
         usb_ctx,
         cfg,
+        staging,
     })
 }
 
@@ -74,7 +79,24 @@ fn init_logging() {
         env::set_var("RUST_LOG", "INFO");
         pretty_env_logger::init();
     }
+}
 
+fn create_or_find_staging() -> Result<PathBuf, Error> {
+    // TODO(richo) Pull this out of config or something?
+    let relative_path = PathBuf::from("staging");
+    let mut absolute_path = std::env::current_dir()?;
+    absolute_path.push(relative_path);
+
+    if let Err(e) = fs::create_dir(&absolute_path) {
+        if e.kind() == io::ErrorKind::AlreadyExists {
+            info!("Reusing existing staging dir");
+        } else {
+            error!("{:?}", e);
+            panic!();
+        }
+    }
+
+    Ok(absolute_path)
 }
 
 fn main() {
@@ -122,7 +144,10 @@ fn run() -> Result<(), Error> {
                 println!("  {:?} : {}", gopro.kind, gopro.serial);
             }
         },
-        _ => {unreachable!()}, // Either no subcommand or one not tested for...
+        _ => {
+            error!("No subcommand provided");
+            unreachable!();
+        }, // Either no subcommand or one not tested for...
     }
 
     Ok(())
