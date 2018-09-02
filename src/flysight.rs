@@ -1,3 +1,6 @@
+extern crate serde_json;
+extern crate hashing_copy;
+extern crate sha2;
 extern crate regex;
 extern crate chrono;
 
@@ -5,7 +8,7 @@ use chrono::prelude::*;
 use std::fs::{self, File};
 use std::path::{Path,PathBuf};
 use std::os::unix::ffi::OsStrExt;
-use super::staging::Staging;
+use super::staging::{Staging, UploadDescriptor};
 use failure::Error;
 
 #[derive(Debug)]
@@ -19,6 +22,16 @@ pub struct FlysightFile {
     capturedate: String,
     capturetime: String,
     file: File,
+}
+
+impl FlysightFile {
+    pub fn capture_date(&self) -> Result<DateTime<Local>, chrono::ParseError> {
+        // Adding time is hard, we'll just allocate our faces off
+        let mut datetime = self.capturedate.clone();
+        datetime.push_str("/");
+        datetime.push_str(&self.capturetime);
+        Local.datetime_from_str(&datetime, "%y-%m-%d/%H-%M-%S")
+    }
 }
 
 impl Flysight {
@@ -49,11 +62,15 @@ impl Flysight {
                 for file in fs::read_dir(entry.path())? {
                     let file = file?;
                     if file.file_type()?.is_file() && ENTRY.is_match(&file.file_name().as_bytes()) {
+                        // Trim the .csv from the end
+                        let mut filename = file.file_name().into_string().unwrap();
+                        let len = filename.len();
+                        filename.truncate(len - 4);
                         out.push(FlysightFile {
                             // TODO(richo) There's actually the very real chance that people will
                             // end up with non utf8 garbage.
                             capturedate: entry.file_name().into_string().unwrap(),
-                            capturetime: file.file_name().into_string().unwrap(),
+                            capturetime: filename,
                             file: File::open(file.path())?
                         });
 
@@ -70,47 +87,45 @@ impl Staging for Flysight {
     // Consumes self, purely because connect does
     fn stage_files<T>(self, name: &str, destination: T) -> Result<(), Error>
     where T: AsRef<Path> {
-        for file in self.files()? {
-        //     let capture_time = parse_gopro_date(&file.capturedate)?;
-        //     let size = file.size as u64;
-        //     plan.push((file, UploadDescriptor {
-        //         capture_time,
-        //         device_name: name.to_string(),
-        //         // TODO(richo) is this always true?
-        //         extension: "mp4".to_string(),
-        //         sha2: [0; 32],
-        //         size,
-        //     }));
+        for mut file in self.files()? {
+            let mut desc = UploadDescriptor {
+                capture_time: file.capture_date()?,
+                device_name: name.to_string(),
+                extension: "csv".to_string(),
+                sha2: [0; 32],
+                // TODO(richo) actual double check sizes
+                size: 0,
+            };
 
-        //     let staging_name = desc.staging_name();
-        //     let manifest_name = desc.manifest_name();
+            let staging_name = desc.staging_name();
+            let manifest_name = desc.manifest_name();
 
-        //     let mut options = fs::OpenOptions::new();
-        //     let options = options.write(true).create_new(true);
+            let mut options = fs::OpenOptions::new();
+            let options = options.write(true).create_new(true);
 
-        //     let staging_path = destination.as_ref().join(&staging_name);
-        //     let manifest_path = destination.as_ref().join(&manifest_name);
+            let staging_path = destination.as_ref().join(&staging_name);
+            let manifest_path = destination.as_ref().join(&manifest_name);
 
-        //     info!("Staging {}", &staging_name);
-        //     trace!(" To {:?}", staging_path);
-        //     {
-        //         let mut staged = options.open(&staging_path)?;
-        //         let (size, hash) = hashing_copy::copy_and_hash::<_, _, sha2::Sha256>(&mut file.reader(&mut conn), &mut staged)?;
-        //         assert_eq!(size, desc.size);
-        //         info!("Shasum: {:x}", hash);
-        //         info!("size: {:x}", size);
-        //         desc.sha2.copy_from_slice(&hash);
-        //     } // Ensure that we've closed our staging file
+            info!("Staging {}", &staging_name);
+            trace!(" To {:?}", staging_path);
+            {
+                let mut staged = options.open(&staging_path)?;
+                let (size, hash) = hashing_copy::copy_and_hash::<_, _, sha2::Sha256>(&mut file.file, &mut staged)?;
+                // assert_eq!(size, desc.size);
+                info!("Shasum: {:x}", hash);
+                info!("size: {:x}", size);
+                desc.sha2.copy_from_slice(&hash);
+            } // Ensure that we've closed our staging file
 
-        //     {
-        //         info!("Manifesting {}", &manifest_name);
-        //         trace!(" To {:?}", manifest_path);
-        //         let mut staged = options.open(&manifest_path)?;
-        //         serde_json::to_writer(&mut staged, &desc)?;
-        //     }
+            {
+                info!("Manifesting {}", &manifest_name);
+                trace!(" To {:?}", manifest_path);
+                let mut staged = options.open(&manifest_path)?;
+                serde_json::to_writer(&mut staged, &desc)?;
+            }
 
-        //     // Once I'm more confident that I haven't fucked up staging
-        //     // file.delete()
+            // Once I'm more confident that I haven't fucked up staging
+            // file.delete()
         }
 
         Ok(())
@@ -130,5 +145,21 @@ mod tests {
 
         let files = flysight.files().expect("Couldn't load test files");
         assert_eq!(files.len(), 3);
+    }
+
+    #[test]
+    fn test_flysight_parses_dates() {
+        let flysight = Flysight {
+            name: "data".into(),
+            path: "test-data/flysight".into(),
+        };
+
+        let files = flysight.files().expect("Couldn't load test files");
+        assert_eq!(files[0].capture_date().unwrap(),
+                   Local.ymd(2018, 8, 24).and_hms(9, 55, 30));
+        assert_eq!(files[1].capture_date().unwrap(),
+                   Local.ymd(2018, 8, 24).and_hms(10, 39, 58));
+        assert_eq!(files[2].capture_date().unwrap(),
+                   Local.ymd(2018, 8, 24).and_hms(11, 0, 28));
     }
 }
