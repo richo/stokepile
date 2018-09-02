@@ -1,12 +1,24 @@
 extern crate libusb;
 extern crate ptp;
+extern crate chrono;
+extern crate sha2;
+extern crate hashing_copy;
+extern crate serde_json;
 
+use std::path::Path;
+use chrono::prelude::*;
 use std::fmt;
+use std::fs::{self, File};
 use std::io::{self, Read};
 
 use failure::Error;
 
 use super::ctx;
+use super::staging::{UploadDescriptor, Staging};
+
+fn parse_gopro_date(date: &str) -> Result<DateTime<Local>, chrono::ParseError> {
+    Local.datetime_from_str(date, "%Y%m%dT%H%M%S")
+}
 
 #[derive(Debug)]
 pub struct GoproFile {
@@ -170,6 +182,64 @@ impl<'a> Gopro<'a> {
     }
 }
 
+impl<'a> Staging for Gopro<'a> {
+    // Consumes self, purely because connect does
+    fn stage_files<T>(self, name: &str, destination: T) -> Result<(), Error>
+    where T: AsRef<Path> {
+        let mut plan = Vec::new();
+        let mut conn = self.connect()?;
+
+        // We build a vector first because we need to use the connection again to read them, and
+        // the connection is borrowed by the files iterator
+        for file in conn.files()? {
+            let capture_time = parse_gopro_date(&file.capturedate)?;
+            let size = file.size as u64;
+            plan.push((file, UploadDescriptor {
+                capture_time,
+                device_name: name.to_string(),
+                // TODO(richo) is this always true?
+                extension: "mp4".to_string(),
+                sha2: [0; 32],
+                size,
+            }));
+        }
+
+        for (file, mut desc) in plan {
+            let staging_name = desc.staging_name();
+            let manifest_name = desc.manifest_name();
+
+            let mut options = fs::OpenOptions::new();
+            let options = options.write(true).create_new(true);
+
+            let staging_path = destination.as_ref().join(&staging_name);
+            let manifest_path = destination.as_ref().join(&manifest_name);
+
+            info!("Staging {}", &staging_name);
+            trace!(" To {:?}", staging_path);
+            {
+                let mut staged = options.open(&staging_path)?;
+                let (size, hash) = hashing_copy::copy_and_hash::<_, _, sha2::Sha256>(&mut file.reader(&mut conn), &mut staged)?;
+                assert_eq!(size, desc.size);
+                info!("Shasum: {:x}", hash);
+                info!("size: {:x}", size);
+                desc.sha2.copy_from_slice(&hash);
+            } // Ensure that we've closed our staging file
+
+            {
+                info!("Manifesting {}", &manifest_name);
+                trace!(" To {:?}", manifest_path);
+                let mut staged = options.open(&manifest_path)?;
+                serde_json::to_writer(&mut staged, &desc)?;
+            }
+
+            // Once I'm more confident that I haven't fucked up staging
+            // file.delete()
+        }
+
+        Ok(())
+    }
+}
+
 impl<'a> fmt::Debug for Gopro<'a> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_struct("Gopro")
@@ -216,4 +286,17 @@ pub fn locate_gopros(ctx: &ctx::Ctx) -> Result<Vec<Gopro>, Error> {
 
     }
     Ok(res)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parses_gopro_date_correctly() {
+        let dt = Local.ymd(2015, 1, 1).and_hms(0, 6, 49);
+        // TODO(richo) get better testcases
+        assert_eq!(parse_gopro_date("20150101T000649"),
+                   Ok(dt.clone()));
+    }
 }

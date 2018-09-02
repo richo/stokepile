@@ -27,15 +27,12 @@ impl UploadSource {
 
 
 #[derive(Debug)]
+// TODO(richo) make these all private again and stick this struct elsewhere
+// Probably in staging? StagedFile ?
 pub struct UploadDescriptor {
-    local_path: UploadSource,
-    capture_time: DateTime<Local>,
-    device_name: String,
-    extension: String,
-}
-
-fn parse_gopro_date(date: &str) -> Result<DateTime<Local>, chrono::ParseError> {
-    Local.datetime_from_str(date, "%Y%m%dT%H%M%S")
+    pub capture_time: DateTime<Local>,
+    pub device_name: String,
+    pub extension: String,
 }
 
 impl UploadDescriptor {
@@ -72,7 +69,7 @@ impl<'a> fmt::Debug for GoproPlan<'a> {
         if fmt.alternate() {
             write!(fmt, "{}:\n", &self.name)?;
             for desc in &self.plan {
-                write!(fmt, "{} -> {}\n", desc.local_path.path(), &desc.remote_path())?
+                write!(fmt, "[] -> {}\n", &desc.remote_path())?
             }
             write!(fmt, "")
         } else {
@@ -89,20 +86,9 @@ impl<'a> ExecutePlan for GoproPlan<'a> {
         let values = *self;
         let GoproPlan { name: _, mut connection, plan } = values;
         for desc in plan {
-            let path = PathBuf::from(&desc.remote_path());
-            match desc.local_path {
-                UploadSource::PtpFile(gopro_file) => {
-                    {
-                        let reader = gopro_file.reader(&mut connection);
-                        dropbox.upload_from_reader(reader, &path)?;
-                    }
-
-                    gopro_file.delete(&mut connection)?;
-                }
-                UploadSource::LocalFile(_) => {
-                    unreachable!();
-                }
-            }
+                        // let reader = gopro_file.reader(&mut connection);
+                        // dropbox.upload_from_reader(reader, &path)?;
+                        // gopro_file.delete(&mut connection)?;
         }
         Ok(())
     }
@@ -114,15 +100,6 @@ pub fn create_plan<'a>(device: device::Device<'a>) -> Result<Box<ExecutePlan + '
         device::Device::Gopro(desc, gopro) => {
             let name = desc.name;
             let mut connection = gopro.connect()?;
-            for file in connection.files()? {
-                let capture_time = parse_gopro_date(&file.capturedate)?;
-                plan.push(UploadDescriptor {
-                    local_path: UploadSource::PtpFile(file),
-                    capture_time: capture_time,
-                    device_name: name.clone(),
-                    extension: "mp4".to_string(),
-                });
-            }
             Ok(Box::new(GoproPlan {
                 name,
                 connection,
@@ -146,7 +123,6 @@ mod tests {
         let path = PathBuf::from("/path/to/whatever");
 
         let upload = UploadDescriptor {
-            local_path: UploadSource::LocalFile(path),
             capture_time: datetime,
             device_name: "test".to_string(),
             extension: "mp4".to_string(),
@@ -161,20 +137,11 @@ mod tests {
         let path = PathBuf::from("/path/to/whatever");
 
         let upload = UploadDescriptor {
-            local_path: UploadSource::LocalFile(path),
             capture_time: datetime,
             device_name: "test".to_string(),
             extension: "mp4".to_string(),
         };
 
         assert_eq!(upload.remote_path(), "/01-01-02/test/03-04-05.mp4".to_string());
-    }
-
-    #[test]
-    fn test_parses_gopro_date_correctly() {
-        let dt = Local.ymd(2015, 1, 1).and_hms(0, 6, 49);
-        // TODO(richo) get better testcases
-        assert_eq!(parse_gopro_date("20150101T000649"),
-                   Ok(dt.clone()));
     }
 }

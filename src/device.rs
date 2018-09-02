@@ -1,9 +1,12 @@
 use std::collections::HashMap;
 
 use failure::Error;
+use std::path::Path;
 
 use super::ctx;
 use super::ptp_device;
+
+use super::staging::Staging;
 
 #[derive(Debug)]
 pub struct DeviceDescription {
@@ -15,6 +18,21 @@ pub enum Device<'a> {
     Gopro(DeviceDescription, ptp_device::Gopro<'a>),
     MassStorage(DeviceDescription),
     Flysight(DeviceDescription),
+}
+
+impl<'a> Device <'a> {
+    pub fn stage_files<T>(self, destination: T) -> Result<(), Error>
+    where T: AsRef<Path> {
+        match self {
+            Device::Gopro(desc, gopro) => {
+                gopro.stage_files(&desc.name, destination)
+            },
+            Device::MassStorage(_desc) |
+            Device::Flysight(_desc) => {
+                unreachable!();
+            },
+        }
+    }
 }
 
 pub fn attached_devices(ctx: &ctx::Ctx) -> Result<Vec<Device>, Error> {

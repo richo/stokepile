@@ -13,9 +13,11 @@ failure = "0.1.2"
 lazy_static = "1.1.0"
 libusb = "0.3.0"
 ptp = { "path" = "../rust-ptp" }
-chrono = "0.4.5"
+chrono = { version = "0.4", features = ["serde"] }
 regex = "1.0.2"
 reqwest = "0.8.8"
 hyper = "0.11.27"
 log = "0.4.4"
 pretty_env_logger = "0.2.4"
+hashing-copy = "0.1"
+sha2 = "0.7"

@@ -14,6 +14,7 @@ use std::process;
 use std::env;
 use std::fs;
 use std::io;
+use std::thread;
 use std::path::PathBuf;
 
 extern crate clap;
@@ -33,6 +34,7 @@ mod dropbox;
 mod peripheral;
 mod plan;
 mod ptp_device;
+mod staging;
 mod version;
 
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
@@ -131,12 +133,11 @@ fn run() -> Result<(), Error> {
 
             // Let the cameras populate the plan
             for device in devices {
-                let plan = plan::create_plan(device)?;
-                println!("{:#?}", plan);
-                if ! subm.is_present("plan-only") {
-                    plan.execute(ctx.cfg.backend())?;
-                }
+                device.stage_files(&ctx.staging)?;
             }
+
+            // Run the uploader thread syncronously as a smoketest for the daemon mode
+            // thread::spawn(|| staging::run(&ctx.staging)).join();
         },
         ("scan", Some(_subm)) => {
             println!("Found the following gopros:");
