@@ -31,6 +31,7 @@ mod config;
 mod ctx;
 mod device;
 mod dropbox;
+mod flysight;
 mod peripheral;
 mod ptp_device;
 mod storage;

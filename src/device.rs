@@ -5,6 +5,7 @@ use std::path::Path;
 
 use super::ctx;
 use super::ptp_device;
+use super::flysight;
 
 use super::staging::Staging;
 
@@ -17,7 +18,7 @@ pub struct DeviceDescription {
 pub enum Device<'a> {
     Gopro(DeviceDescription, ptp_device::Gopro<'a>),
     MassStorage(DeviceDescription),
-    Flysight(DeviceDescription),
+    Flysight(DeviceDescription, flysight::Flysight),
 }
 
 impl<'a> Device <'a> {
@@ -27,8 +28,10 @@ impl<'a> Device <'a> {
             Device::Gopro(desc, gopro) => {
                 gopro.stage_files(&desc.name, destination)
             },
-            Device::MassStorage(_desc) |
-            Device::Flysight(_desc) => {
+            Device::MassStorage(_desc) => {
+                unreachable!();
+            },
+            Device::Flysight(_desc, flysight) => {
                 unreachable!();
             },
         }

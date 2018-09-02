@@ -3,11 +3,12 @@ extern crate failure;
 
 use std::fs::File;
 use std::io::Read;
+use std::path::PathBuf;
 
 use failure::Error;
 
-use super::peripheral::Peripheral;
 use super::dropbox;
+use super::flysight::Flysight;
 
 #[allow(non_camel_case_types)]
 #[derive(Deserialize,Debug,Eq,PartialEq)]
@@ -49,6 +50,15 @@ pub struct DropboxConfig {
 pub struct FlysightConfig {
     pub name: String,
     pub mountpoint: String,
+}
+
+impl FlysightConfig {
+    pub fn flysight(&self) -> Flysight {
+        Flysight {
+            name: self.name.clone(),
+            path: PathBuf::from(self.mountpoint.clone()),
+        }
+    }
 }
 
 #[derive(Deserialize,Debug,Eq,PartialEq,Clone)]
@@ -101,21 +111,6 @@ impl Config {
         }
     }
 
-    pub fn attached_peripherals(&self) -> Vec<Box<Peripheral>> {
-        // TODO(richo) I think there's some way to make a chain of trait objects
-        let mut vec: Vec<Box<Peripheral>> = vec![];
-        for i in self.mass_storages().iter() {
-            if i.attached() {
-                vec.push(Box::new(i.clone()))
-            }
-        }
-        for i in self.flysights().iter() {
-            if i.attached() {
-                vec.push(Box::new(i.clone()))
-            }
-        }
-        vec
-    }
 
     pub fn backend(&self) -> dropbox::DropboxFilesClient {
         match self.archiver.storage_backend {
@@ -331,11 +326,11 @@ mountpoint="/mnt/archiver/comp"
         assert_flysights(&config);
     }
 
-    #[test]
-    fn test_attached_devices() {
-        let config = Config::from_file("test-data/archiver.toml").unwrap();
-        let peripherals = config.attached_peripherals();
-        let vec: Vec<_> = peripherals.iter().map(|x| x.name()).collect();
-        assert_eq!(vec, vec!["video", "data"]);
-    }
+    // #[test]
+    // fn test_attached_devices() {
+    //     let config = Config::from_file("test-data/archiver.toml").unwrap();
+    //     let peripherals = config.attached_peripherals();
+    //     let vec: Vec<_> = peripherals.iter().map(|x| x.name()).collect();
+    //     assert_eq!(vec, vec!["video", "data"]);
+    // }
 }
