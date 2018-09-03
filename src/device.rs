@@ -44,10 +44,11 @@ pub fn attached_devices(ctx: &ctx::Ctx) -> Result<Vec<Device>, Error> {
     for x in ctx.cfg.gopros().iter() {
         gopro_serials.insert(x.serial.clone(), x.name.clone());
     }
-    Ok(ptp_device::locate_gopros(ctx)?
+    let devices = ptp_device::locate_gopros(ctx)?
        .into_iter()
        .filter_map(|gopro| gopro_serials
                    .get(&gopro.serial)
                    .map(|name| Device::Gopro(DeviceDescription { name: name.to_string() }, gopro)),
-       ).collect())
+       ).collect();
+    Ok(devices)
 }
