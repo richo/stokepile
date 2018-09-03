@@ -115,6 +115,7 @@ impl GoproKind {
 
 // Specialising to PTP devices later might be neat, but for now this is fine
 pub struct Gopro<'a> {
+    // TODO(richo) having a name in here would simplify the Staging impl
     pub kind: GoproKind,
     pub serial: String,
     device: libusb::Device<'a>,

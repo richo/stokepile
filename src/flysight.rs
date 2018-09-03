@@ -135,6 +135,7 @@ impl Staging for Flysight {
 #[cfg(test)]
 mod tests {
     use super::*;
+    extern crate tempfile;
 
     #[test]
     fn test_flysight_loads_files() {
@@ -161,5 +162,21 @@ mod tests {
                    Local.ymd(2018, 8, 24).and_hms(10, 39, 58));
         assert_eq!(files[2].capture_date().unwrap(),
                    Local.ymd(2018, 8, 24).and_hms(11, 0, 28));
+    }
+
+    #[test]
+    fn test_staging_works() {
+        let dest = tempfile::tempdir().unwrap();
+        let path = dest.path();
+        let flysight = Flysight {
+            name: "data".into(),
+            path: "test-data/flysight".into(),
+        };
+        flysight.stage_files("data", &path);
+        // TODO(richo) test harder
+        let iter = fs::read_dir(path).unwrap();
+        let files: Vec<_> = iter.collect();
+
+        assert_eq!(files.len(), 6);
     }
 }
