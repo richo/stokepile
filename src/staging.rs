@@ -1,15 +1,73 @@
+extern crate serde_json;
+extern crate sha2;
+extern crate hashing_copy;
 extern crate chrono;
 use chrono::prelude::*;
 use failure::Error;
 
+use std::fs;
+use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
 
-pub trait Staging {
+pub trait UploadableFile {
+    type Reader: Read;
+    fn extension(&self) -> &str;
+    fn capture_datetime(&self) -> Result<DateTime<Local>, chrono::ParseError>;
+    fn reader(&self) -> &Self::Reader;
+}
+
+pub trait Staging : Sized {
+    type FileType: UploadableFile;
+
+    fn files(&self) -> Result<Vec<Self::FileType>, Error>;
     fn stage_files<T>(self, name: &str, destination: T) -> Result<(), Error>
-    where T: AsRef<Path>;
-    // TODO(richo) This can actually be in the trait, and then we just make files() implement the
-    // interfaces we need.
+    where T: AsRef<Path> {
+        for mut file in self.files()? {
+            // TODO(richo) It'd be cool if we could implement this automatically but the name
+            // screws everything
+            let mut desc = UploadDescriptor {
+                capture_time: file.capture_datetime()?,
+                device_name: name.to_string(),
+                extension: file.extension().to_string(),
+                sha2: [0; 32],
+                // TODO(richo) actual double check sizes
+                size: 0,
+            };
+
+            let staging_name = desc.staging_name();
+            let manifest_name = desc.manifest_name();
+
+            let mut options = fs::OpenOptions::new();
+            let options = options.write(true).create_new(true);
+
+            let staging_path = destination.as_ref().join(&staging_name);
+            let manifest_path = destination.as_ref().join(&manifest_name);
+
+            info!("Staging {}", &staging_name);
+            trace!(" To {:?}", staging_path);
+            {
+                let mut staged = options.open(&staging_path)?;
+                let (size, hash) = hashing_copy::copy_and_hash::<_, _, sha2::Sha256>(&mut file.reader(), &mut staged)?;
+                // assert_eq!(size, desc.size);
+                info!("Shasum: {:x}", hash);
+                info!("size: {:x}", size);
+                desc.sha2.copy_from_slice(&hash);
+            } // Ensure that we've closed our staging file
+
+            {
+                info!("Manifesting {}", &manifest_name);
+                trace!(" To {:?}", manifest_path);
+                let mut staged = options.open(&manifest_path)?;
+                serde_json::to_writer(&mut staged, &desc)?;
+            }
+
+            // Once I'm more confident that I haven't fucked up staging
+            // file.delete()
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Debug,Serialize,Deserialize)]
