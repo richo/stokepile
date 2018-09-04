@@ -45,6 +45,15 @@ impl Flysight {
         &self.name
     }
 
+    /// Returns Some(self) if the flysight is attached, None otherwise
+    pub fn get(self) -> Option<Self> {
+        if self.attached() {
+            Some(self)
+        } else {
+            None
+        }
+    }
+
     fn files(&self) -> Result<Vec<FlysightFile>, Error> {
         lazy_static! {
             static ref DATE: regex::bytes::Regex =
