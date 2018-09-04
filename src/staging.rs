@@ -8,6 +8,8 @@ use std::path::PathBuf;
 pub trait Staging {
     fn stage_files<T>(self, name: &str, destination: T) -> Result<(), Error>
     where T: AsRef<Path>;
+    // TODO(richo) This can actually be in the trait, and then we just make files() implement the
+    // interfaces we need.
 }
 
 #[derive(Debug,Serialize,Deserialize)]

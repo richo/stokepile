@@ -9,6 +9,7 @@ use std::fs::{self, File};
 use std::path::{Path,PathBuf};
 use std::os::unix::ffi::OsStrExt;
 use super::staging::{Staging, UploadDescriptor};
+use super::peripheral::Peripheral;
 use failure::Error;
 
 #[derive(Debug)]
@@ -34,24 +35,17 @@ impl FlysightFile {
     }
 }
 
-impl Flysight {
+impl Peripheral for Flysight {
     fn attached(&self) -> bool {
         let dcim = self.path.join(Path::new("config.txt"));
 
         self.path.exists() && dcim.exists()
     }
+}
 
+impl Flysight {
     fn name(&self) -> &String {
         &self.name
-    }
-
-    /// Returns Some(self) if the flysight is attached, None otherwise
-    pub fn get(self) -> Option<Self> {
-        if self.attached() {
-            Some(self)
-        } else {
-            None
-        }
     }
 
     fn files(&self) -> Result<Vec<FlysightFile>, Error> {

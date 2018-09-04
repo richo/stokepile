@@ -9,6 +9,7 @@ use super::ptp_device;
 use super::flysight;
 
 use super::staging::Staging;
+use super::peripheral::Peripheral;
 
 #[derive(Debug)]
 pub struct DeviceDescription {

@@ -9,6 +9,7 @@ use failure::Error;
 
 use super::dropbox;
 use super::flysight::Flysight;
+use super::mass_storage::MassStorage;
 
 #[allow(non_camel_case_types)]
 #[derive(Deserialize,Debug,Eq,PartialEq)]
@@ -66,6 +67,16 @@ pub struct MassStorageConfig {
     pub name: String,
     pub mountpoint: String,
     pub extensions: Vec<String>,
+}
+
+impl MassStorageConfig {
+    pub fn mass_storage(&self) -> MassStorage {
+        MassStorage {
+            name: self.name.clone(),
+            path: PathBuf::from(self.mountpoint.clone()),
+            extensions: self.extensions.iter().map(|x| x.to_lowercase()).collect(),
+        }
+    }
 }
 
 #[derive(Deserialize,Debug,Eq,PartialEq,Clone)]

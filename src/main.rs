@@ -5,9 +5,9 @@
 #[macro_use] extern crate log;
 
 extern crate pretty_env_logger;
-
 extern crate serde_json;
 extern crate regex;
+extern crate walkdir;
 
 
 use std::process;
@@ -32,6 +32,7 @@ mod ctx;
 mod device;
 mod dropbox;
 mod flysight;
+mod mass_storage;
 mod peripheral;
 mod ptp_device;
 mod storage;
