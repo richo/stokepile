@@ -25,6 +25,9 @@ mountpoint = "/mnt/archiver/flysight"
 [[mass_storage]]
 name = "video"
 mountpoint="/mnt/archiver/mass_storage"
+# The extensions of files that we should be archiving
+# Only files with this extension will be uploaded and removed, leaving the directories intact
+extensions = ["mp4"]
 
 #  [gswoop]
 #  binary = "/Applications/gSwoop.app/Contents/MacOS/gswoop"

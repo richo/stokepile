@@ -15,7 +15,9 @@ mountpoint = "test-data/flysight"
 [[mass_storage]]
 name = "video"
 mountpoint="test-data/mass_storage"
+extensions=["mp4"]
 
 [[mass_storage]]
 name = "dummy"
 mountpoint="test-data/nonexistant"
+extensions=["ogv"]

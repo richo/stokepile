@@ -67,6 +67,7 @@ mod tests {
         let mass_storage = MassStorageConfig {
             name: "data".into(),
             mountpoint: "test-data/mass_storage".into(),
+            extensions: vec!["mp4".into()],
         };
 
         let files = mass_storage.files().expect("Couldn't load test files");

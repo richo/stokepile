@@ -65,6 +65,7 @@ impl FlysightConfig {
 pub struct MassStorageConfig {
     pub name: String,
     pub mountpoint: String,
+    pub extensions: Vec<String>,
 }
 
 #[derive(Deserialize,Debug,Eq,PartialEq,Clone)]
@@ -144,6 +145,7 @@ mod tests {
                    Some(vec![MassStorageConfig {
                             name: "video".into(),
                             mountpoint: "/mnt/archiver/mass_storage".into(),
+                            extensions: vec!["mp4".into()],
                    }]));
     }
 
@@ -203,10 +205,12 @@ token="DROPBOX_TOKEN_GOES_HERE"
         &vec![MassStorageConfig {
                 name: "front".into(),
                 mountpoint: "/mnt/archiver/front".into(),
+                extensions: vec!["mp4".into()],
             },
             MassStorageConfig {
                 name: "back".into(),
                 mountpoint: "/mnt/archiver/back".into(),
+                extensions: vec!["mov".into()],
             }
         ])
     }
@@ -248,10 +252,12 @@ token="DROPBOX_TOKEN_GOES_HERE"
 [[mass_storage]]
 name = "front"
 mountpoint="/mnt/archiver/front"
+extensions = ["mp4"]
 
 [[mass_storage]]
 name = "back"
 mountpoint="/mnt/archiver/back"
+extensions = ["mov"]
 "#).unwrap();
         assert_mass_storages(&config);
         assert_no_flysights(&config);
@@ -309,10 +315,12 @@ token="DROPBOX_TOKEN_GOES_HERE"
 [[mass_storage]]
 name = "front"
 mountpoint="/mnt/archiver/front"
+extensions = ["mp4"]
 
 [[mass_storage]]
 name = "back"
 mountpoint="/mnt/archiver/back"
+extensions = ["mov"]
 
 [[flysight]]
 name = "training"
