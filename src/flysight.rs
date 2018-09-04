@@ -41,8 +41,8 @@ impl UploadableFile for FlysightFile {
         Local.datetime_from_str(&datetime, "%y-%m-%d/%H-%M-%S")
     }
 
-    fn reader(&self) -> &File {
-        &self.file
+    fn reader(&mut self) -> &mut File {
+        &mut self.file
     }
 }
 

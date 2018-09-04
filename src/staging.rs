@@ -14,7 +14,7 @@ pub trait UploadableFile {
     type Reader: Read;
     fn extension(&self) -> &str;
     fn capture_datetime(&self) -> Result<DateTime<Local>, chrono::ParseError>;
-    fn reader(&self) -> &Self::Reader;
+    fn reader(&mut self) -> &mut Self::Reader;
 }
 
 pub trait Staging : Sized {
@@ -48,7 +48,7 @@ pub trait Staging : Sized {
             trace!(" To {:?}", staging_path);
             {
                 let mut staged = options.open(&staging_path)?;
-                let (size, hash) = hashing_copy::copy_and_hash::<_, _, sha2::Sha256>(&mut file.reader(), &mut staged)?;
+                let (size, hash) = hashing_copy::copy_and_hash::<_, _, sha2::Sha256>(file.reader(), &mut staged)?;
                 // assert_eq!(size, desc.size);
                 info!("Shasum: {:x}", hash);
                 info!("size: {:x}", size);

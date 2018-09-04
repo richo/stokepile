@@ -42,8 +42,8 @@ impl UploadableFile for MassStorageFile {
         Ok(self.capturedatetime)
     }
 
-    fn reader(&self) -> &File {
-        &self.file
+    fn reader(&mut self) -> &mut File {
+        &mut self.file
     }
 }
 
