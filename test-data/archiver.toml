@@ -17,7 +17,21 @@ name = "video"
 mountpoint="test-data/mass_storage"
 extensions=["mp4"]
 
+[[flysight]]
+name = "unmounted_fs"
+mountpoint = "test-data/unmounted_fs"
+
 [[mass_storage]]
-name = "dummy"
-mountpoint="test-data/nonexistant"
+name = "unmounted_ms"
+mountpoint="test-data/unmounted_ms"
+extensions=["mp4"]
+
+[[flysight]]
+name = "nonexistant_fs"
+mountpoint="test-data/nonexistant_fs"
+extensions=["ogv"]
+
+[[mass_storage]]
+name = "nonexistant_ms"
+mountpoint="test-data/nonexistant_ms"
 extensions=["ogv"]

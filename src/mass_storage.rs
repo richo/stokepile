@@ -12,7 +12,7 @@ use std::fs::{self, File};
 use std::path::{Path,PathBuf};
 use std::os::unix::ffi::OsStrExt;
 use super::staging::{Staging, UploadDescriptor};
-use super::peripheral::Peripheral;
+use super::peripheral::MountablePeripheral;
 use failure::Error;
 use walkdir::WalkDir;
 
@@ -28,16 +28,6 @@ pub struct MassStorageFile {
     capturedatetime: DateTime<Local>,
     file: File,
     extension: String,
-}
-
-impl Peripheral for MassStorage {
-    fn attached(&self) -> bool {
-        // TODO(richo) this is super gopro specific :(
-        // Do we literally go figure out what is mounted here?
-        let dcim = self.path.join(Path::new("DCIM"));
-
-        self.path.exists() && dcim.exists()
-    }
 }
 
 impl MassStorage {
@@ -60,6 +50,12 @@ impl MassStorage {
             }
         }
         Ok(out)
+    }
+}
+
+impl MountablePeripheral for MassStorage {
+    fn path(&self) -> &PathBuf {
+        &self.path
     }
 }
 
