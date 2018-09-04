@@ -5,10 +5,11 @@ extern crate regex;
 extern crate chrono;
 
 use chrono::prelude::*;
+use std::io::Read;
 use std::fs::{self, File};
 use std::path::{Path,PathBuf};
 use std::os::unix::ffi::OsStrExt;
-use super::staging::{Staging, UploadDescriptor};
+use super::staging::{Staging, UploadableFile, UploadDescriptor};
 use super::peripheral::MountablePeripheral;
 use failure::Error;
 
@@ -25,13 +26,23 @@ pub struct FlysightFile {
     file: File,
 }
 
-impl FlysightFile {
-    pub fn capture_date(&self) -> Result<DateTime<Local>, chrono::ParseError> {
+impl UploadableFile for FlysightFile {
+    type Reader = File;
+
+    fn extension(&self) -> &str {
+        "csv"
+    }
+
+    fn capture_datetime(&self) -> Result<DateTime<Local>, chrono::ParseError> {
         // Adding time is hard, we'll just allocate our faces off
         let mut datetime = self.capturedate.clone();
         datetime.push_str("/");
         datetime.push_str(&self.capturetime);
         Local.datetime_from_str(&datetime, "%y-%m-%d/%H-%M-%S")
+    }
+
+    fn reader(&mut self) -> &mut File {
+        &mut self.file
     }
 }
 
@@ -45,6 +56,10 @@ impl Flysight {
     fn name(&self) -> &String {
         &self.name
     }
+}
+
+impl Staging for Flysight {
+    type FileType = FlysightFile;
 
     fn files(&self) -> Result<Vec<FlysightFile>, Error> {
         lazy_static! {
@@ -84,55 +99,6 @@ impl Flysight {
     }
 }
 
-impl Staging for Flysight {
-    // Consumes self, purely because connect does
-    fn stage_files<T>(self, name: &str, destination: T) -> Result<(), Error>
-    where T: AsRef<Path> {
-        for mut file in self.files()? {
-            let mut desc = UploadDescriptor {
-                capture_time: file.capture_date()?,
-                device_name: name.to_string(),
-                extension: "csv".to_string(),
-                sha2: [0; 32],
-                // TODO(richo) actual double check sizes
-                size: 0,
-            };
-
-            let staging_name = desc.staging_name();
-            let manifest_name = desc.manifest_name();
-
-            let mut options = fs::OpenOptions::new();
-            let options = options.write(true).create_new(true);
-
-            let staging_path = destination.as_ref().join(&staging_name);
-            let manifest_path = destination.as_ref().join(&manifest_name);
-
-            info!("Staging {}", &staging_name);
-            trace!(" To {:?}", staging_path);
-            {
-                let mut staged = options.open(&staging_path)?;
-                let (size, hash) = hashing_copy::copy_and_hash::<_, _, sha2::Sha256>(&mut file.file, &mut staged)?;
-                // assert_eq!(size, desc.size);
-                info!("Shasum: {:x}", hash);
-                info!("size: {:x}", size);
-                desc.sha2.copy_from_slice(&hash);
-            } // Ensure that we've closed our staging file
-
-            {
-                info!("Manifesting {}", &manifest_name);
-                trace!(" To {:?}", manifest_path);
-                let mut staged = options.open(&manifest_path)?;
-                serde_json::to_writer(&mut staged, &desc)?;
-            }
-
-            // Once I'm more confident that I haven't fucked up staging
-            // file.delete()
-        }
-
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -157,11 +123,11 @@ mod tests {
         };
 
         let files = flysight.files().expect("Couldn't load test files");
-        assert_eq!(files[0].capture_date().unwrap(),
+        assert_eq!(files[0].capture_datetime().unwrap(),
                    Local.ymd(2018, 8, 24).and_hms(9, 55, 30));
-        assert_eq!(files[1].capture_date().unwrap(),
+        assert_eq!(files[1].capture_datetime().unwrap(),
                    Local.ymd(2018, 8, 24).and_hms(10, 39, 58));
-        assert_eq!(files[2].capture_date().unwrap(),
+        assert_eq!(files[2].capture_datetime().unwrap(),
                    Local.ymd(2018, 8, 24).and_hms(11, 0, 28));
     }
 

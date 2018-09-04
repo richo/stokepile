@@ -8,10 +8,11 @@ extern crate walkdir;
 use chrono::prelude::*;
 use regex::{RegexSetBuilder};
 use std::collections::HashSet;
+use std::io::Read;
 use std::fs::{self, File};
 use std::path::{Path,PathBuf};
 use std::os::unix::ffi::OsStrExt;
-use super::staging::{Staging, UploadDescriptor};
+use super::staging::{Staging, UploadDescriptor, UploadableFile};
 use super::peripheral::MountablePeripheral;
 use failure::Error;
 use walkdir::WalkDir;
@@ -30,8 +31,26 @@ pub struct MassStorageFile {
     extension: String,
 }
 
-impl MassStorage {
-    pub fn files(&self) -> Result<Vec<MassStorageFile>, Error> {
+impl UploadableFile for MassStorageFile {
+    type Reader = File;
+
+    fn extension(&self) -> &str {
+        &self.extension
+    }
+
+    fn capture_datetime(&self) -> Result<DateTime<Local>, chrono::ParseError> {
+        Ok(self.capturedatetime)
+    }
+
+    fn reader(&mut self) -> &mut File {
+        &mut self.file
+    }
+}
+
+impl Staging for MassStorage {
+    type FileType = MassStorageFile;
+
+    fn files(&self) -> Result<Vec<MassStorageFile>, Error> {
         let mut out = vec![];
         for entry in WalkDir::new(&self.path) {
             let entry = entry?;
@@ -58,56 +77,6 @@ impl MountablePeripheral for MassStorage {
         &self.path
     }
 }
-
-impl Staging for MassStorage {
-    // Consumes self, purely because connect does
-    fn stage_files<T>(self, name: &str, destination: T) -> Result<(), Error>
-    where T: AsRef<Path> {
-        for mut file in self.files()? {
-            let mut desc = UploadDescriptor {
-                capture_time: file.capturedatetime,
-                device_name: name.to_string(),
-                extension: file.extension,
-                sha2: [0; 32],
-                // TODO(richo) actual double check sizes
-                size: 0,
-            };
-
-            let staging_name = desc.staging_name();
-            let manifest_name = desc.manifest_name();
-
-            let mut options = fs::OpenOptions::new();
-            let options = options.write(true).create_new(true);
-
-            let staging_path = destination.as_ref().join(&staging_name);
-            let manifest_path = destination.as_ref().join(&manifest_name);
-
-            info!("Staging {}", &staging_name);
-            trace!(" To {:?}", staging_path);
-            {
-                let mut staged = options.open(&staging_path)?;
-                let (size, hash) = hashing_copy::copy_and_hash::<_, _, sha2::Sha256>(&mut file.file, &mut staged)?;
-                // assert_eq!(size, desc.size);
-                info!("Shasum: {:x}", hash);
-                info!("size: {:x}", size);
-                desc.sha2.copy_from_slice(&hash);
-            } // Ensure that we've closed our staging file
-
-            {
-                info!("Manifesting {}", &manifest_name);
-                trace!(" To {:?}", manifest_path);
-                let mut staged = options.open(&manifest_path)?;
-                serde_json::to_writer(&mut staged, &desc)?;
-            }
-
-            // Once I'm more confident that I haven't fucked up staging
-            // file.delete()
-        }
-
-        Ok(())
-    }
-}
-
 
 #[cfg(test)]
 mod tests {

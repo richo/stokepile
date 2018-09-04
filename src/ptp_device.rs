@@ -14,7 +14,7 @@ use std::io::{self, Read};
 use failure::Error;
 
 use super::ctx;
-use super::staging::{UploadDescriptor, Staging};
+use super::staging::UploadDescriptor;
 
 fn parse_gopro_date(date: &str) -> Result<DateTime<Local>, chrono::ParseError> {
     Local.datetime_from_str(date, "%Y%m%dT%H%M%S")
@@ -183,9 +183,9 @@ impl<'a> Gopro<'a> {
     }
 }
 
-impl<'a> Staging for Gopro<'a> {
+impl<'a> Gopro<'a> {
     // Consumes self, purely because connect does
-    fn stage_files<T>(self, name: &str, destination: T) -> Result<(), Error>
+    pub fn stage_files<T>(self, name: &str, destination: T) -> Result<(), Error>
     where T: AsRef<Path> {
         let mut plan = Vec::new();
         let mut conn = self.connect()?;
