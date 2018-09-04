@@ -333,12 +333,4 @@ mountpoint="/mnt/archiver/comp"
         assert_mass_storages(&config);
         assert_flysights(&config);
     }
-
-    // #[test]
-    // fn test_attached_devices() {
-    //     let config = Config::from_file("test-data/archiver.toml").unwrap();
-    //     let peripherals = config.attached_peripherals();
-    //     let vec: Vec<_> = peripherals.iter().map(|x| x.name()).collect();
-    //     assert_eq!(vec, vec!["video", "data"]);
-    // }
 }
