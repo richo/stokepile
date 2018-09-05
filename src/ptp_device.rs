@@ -1,7 +1,7 @@
 extern crate libusb;
 extern crate ptp;
 extern crate chrono;
-extern crate sha2;
+use super::dropbox_content_hasher;
 extern crate hashing_copy;
 extern crate serde_json;
 
@@ -10,6 +10,7 @@ use chrono::prelude::*;
 use std::fmt;
 use std::fs::{self, File};
 use std::io::{self, Read};
+use dropbox_content_hasher::DropboxContentHasher;
 
 use failure::Error;
 
@@ -200,7 +201,7 @@ impl<'a> Gopro<'a> {
                 device_name: name.to_string(),
                 // TODO(richo) is this always true?
                 extension: "mp4".to_string(),
-                sha2: [0; 32],
+                content_hash: [0; 32],
                 size,
             }));
         }
@@ -219,11 +220,11 @@ impl<'a> Gopro<'a> {
             trace!(" To {:?}", staging_path);
             {
                 let mut staged = options.open(&staging_path)?;
-                let (size, hash) = hashing_copy::copy_and_hash::<_, _, sha2::Sha256>(&mut file.reader(&mut conn), &mut staged)?;
+                let (size, hash) = hashing_copy::copy_and_hash::<_, _, DropboxContentHasher>(&mut file.reader(&mut conn), &mut staged)?;
                 assert_eq!(size, desc.size);
                 info!("Shasum: {:x}", hash);
                 info!("size: {:x}", size);
-                desc.sha2.copy_from_slice(&hash);
+                desc.content_hash.copy_from_slice(&hash);
             } // Ensure that we've closed our staging file
 
             {

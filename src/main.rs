@@ -1,3 +1,4 @@
+extern crate serde;
 #[macro_use] extern crate serde_derive;
 #[macro_use] extern crate failure;
 #[macro_use] extern crate lazy_static;
@@ -8,7 +9,12 @@ extern crate pretty_env_logger;
 extern crate serde_json;
 extern crate regex;
 extern crate walkdir;
+extern crate hex;
 
+
+extern crate sha2;
+extern crate digest;
+mod dropbox_content_hasher;
 
 use std::process;
 use std::env;

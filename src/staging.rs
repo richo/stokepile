@@ -1,5 +1,5 @@
+use super::dropbox_content_hasher;
 extern crate serde_json;
-extern crate sha2;
 extern crate hashing_copy;
 extern crate chrono;
 use chrono::prelude::*;
@@ -9,6 +9,7 @@ use std::fs;
 use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
+use dropbox_content_hasher::DropboxContentHasher;
 
 pub trait UploadableFile {
     type Reader: Read;
@@ -30,7 +31,7 @@ pub trait Staging : Sized {
                 capture_time: file.capture_datetime()?,
                 device_name: name.to_string(),
                 extension: file.extension().to_string(),
-                sha2: [0; 32],
+                content_hash: [0; 32],
                 // TODO(richo) actual double check sizes
                 size: 0,
             };
@@ -48,11 +49,11 @@ pub trait Staging : Sized {
             trace!(" To {:?}", staging_path);
             {
                 let mut staged = options.open(&staging_path)?;
-                let (size, hash) = hashing_copy::copy_and_hash::<_, _, sha2::Sha256>(file.reader(), &mut staged)?;
+                let (size, hash) = hashing_copy::copy_and_hash::<_, _, DropboxContentHasher>(file.reader(), &mut staged)?;
                 // assert_eq!(size, desc.size);
                 info!("Shasum: {:x}", hash);
                 info!("size: {:x}", size);
-                desc.sha2.copy_from_slice(&hash);
+                desc.content_hash.copy_from_slice(&hash);
             } // Ensure that we've closed our staging file
 
             {
@@ -75,7 +76,7 @@ pub struct UploadDescriptor {
     pub capture_time: DateTime<Local>,
     pub device_name: String,
     pub extension: String,
-    pub sha2: [u8; 32],
+    pub content_hash: [u8; 32],
     pub size: u64,
 }
 
@@ -119,7 +120,7 @@ mod tests {
             capture_time: datetime,
             device_name: "test".to_string(),
             extension: "mp4".to_string(),
-            sha2: [0; 32],
+            content_hash: [0; 32],
             size: 0,
         };
 
@@ -135,7 +136,7 @@ mod tests {
             capture_time: datetime,
             device_name: "test".to_string(),
             extension: "mp4".to_string(),
-            sha2: [0; 32],
+            content_hash: [0; 32],
             size: 0,
         };
 

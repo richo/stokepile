@@ -2,6 +2,10 @@
 ///
 /// If this library is useful, I'll consider fleshing it out into a whole thing
 
+extern crate serde;
+use serde::{Deserialize, Deserializer};
+extern crate hex;
+use hex::FromHex;
 extern crate serde_json;
 extern crate reqwest;
 
@@ -51,7 +55,17 @@ pub struct MetadataResponse {
     sharing_info: (),
     #[serde(skip)]
     property_groups: (),
-    content_hash: String,
+    // TODO(richo) de-pub
+    #[serde(deserialize_with = "hex_to_buffer")]
+    pub content_hash: [u8; 32],
+}
+
+pub fn hex_to_buffer<'de, D>(deserializer: D) -> Result<[u8; 32], D::Error>
+  where D: Deserializer<'de>
+{
+  use serde::de::Error;
+  String::deserialize(deserializer)
+    .and_then(|string| <[u8; 32]  as FromHex>::from_hex(&string).map_err(|err| Error::custom(err.to_string())))
 }
 
 #[derive(Deserialize)]
@@ -157,12 +171,15 @@ impl DropboxFilesClient {
         .map_err(|e| format_err!("HTTP error: {:?}", e))
     }
 
-    pub fn get_metadata<'a>(&self, path: &'a str) -> Result<MetadataResponse, Error> {
+    pub fn get_metadata(&self, path: &Path) -> Result<MetadataResponse, Error> {
         use self::DropboxBody::*;
-        let req = serde_json::to_vec(&MetadataRequest { path })?;
+        let req = serde_json::to_vec(&MetadataRequest { path: path.to_str().unwrap() })?;
         let headers = Headers::new();
         let mut res = self.request(("api", "2/files/get_metadata"), JSON(req), headers)?;
-        let meta: MetadataResponse = serde_json::from_str(&res.text()?)?;
+        // let meta: MetadataResponse = serde_json::from_str(&res.text()?)?;
+        let text = res.text()?;
+        eprintln!("{:?}", text);
+        let meta: MetadataResponse = serde_json::from_str(&text)?;
         Ok(meta)
     }
 
@@ -242,12 +259,14 @@ impl DropboxFilesClient {
 mod tests {
     use super::*;
     use std::env;
+    use sha2::{Sha256,Digest};
+    use super::super::dropbox_content_hasher::DropboxContentHasher;
 
     #[test]
     #[ignore]
     fn test_fetches_metadata() {
         let client = DropboxFilesClient::new(env::var("ARCHIVER_TEST_DROPBOX_KEY").expect("Didn't provide test key"));
-        client.get_metadata("/15-01-01/rearcam/GOPR0001.MP4").expect("Couldn't make test request");
+        client.get_metadata(Path::new("/15-01-01/rearcam/GOPR0001.MP4")).expect("Couldn't make test request");
     }
 
     #[test]
@@ -258,6 +277,21 @@ mod tests {
         if let Err(e) = client.upload_from_reader(localfile, Path::new("/web2.txt")) {
             panic!("{:?}", e);
         }
+    }
+
+    #[test]
+    #[ignore]
+    fn test_roundtripped_content_hash_works() {
+        let client = DropboxFilesClient::new(env::var("ARCHIVER_TEST_DROPBOX_KEY").expect("Didn't provide test key"));
+        let localfile = b"yes hello";
+        let hash = DropboxContentHasher::digest(&localfile[..]);
+        eprintln!("hash!: {:?}", &hash);
+        let path = Path::new("/archiver-test/hello.txt");
+        if let Err(e) = client.upload_from_reader(&localfile[..], &path) {
+            panic!("{:?}", e);
+        }
+        let metadata = client.get_metadata(&path).unwrap();
+        assert_eq!(&metadata.content_hash[..], hash.as_slice());
     }
 
     #[test]

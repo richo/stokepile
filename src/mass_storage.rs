@@ -1,6 +1,5 @@
 extern crate serde_json;
 extern crate hashing_copy;
-extern crate sha2;
 extern crate regex;
 extern crate chrono;
 extern crate walkdir;

@@ -40,8 +40,16 @@ pub fn upload_from_staged<T>(staged: T, adaptor: &DropboxFilesClient) -> Result<
 
             let manifest: staging::UploadDescriptor = serde_json::from_reader(manifest)?;
 
-            info!("Uploading {:?} to {:?}", &content_path, &manifest.remote_path());
-            adaptor.upload_from_reader(content, &manifest.remote_path())?;
+            info!("Checking if file already exists");
+            match adaptor.get_metadata(&manifest.remote_path()) {
+                Ok(ref metadata) if metadata.content_hash == manifest.content_hash => {
+                    info!("File already exists with correct hash - skipping");
+                },
+                _ => {
+                    info!("Uploading {:?} to {:?}", &content_path, &manifest.remote_path());
+                    adaptor.upload_from_reader(content, &manifest.remote_path())?;
+                }
+            }
 
             info!("removing {:?}", content_path);
             fs::remove_file(&manifest_path)?;
