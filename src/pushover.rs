@@ -6,9 +6,13 @@ static MESSAGE_API_URL: &'static str = "https://api.pushover.net/1/messages.json
 
 #[derive(Debug)]
 pub enum Priority {
+    /// generate no notification/alert
     NoNotification,
+    /// always send as a quiet notification
     QuietNotification,
+    /// display as high-priority and bypass the user's quiet hours
     HighPriority,
+    /// to also require confirmation from the user
     RequireConfirmation,
 }
 
@@ -60,9 +64,13 @@ impl<'a> PushoverRequest<'a> {
             .map_err(|e| format_err!("HTTP error: {:?}", e))
     }
 
+    /// your message's title, otherwise your app's name is used
     setter!(title, String);
+    /// a supplementary URL to show with your message
     setter!(url, String);
+    /// a title for your supplementary URL, otherwise just the URL is shown
     setter!(url_title, String);
+    /// The notification priority for this message
     setter!(priority, Priority);
 }
 
