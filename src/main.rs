@@ -75,7 +75,7 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
 fn create_ctx(matches: &clap::ArgMatches) -> Result<ctx::Ctx, Error> {
     let usb_ctx = libusb::Context::new()?;
     let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("archiver.toml"))?;
-    let staging = create_or_find_staging()?;
+    let staging = create_or_find_staging(&cfg)?;
     Ok(ctx::Ctx {
         // Loading config here lets us bail at a convenient time before we get in the weeds
         usb_ctx,
@@ -91,13 +91,10 @@ fn init_logging() {
     }
 }
 
-fn create_or_find_staging() -> Result<PathBuf, Error> {
-    // TODO(richo) Pull this out of config or something?
-    let relative_path = PathBuf::from("staging");
-    let mut absolute_path = std::env::current_dir()?;
-    absolute_path.push(relative_path);
+fn create_or_find_staging(cfg: &config::Config) -> Result<PathBuf, Error> {
+    let path = cfg.staging_dir()?.unwrap_or_else(|| PathBuf::from("staging"));
 
-    if let Err(e) = fs::create_dir(&absolute_path) {
+    if let Err(e) = fs::create_dir(&path) {
         if e.kind() == io::ErrorKind::AlreadyExists {
             info!("Reusing existing staging dir");
         } else {
@@ -106,7 +103,7 @@ fn create_or_find_staging() -> Result<PathBuf, Error> {
         }
     }
 
-    Ok(absolute_path)
+    Ok(path)
 }
 
 fn main() {

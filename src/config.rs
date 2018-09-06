@@ -1,6 +1,7 @@
 extern crate toml;
 extern crate failure;
 
+use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
@@ -40,6 +41,7 @@ lazy_static! {
 #[derive(Deserialize,Debug,Eq,PartialEq)]
 pub struct ArchiverConfig {
     storage_backend: StorageBackend,
+    staging: Option<PathBuf>,
 }
 
 #[derive(Deserialize,Debug,Eq,PartialEq)]
@@ -128,6 +130,22 @@ impl Config {
             }
         }
     }
+
+    /// Returns an owned reference to the staging directory, expanded to be absolute
+    pub fn staging_dir(&self) -> Result<Option<PathBuf>, Error> {
+        match self.archiver.staging {
+            Some(ref staging) => {
+                if staging.is_absolute() {
+                    Ok(Some(staging.clone()))
+                } else {
+                    let mut absolute_path = env::current_dir()?;
+                    absolute_path.push(&staging);
+                    Ok(Some(absolute_path))
+                }
+            },
+            None => { Ok(None) },
+        }
+    }
 }
 
 #[cfg(test)]
@@ -165,6 +183,19 @@ storage_backend="butts"
 "#).unwrap_err();
         assert!(format!("{}", error)
                 .contains("unknown variant `butts`, expected `dropbox` for key `archiver.storage_backend`"))
+    }
+
+    #[test]
+    fn test_relative_staging() {
+        let cfg = Config::from_str(r#"
+[archiver]
+storage_backend="dropbox"
+staging="test/dir"
+
+[dropbox]
+token = "TOKEN"
+"#).unwrap();
+        assert_eq!(cfg.archiver.staging, Some(PathBuf::from("test/dir")));
     }
 
     #[test]
