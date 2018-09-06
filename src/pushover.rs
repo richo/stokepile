@@ -42,6 +42,15 @@ pub struct PushoverRequest<'a> {
     // timestamp - a Unix timestamp of your message's date and time to display to the user, rather than the time your message is received by our API
 }
 
+macro_rules! setter {
+    ($field:ident, $ty:ty) => {
+        pub fn $field(mut self, $field: $ty) -> PushoverRequest<'a> {
+            self.$field = Some($field);
+            self
+        }
+    }
+}
+
 impl<'a> PushoverRequest<'a> {
     pub fn send(self) -> Result<reqwest::Response, Error> {
         let client = reqwest::Client::new();
@@ -50,6 +59,11 @@ impl<'a> PushoverRequest<'a> {
             .send()
             .map_err(|e| format_err!("HTTP error: {:?}", e))
     }
+
+    setter!(title, String);
+    setter!(url, String);
+    setter!(url_title, String);
+    setter!(priority, Priority);
 }
 
 pub struct Pushover {
@@ -80,6 +94,17 @@ impl Pushover {
 mod tests {
     use super::*;
     use std::env;
+
+    use serde_json;
+
+    #[test]
+    fn test_serialized_priorities_dtrt() {
+        let client = Pushover::new("".into());
+        let req = client.request("".into(), "".into())
+            .priority(Priority::HighPriority);
+        assert!(serde_json::to_string(&req).unwrap().contains("\"priority\":1"),
+                "Serialization failed");
+    }
 
     #[test]
     #[ignore]
