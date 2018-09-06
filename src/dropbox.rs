@@ -55,9 +55,14 @@ pub struct MetadataResponse {
     sharing_info: (),
     #[serde(skip)]
     property_groups: (),
-    // TODO(richo) de-pub
     #[serde(deserialize_with = "hex_to_buffer")]
-    pub content_hash: [u8; 32],
+    content_hash: [u8; 32],
+}
+
+impl MetadataResponse {
+    pub fn content_hash(&self) -> &[u8; 32] {
+        &self.content_hash
+    }
 }
 
 pub fn hex_to_buffer<'de, D>(deserializer: D) -> Result<[u8; 32], D::Error>

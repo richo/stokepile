@@ -42,7 +42,7 @@ pub fn upload_from_staged<T>(staged: T, adaptor: &DropboxFilesClient) -> Result<
 
             info!("Checking if file already exists");
             match adaptor.get_metadata(&manifest.remote_path()) {
-                Ok(ref metadata) if metadata.content_hash == manifest.content_hash => {
+                Ok(ref metadata) if metadata.content_hash() == &manifest.content_hash => {
                     info!("File already exists with correct hash - skipping");
                 },
                 _ => {
