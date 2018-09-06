@@ -5,13 +5,10 @@ extern crate chrono;
 extern crate walkdir;
 
 use chrono::prelude::*;
-use regex::{RegexSetBuilder};
 use std::collections::HashSet;
-use std::io::Read;
-use std::fs::{self, File};
-use std::path::{Path,PathBuf};
-use std::os::unix::ffi::OsStrExt;
-use super::staging::{Staging, UploadDescriptor, UploadableFile};
+use std::fs:: File;
+use std::path::PathBuf;
+use super::staging::{Staging, UploadableFile};
 use super::peripheral::MountablePeripheral;
 use failure::Error;
 use walkdir::WalkDir;
