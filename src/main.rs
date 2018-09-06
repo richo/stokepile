@@ -1,6 +1,7 @@
 extern crate serde;
 #[macro_use] extern crate serde_derive;
 #[macro_use] extern crate failure;
+#[macro_use] extern crate handlebars;
 #[macro_use] extern crate hyper;
 #[macro_use] extern crate lazy_static;
 #[macro_use] extern crate log;
@@ -39,6 +40,7 @@ mod flysight;
 mod mass_storage;
 mod peripheral;
 mod ptp_device;
+mod reporting;
 mod staging;
 mod storage;
 mod version;
@@ -143,11 +145,8 @@ fn run() -> Result<(), Error> {
             // Run the uploader thread syncronously as a smoketest for the daemon mode
             let staging = ctx.staging.clone();
             let backend = ctx.cfg.backend().clone();
-            match thread::spawn(move || storage::upload_from_staged(&staging, &backend)).join() {
-                Ok(Ok(())) => {},
-                Ok(Err(e)) => error!("{:?}", e),
-                Err(e) => error!("{:?}", e),
-            }
+            let report = thread::spawn(move || storage::upload_from_staged(&staging, &backend)).join().expect("Upload thread panicked")?;
+            println!("{}", report.to_plaintext()?);
         },
         ("scan", Some(_subm)) => {
             println!("Found the following gopros:");

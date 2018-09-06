@@ -194,7 +194,7 @@ impl DropboxFilesClient {
         })
     }
 
-    pub fn upload_from_reader<T: Read>(&self, mut reader: T, remote_path: &Path) -> Result<UploadMetadataResponse, Error> {
+    pub fn upload<T: Read>(&self, mut reader: T, remote_path: &Path) -> Result<UploadMetadataResponse, Error> {
         let id = self.start_upload_session()?;
         let mut buffer = vec![0; DEFAULT_CHUNK_SIZE];
         let mut cursor = Cursor {
@@ -273,7 +273,7 @@ mod tests {
     fn test_uploads_large_file() {
         let client = DropboxFilesClient::new(env::var("ARCHIVER_TEST_DROPBOX_KEY").expect("Didn't provide test key"));
         let localfile = fs::File::open("/usr/share/dict/web2").expect("Couldn't open dummy dictionary");
-        if let Err(e) = client.upload_from_reader(localfile, Path::new("/web2.txt")) {
+        if let Err(e) = client.upload(localfile, Path::new("/web2.txt")) {
             panic!("{:?}", e);
         }
     }
@@ -286,7 +286,7 @@ mod tests {
         let hash = DropboxContentHasher::digest(&localfile[..]);
         eprintln!("hash!: {:?}", &hash);
         let path = Path::new("/archiver-test/hello.txt");
-        if let Err(e) = client.upload_from_reader(&localfile[..], &path) {
+        if let Err(e) = client.upload(&localfile[..], &path) {
             panic!("{:?}", e);
         }
         let metadata = client.get_metadata(&path).unwrap();

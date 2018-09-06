@@ -1,8 +1,9 @@
 use std::fs::{self,File};
 use std::path::{Path,PathBuf};
 
-use super::dropbox::DropboxFilesClient;
-use super::staging;
+use dropbox::DropboxFilesClient;
+use staging;
+use reporting::{UploadReport,UploadStatus};
 
 use failure::Error;
 use serde_json;
@@ -22,8 +23,9 @@ fn is_manifest(path: &Path) -> bool {
     path.to_str().unwrap().ends_with(".manifest")
 }
 
-pub fn upload_from_staged<T>(staged: T, adaptor: &DropboxFilesClient) -> Result<(), Error>
+pub fn upload_from_staged<T>(staged: T, adaptor: &DropboxFilesClient) -> Result<UploadReport, Error>
     where T: AsRef<Path> {
+        let mut report: UploadReport = Default::default();
         info!("Started upload thread!");
         for entry in fs::read_dir(staged)? {
             // Find manifests and work backward
@@ -44,10 +46,21 @@ pub fn upload_from_staged<T>(staged: T, adaptor: &DropboxFilesClient) -> Result<
             match adaptor.get_metadata(&manifest.remote_path()) {
                 Ok(ref metadata) if metadata.content_hash() == &manifest.content_hash => {
                     info!("File already exists with correct hash - skipping");
+                    report.record_activity(UploadStatus::AlreadyUploaded, manifest);
                 },
                 _ => {
                     info!("Uploading {:?} to {:?}", &content_path, &manifest.remote_path());
-                    adaptor.upload_from_reader(content, &manifest.remote_path())?;
+                    match adaptor.upload(content, &manifest.remote_path()) {
+                        Ok(_resp) => {
+                            report.record_activity(UploadStatus::Succeeded, manifest);
+                        },
+                        Err(error) => {
+                            error!("Upload of {:?} failed: {:?}, continuing with next file",
+                                   &content_path, &error);
+                            report.record_activity(UploadStatus::Errored(error), manifest);
+                            continue;
+                        },
+                    }
                 }
             }
 
@@ -55,7 +68,7 @@ pub fn upload_from_staged<T>(staged: T, adaptor: &DropboxFilesClient) -> Result<
             fs::remove_file(&manifest_path)?;
             fs::remove_file(&content_path)?;
         }
-        Ok(())
+        Ok(report)
 }
 
 #[cfg(test)]
