@@ -41,6 +41,7 @@ mod dropbox;
 mod flysight;
 mod mass_storage;
 mod peripheral;
+mod pushover;
 mod ptp_device;
 mod reporting;
 mod staging;
