@@ -14,9 +14,8 @@ use failure::Error;
 
 #[derive(Debug)]
 pub struct Flysight {
-    // TODO(richo) privatise these
-    pub name: String,
-    pub path: PathBuf,
+    name: String,
+    path: PathBuf,
 }
 
 pub struct FlysightFile {
@@ -52,7 +51,10 @@ impl MountablePeripheral for Flysight {
 }
 
 impl Flysight {
-    fn name(&self) -> &String {
+    pub fn new(name: String, path: PathBuf) -> Flysight {
+        Flysight { name, path }
+    }
+    pub fn name(&self) -> &String {
         &self.name
     }
 }

@@ -55,10 +55,7 @@ pub struct FlysightConfig {
 
 impl FlysightConfig {
     pub fn flysight(&self) -> Flysight {
-        Flysight {
-            name: self.name.clone(),
-            path: PathBuf::from(self.mountpoint.clone()),
-        }
+        Flysight::new(self.name.clone(), PathBuf::from(self.mountpoint.clone()))
     }
 }
 

@@ -100,7 +100,7 @@ mod tests {
         let flysights: Vec<_> = locate_flysights(&cfg).unwrap().collect();
         assert_eq!(flysights.len(), 1);
         if let Device::Flysight(ref desc, ref flysight) = flysights[0] {
-            assert_eq!(&flysight.name, "data");
+            assert_eq!(&flysight.name()[..], "data");
         } else {
             panic!("Unsure what we ended up with: {:?}", flysights);
         }
@@ -112,7 +112,7 @@ mod tests {
         let flysights: Vec<_> = locate_flysights(&cfg).unwrap().collect();
         assert_eq!(flysights.len(), 1);
         if let Device::Flysight(ref desc, ref flysight) = flysights[0] {
-            assert_eq!(&flysight.name, "data");
+            assert_eq!(&flysight.name()[..], "data");
         } else {
             panic!("Unsure what we ended up with: {:?}", flysights);
         }
