@@ -6,9 +6,10 @@ use std::path::PathBuf;
 use failure::Error;
 use toml;
 
-use super::dropbox;
-use super::flysight::Flysight;
-use super::mass_storage::MassStorage;
+use dropbox;
+use flysight::Flysight;
+use mass_storage::MassStorage;
+use pushover_notifier::PushoverNotifier;
 
 #[allow(non_camel_case_types)]
 #[derive(Deserialize,Debug,Eq,PartialEq)]
@@ -27,7 +28,7 @@ pub struct Config {
     mass_storage: Option<Vec<MassStorageConfig>>,
     // gswoop: Option<GswoopConfig>,
     // sendgrid: Option<SendgridConfig>,
-    // pushover: Option<PushoverConfig>,
+    pushover: Option<PushoverConfig>,
 }
 
 lazy_static! {
@@ -77,6 +78,12 @@ impl MassStorageConfig {
 }
 
 #[derive(Deserialize,Debug,Eq,PartialEq,Clone)]
+pub struct PushoverConfig {
+    pub token: String,
+    pub recipient: String,
+}
+
+#[derive(Deserialize,Debug,Eq,PartialEq,Clone)]
 pub struct GoproConfig {
     pub name: String,
     pub serial: String,
@@ -120,6 +127,9 @@ impl Config {
         }
     }
 
+    pub fn pushover(&self) -> Option<PushoverNotifier> {
+        self.pushover.as_ref().map(|cfg| PushoverNotifier::new(cfg.token.clone(), cfg.recipient.clone()))
+    }
 
     pub fn backend(&self) -> dropbox::DropboxFilesClient {
         match self.archiver.storage_backend {
@@ -171,6 +181,12 @@ mod tests {
                             mountpoint: "/mnt/archiver/mass_storage".into(),
                             extensions: vec!["mp4".into()],
                    }]));
+
+        assert_eq!(config.pushover,
+                   Some(PushoverConfig {
+                       token: "TOKEN_GOES_HERE".into(),
+                       recipient: "USER_TOKEN_GOES_HERE".into(),
+                   }));
     }
 
     #[test]
@@ -194,6 +210,23 @@ staging="test/dir"
 token = "TOKEN"
 "#).unwrap();
         assert_eq!(cfg.archiver.staging, Some(PathBuf::from("test/dir")));
+    }
+
+    #[test]
+    fn test_pushover() {
+        let cfg = Config::from_str(r#"
+[archiver]
+storage_backend="dropbox"
+staging="test/dir"
+
+[dropbox]
+token = "TOKEN"
+
+[pushover]
+token = "PUSHOVER_TOKEN"
+recipient = "RECIPIENT_TOKEN"
+"#).unwrap();
+        assert!(cfg.pushover().is_some(), "Couldn't construct notifier");
     }
 
     #[test]

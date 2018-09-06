@@ -38,6 +38,6 @@ extensions = ["mp4"]
 # to = "richo@example.org"
 # subject = "flysight upload report"
 
-# [pushover]
-# token = "TOKEN_GOES_HERE"
-# user = "USER_TOKEN_GOES_HERE"
+[pushover]
+token = "TOKEN_GOES_HERE"
+recipient = "USER_TOKEN_GOES_HERE"
