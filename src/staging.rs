@@ -1,4 +1,3 @@
-use super::dropbox_content_hasher;
 extern crate serde_json;
 extern crate hashing_copy;
 extern crate chrono;
@@ -25,8 +24,6 @@ pub trait Staging : Sized {
     fn stage_files<T>(self, name: &str, destination: T) -> Result<(), Error>
     where T: AsRef<Path> {
         for mut file in self.files()? {
-            // TODO(richo) It'd be cool if we could implement this automatically but the name
-            // screws everything
             let mut desc = UploadDescriptor {
                 capture_time: file.capture_datetime()?,
                 device_name: name.to_string(),
