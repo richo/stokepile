@@ -1,5 +1,4 @@
-extern crate digest;
-extern crate sha2;
+use digest;
 
 use digest::{Digest,Input,FixedOutput};
 use sha2::Sha256;

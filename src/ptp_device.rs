@@ -1,21 +1,19 @@
-extern crate libusb;
-extern crate ptp;
-extern crate chrono;
-use super::dropbox_content_hasher;
-extern crate hashing_copy;
-extern crate serde_json;
-
-use std::path::Path;
-use chrono::prelude::*;
 use std::fmt;
-use std::fs::{self, File};
+use std::fs;
 use std::io::{self, Read};
-use dropbox_content_hasher::DropboxContentHasher;
-
-use failure::Error;
+use std::path::Path;
 
 use super::ctx;
 use super::staging::UploadDescriptor;
+
+use chrono::prelude::*;
+use chrono;
+use dropbox_content_hasher::DropboxContentHasher;
+use failure::Error;
+use hashing_copy;
+use libusb;
+use ptp;
+use serde_json;
 
 fn parse_gopro_date(date: &str) -> Result<DateTime<Local>, chrono::ParseError> {
     Local.datetime_from_str(date, "%Y%m%dT%H%M%S")

@@ -1,6 +1,6 @@
-use std::path::PathBuf;
 use std::ffi::OsStr;
 use std::fs;
+use std::path::PathBuf;
 
 pub trait Peripheral: Sized {
     fn attached(&self) -> bool;

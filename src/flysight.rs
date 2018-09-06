@@ -1,16 +1,14 @@
-extern crate serde_json;
-extern crate hashing_copy;
-extern crate regex;
-extern crate chrono;
+use std::fs::{self, File};
+use std::os::unix::ffi::OsStrExt;
+use std::path::{Path,PathBuf};
+
+use super::peripheral::MountablePeripheral;
+use super::staging::{Staging, UploadableFile};
 
 use chrono::prelude::*;
-use std::io::Read;
-use std::fs::{self, File};
-use std::path::{Path,PathBuf};
-use std::os::unix::ffi::OsStrExt;
-use super::staging::{Staging, UploadableFile, UploadDescriptor};
-use super::peripheral::MountablePeripheral;
+use chrono;
 use failure::Error;
+use regex;
 
 #[derive(Debug)]
 pub struct Flysight {

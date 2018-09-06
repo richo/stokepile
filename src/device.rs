@@ -1,16 +1,15 @@
 use std::collections::HashMap;
+use std::path::Path;
 
 use failure::Error;
-use std::path::Path;
 
 use super::config;
 use super::ctx;
-use super::ptp_device;
 use super::flysight;
 use super::mass_storage;
-
-use super::staging::Staging;
 use super::peripheral::Peripheral;
+use super::ptp_device;
+use super::staging::Staging;
 
 #[derive(Debug)]
 pub struct DeviceDescription {

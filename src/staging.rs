@@ -1,14 +1,14 @@
-extern crate serde_json;
-extern crate hashing_copy;
-extern crate chrono;
-use chrono::prelude::*;
-use failure::Error;
-
 use std::fs;
 use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
+
+use chrono::prelude::*;
+use chrono;
 use dropbox_content_hasher::DropboxContentHasher;
+use failure::Error;
+use hashing_copy;
+use serde_json;
 
 pub trait UploadableFile {
     type Reader: Read;

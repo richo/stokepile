@@ -2,25 +2,18 @@
 ///
 /// If this library is useful, I'll consider fleshing it out into a whole thing
 
-extern crate serde;
+use std::path::Path;
+use std::io::Read;
 use serde::{Deserialize, Deserializer};
-extern crate hex;
-use hex::FromHex;
-extern crate serde_json;
-extern crate reqwest;
-
-extern crate hyper;
-use hyper::Headers;
 
 use super::version;
 
 use failure::Error;
-
+use hex::FromHex;
+use hyper::Headers;
 use reqwest::header;
-
-use std::path::Path;
-use std::fs;
-use std::io::Read;
+use reqwest;
+use serde_json;
 
 header! { (DropboxAPIArg, "Dropbox-API-Arg") => [String] }
 
@@ -264,7 +257,8 @@ impl DropboxFilesClient {
 mod tests {
     use super::*;
     use std::env;
-    use sha2::{Sha256,Digest};
+    use std::fs;
+    use sha2::Digest;
     use super::super::dropbox_content_hasher::DropboxContentHasher;
 
     #[test]

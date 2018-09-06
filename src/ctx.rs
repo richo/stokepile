@@ -1,7 +1,8 @@
-extern crate libusb;
+use std::path::PathBuf;
+
+use libusb;
 
 use super::config;
-use std::path::PathBuf;
 
 pub struct Ctx {
     pub usb_ctx: libusb::Context,

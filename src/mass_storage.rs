@@ -1,15 +1,12 @@
-extern crate serde_json;
-extern crate hashing_copy;
-extern crate regex;
-extern crate chrono;
-extern crate walkdir;
-
-use chrono::prelude::*;
 use std::collections::HashSet;
 use std::fs:: File;
 use std::path::PathBuf;
-use super::staging::{Staging, UploadableFile};
+
 use super::peripheral::MountablePeripheral;
+use super::staging::{Staging, UploadableFile};
+
+use chrono::prelude::*;
+use chrono;
 use failure::Error;
 use walkdir::WalkDir;
 

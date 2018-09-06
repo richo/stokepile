@@ -1,12 +1,10 @@
-extern crate toml;
-extern crate failure;
-
 use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 
 use failure::Error;
+use toml;
 
 use super::dropbox;
 use super::flysight::Flysight;

@@ -1,11 +1,11 @@
-extern crate serde_json;
-
-use std::path::{Path,PathBuf};
 use std::fs::{self,File};
+use std::path::{Path,PathBuf};
 
-use failure::Error;
 use super::dropbox::DropboxFilesClient;
 use super::staging;
+
+use failure::Error;
+use serde_json;
 
 /// Converts a manifest path back into the filename to set
 fn content_path_from_manifest(manifest: &Path) -> PathBuf {

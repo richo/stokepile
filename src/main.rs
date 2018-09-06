@@ -1,37 +1,35 @@
 extern crate serde;
 #[macro_use] extern crate serde_derive;
 #[macro_use] extern crate failure;
-#[macro_use] extern crate lazy_static;
 #[macro_use] extern crate hyper;
+#[macro_use] extern crate lazy_static;
 #[macro_use] extern crate log;
 
-extern crate pretty_env_logger;
-extern crate serde_json;
-extern crate regex;
-extern crate walkdir;
-extern crate hex;
-
-
-extern crate sha2;
+extern crate chrono;
+extern crate clap;
 extern crate digest;
+extern crate hashing_copy;
+extern crate hex;
+extern crate libusb;
+extern crate pretty_env_logger;
+extern crate ptp;
+extern crate regex;
+extern crate reqwest;
+extern crate serde_json;
+extern crate sha2;
+extern crate toml;
+extern crate walkdir;
+
 mod dropbox_content_hasher;
 
-use std::process;
+use clap::{App,SubCommand,Arg};
+use failure::Error;
 use std::env;
 use std::fs;
 use std::io;
-use std::thread;
 use std::path::PathBuf;
-
-extern crate clap;
-use clap::{App,SubCommand,Arg};
-
-extern crate libusb;
-extern crate chrono;
-
-extern crate reqwest;
-
-use failure::Error;
+use std::process;
+use std::thread;
 
 mod config;
 mod ctx;
@@ -41,8 +39,8 @@ mod flysight;
 mod mass_storage;
 mod peripheral;
 mod ptp_device;
-mod storage;
 mod staging;
+mod storage;
 mod version;
 
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
