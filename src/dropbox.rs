@@ -58,7 +58,7 @@ impl MetadataResponse {
     }
 }
 
-pub fn hex_to_buffer<'de, D>(deserializer: D) -> Result<[u8; 32], D::Error>
+fn hex_to_buffer<'de, D>(deserializer: D) -> Result<[u8; 32], D::Error>
   where D: Deserializer<'de>
 {
   use serde::de::Error;
