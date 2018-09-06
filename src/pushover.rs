@@ -34,8 +34,8 @@ impl Serialize for Priority {
 #[derive(Serialize,Debug)]
 pub struct PushoverRequest<'a> {
     token: &'a str,
-    user: String,
-    message: String,
+    user: &'a str,
+    message: &'a str,
     // attachment - an image attachment to send with the message; see attachments for more information on how to upload files
     // device - your user's device name to send the message directly to that device, rather than all of the user's devices (multiple devices may be separated by a comma)
     title: Option<String>,
@@ -85,7 +85,7 @@ impl Pushover {
         }
     }
 
-    pub fn request(&self, user: String, message: String) -> PushoverRequest {
+    pub fn request<'a>(&'a self, user: &'a str, message: &'a str) -> PushoverRequest<'a> {
         PushoverRequest {
             token: &self.token,
             user,
@@ -120,7 +120,7 @@ mod tests {
         fn inner() -> Result<(), Error> {
             let pushover = Pushover::new(env::var("ARCHIVER_TEST_PUSHOVER_KEY").expect("Didn't provide test key"));
             let user_key: String = "redacted".into();
-            pushover.request(user_key, "hi there".into()).send()?;
+            pushover.request(&user_key, "hi there").send()?;
             Ok(())
         }
 

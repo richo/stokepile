@@ -38,6 +38,16 @@ impl<'a> Device <'a> {
             },
         }
     }
+
+    pub fn name(&self) -> &str {
+        match self {
+            Device::Gopro(ref desc, _) |
+            Device::MassStorage(ref desc, _) |
+            Device::Flysight(ref desc, _) => {
+                &desc.name[..]
+            },
+        }
+    }
 }
 
 pub fn attached_devices(ctx: &ctx::Ctx) -> Result<Vec<Device>, Error> {

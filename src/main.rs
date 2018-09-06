@@ -49,6 +49,8 @@ mod staging;
 mod storage;
 mod version;
 
+use pushover_notifier::MaybeNotify;
+
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
     App::new("archiver")
         .version(version::VERSION)
@@ -79,12 +81,14 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
 fn create_ctx(matches: &clap::ArgMatches) -> Result<ctx::Ctx, Error> {
     let usb_ctx = libusb::Context::new()?;
     let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("archiver.toml"))?;
+    let notifier = cfg.pushover();
     let staging = create_or_find_staging(&cfg)?;
     Ok(ctx::Ctx {
         // Loading config here lets us bail at a convenient time before we get in the weeds
         usb_ctx,
         cfg,
         staging,
+        notifier,
     })
 }
 
@@ -142,7 +146,9 @@ fn run() -> Result<(), Error> {
 
             // Let the cameras populate the plan
             for device in devices {
+                let msg = format!("Finished staging: {}", device.name());
                 device.stage_files(&ctx.staging)?;
+                ctx.notifier.notify(&msg)?;
             }
 
 
@@ -150,6 +156,7 @@ fn run() -> Result<(), Error> {
             let staging = ctx.staging.clone();
             let backend = ctx.cfg.backend().clone();
             let report = thread::spawn(move || storage::upload_from_staged(&staging, &backend)).join().expect("Upload thread panicked")?;
+            ctx.notifier.notify("Finished uploading media")?;
             println!("{}", report.to_plaintext()?);
         },
         ("scan", Some(_subm)) => {
