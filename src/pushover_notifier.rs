@@ -29,11 +29,7 @@ impl Notify for PushoverNotifier {
     }
 }
 
-pub trait MaybeNotify {
-    fn notify(&self, msg: &str) -> Result<(), Error>;
-}
-
-impl MaybeNotify for Option<PushoverNotifier> {
+impl Notify for Option<PushoverNotifier> {
     fn notify(&self, msg: &str) -> Result<(), Error> {
         match self {
             Some(notifier) => notifier.notify(msg),

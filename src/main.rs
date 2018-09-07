@@ -49,7 +49,7 @@ mod staging;
 mod storage;
 mod version;
 
-use pushover_notifier::MaybeNotify;
+use pushover_notifier::Notify;
 
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
     App::new("archiver")
