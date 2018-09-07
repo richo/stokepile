@@ -27,7 +27,7 @@ pub struct Config {
     gopro: Option<Vec<GoproConfig>>,
     mass_storage: Option<Vec<MassStorageConfig>>,
     // gswoop: Option<GswoopConfig>,
-    // sendgrid: Option<SendgridConfig>,
+    sendgrid: Option<SendgridConfig>,
     pushover: Option<PushoverConfig>,
 }
 
@@ -81,6 +81,14 @@ impl MassStorageConfig {
 pub struct PushoverConfig {
     pub token: String,
     pub recipient: String,
+}
+
+#[derive(Deserialize,Debug,Eq,PartialEq,Clone)]
+pub struct SendgridConfig {
+    pub token: String,
+    pub from: String,
+    pub to: String,
+    pub subject: String,
 }
 
 #[derive(Deserialize,Debug,Eq,PartialEq,Clone)]
@@ -181,6 +189,14 @@ mod tests {
                             mountpoint: "/mnt/archiver/mass_storage".into(),
                             extensions: vec!["mp4".into()],
                    }]));
+
+        assert_eq!(config.sendgrid,
+                   Some(SendgridConfig {
+                       token: "TOKEN_GOES_HERE".into(),
+                       from: "richo@example.net".into(),
+                       to: "richo@example.org".into(),
+                       subject: "archiver upload report".into(),
+                   }));
 
         assert_eq!(config.pushover,
                    Some(PushoverConfig {

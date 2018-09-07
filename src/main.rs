@@ -19,6 +19,7 @@ extern crate ptp;
 extern crate regex;
 extern crate reqwest;
 extern crate serde_json;
+extern crate sendgrid;
 extern crate sha2;
 extern crate toml;
 extern crate walkdir;

@@ -4,6 +4,7 @@ use libusb;
 
 use config;
 use pushover_notifier;
+use sendgrid;
 
 pub struct Ctx {
     pub usb_ctx: libusb::Context,

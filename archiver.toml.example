@@ -32,11 +32,11 @@ extensions = ["mp4"]
 #  [gswoop]
 #  binary = "/Applications/gSwoop.app/Contents/MacOS/gswoop"
 
-# [sendgrid]
-# token = "TOKEN_GOES_HERE"
-# from = "richo@psych0tik.net"
-# to = "richo@example.org"
-# subject = "flysight upload report"
+[sendgrid]
+token = "TOKEN_GOES_HERE"
+from = "richo@example.net"
+to = "richo@example.org"
+subject = "archiver upload report"
 
 [pushover]
 token = "TOKEN_GOES_HERE"
