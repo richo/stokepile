@@ -26,4 +26,4 @@ hex = "0.3"
 digest = "0.7"
 sha2 = "0.7"
 handlebars = "1.0.3"
-sendgrid = "0.7.1"
+sendgrid = { path = "../sendgrid-rs" }

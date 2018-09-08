@@ -40,6 +40,7 @@ mod ctx;
 mod device;
 mod dropbox;
 mod flysight;
+mod mailer;
 mod mass_storage;
 mod peripheral;
 mod pushover;
@@ -51,6 +52,7 @@ mod storage;
 mod version;
 
 use pushover_notifier::Notify;
+use mailer::MailReport;
 
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
     App::new("archiver")
@@ -83,6 +85,7 @@ fn create_ctx(matches: &clap::ArgMatches) -> Result<ctx::Ctx, Error> {
     let usb_ctx = libusb::Context::new()?;
     let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("archiver.toml"))?;
     let notifier = cfg.pushover();
+    let mailer = cfg.sendgrid();
     let staging = create_or_find_staging(&cfg)?;
     Ok(ctx::Ctx {
         // Loading config here lets us bail at a convenient time before we get in the weeds
@@ -90,6 +93,7 @@ fn create_ctx(matches: &clap::ArgMatches) -> Result<ctx::Ctx, Error> {
         cfg,
         staging,
         notifier,
+        mailer,
     })
 }
 
@@ -158,7 +162,9 @@ fn run() -> Result<(), Error> {
             let backend = ctx.cfg.backend().clone();
             let report = thread::spawn(move || storage::upload_from_staged(&staging, &backend)).join().expect("Upload thread panicked")?;
             ctx.notifier.notify("Finished uploading media")?;
-            println!("{}", report.to_plaintext()?);
+            let plaintext = report.to_plaintext()?;
+            println!("{}", plaintext);
+            ctx.mailer.send_report(&plaintext)?;
         },
         ("scan", Some(_subm)) => {
             println!("Found the following gopros:");

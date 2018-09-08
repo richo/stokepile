@@ -31,6 +31,7 @@ impl Notify for PushoverNotifier {
 
 impl Notify for Option<PushoverNotifier> {
     fn notify(&self, msg: &str) -> Result<(), Error> {
+        info!("sending push notification: {}", msg);
         match self {
             Some(notifier) => notifier.notify(msg),
             None => Ok(()),

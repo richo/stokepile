@@ -9,6 +9,7 @@ use toml;
 use dropbox;
 use flysight::Flysight;
 use mass_storage::MassStorage;
+use mailer::SendgridMailer;
 use pushover_notifier::PushoverNotifier;
 
 #[allow(non_camel_case_types)]
@@ -137,6 +138,13 @@ impl Config {
 
     pub fn pushover(&self) -> Option<PushoverNotifier> {
         self.pushover.as_ref().map(|cfg| PushoverNotifier::new(cfg.token.clone(), cfg.recipient.clone()))
+    }
+
+    pub fn sendgrid(&self) -> Option<SendgridMailer> {
+        self.sendgrid.as_ref().map(|cfg| SendgridMailer::new(cfg.token.clone(),
+                                                             cfg.from.clone(),
+                                                             cfg.to.clone(),
+                                                             cfg.subject.clone()))
     }
 
     pub fn backend(&self) -> dropbox::DropboxFilesClient {
