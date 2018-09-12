@@ -1,6 +1,6 @@
-use serde::ser::{Serialize, Serializer};
-use reqwest;
 use failure::Error;
+use reqwest;
+use serde::ser::{Serialize, Serializer};
 
 static MESSAGE_API_URL: &'static str = "https://api.pushover.net/1/messages.json";
 
@@ -31,7 +31,7 @@ impl Serialize for Priority {
     }
 }
 
-#[derive(Serialize,Debug)]
+#[derive(Serialize, Debug)]
 pub struct PushoverRequest<'a> {
     token: &'a str,
     user: &'a str,
@@ -58,7 +58,8 @@ macro_rules! setter {
 impl<'a> PushoverRequest<'a> {
     pub fn send(self) -> Result<reqwest::Response, Error> {
         let client = reqwest::Client::new();
-        client.post(MESSAGE_API_URL)
+        client
+            .post(MESSAGE_API_URL)
             .form(&self)
             .send()
             .map_err(|e| format_err!("HTTP error: {:?}", e))
@@ -80,9 +81,7 @@ pub struct Pushover {
 
 impl Pushover {
     pub fn new(token: String) -> Pushover {
-        Pushover {
-            token,
-        }
+        Pushover { token }
     }
 
     pub fn request<'a>(&'a self, user: &'a str, message: &'a str) -> PushoverRequest<'a> {
@@ -108,17 +107,24 @@ mod tests {
     #[test]
     fn test_serialized_priorities_dtrt() {
         let client = Pushover::new("".into());
-        let req = client.request("".into(), "".into())
+        let req = client
+            .request("".into(), "".into())
             .priority(Priority::HighPriority);
-        assert!(serde_json::to_string(&req).unwrap().contains("\"priority\":1"),
-                "Serialization failed");
+        assert!(
+            serde_json::to_string(&req)
+                .unwrap()
+                .contains("\"priority\":1"),
+            "Serialization failed"
+        );
     }
 
     #[test]
     #[ignore]
     fn test_sends_notification() {
         fn inner() -> Result<(), Error> {
-            let pushover = Pushover::new(env::var("ARCHIVER_TEST_PUSHOVER_KEY").expect("Didn't provide test key"));
+            let pushover = Pushover::new(
+                env::var("ARCHIVER_TEST_PUSHOVER_KEY").expect("Didn't provide test key"),
+            );
             let user_key: String = "redacted".into();
             pushover.request(&user_key, "hi there").send()?;
             Ok(())

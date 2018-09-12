@@ -1,12 +1,12 @@
 use std::collections::HashSet;
-use std::fs:: File;
+use std::fs::File;
 use std::path::PathBuf;
 
 use super::peripheral::MountablePeripheral;
 use super::staging::{Staging, UploadableFile};
 
-use chrono::prelude::*;
 use chrono;
+use chrono::prelude::*;
 use failure::Error;
 use walkdir::WalkDir;
 
@@ -47,12 +47,16 @@ impl Staging for MassStorage {
         let mut out = vec![];
         for entry in WalkDir::new(&self.path) {
             let entry = entry?;
-            if entry.file_type().is_dir() { continue }
+            if entry.file_type().is_dir() {
+                continue;
+            }
 
             let path = entry.path();
             if let Some(ext) = path.extension() {
                 let extension = ext.to_str().unwrap().to_lowercase();
-                if ! self.extensions.contains(&extension) { continue }
+                if !self.extensions.contains(&extension) {
+                    continue;
+                }
 
                 out.push(MassStorageFile {
                     capturedatetime: path.metadata()?.modified()?.into(),
@@ -83,7 +87,7 @@ mod tests {
 
     #[test]
     fn test_mass_storage_loads_files() {
-        let mass_storage = MassStorage{
+        let mass_storage = MassStorage {
             name: "data".into(),
             path: "test-data/mass_storage".into(),
             extensions: extensions(),

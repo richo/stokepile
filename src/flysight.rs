@@ -1,12 +1,12 @@
 use std::fs::{self, File};
 use std::os::unix::ffi::OsStrExt;
-use std::path::{Path,PathBuf};
+use std::path::{Path, PathBuf};
 
 use super::peripheral::MountablePeripheral;
 use super::staging::{Staging, UploadableFile};
 
-use chrono::prelude::*;
 use chrono;
+use chrono::prelude::*;
 use failure::Error;
 use regex;
 
@@ -63,9 +63,11 @@ impl Staging for Flysight {
     fn files(&self) -> Result<Vec<FlysightFile>, Error> {
         lazy_static! {
             static ref DATE: regex::bytes::Regex =
-                regex::bytes::Regex::new(r"(?P<year>\d{2})-(?P<month>\d{2})-(?P<day>\d{2})").expect("Failed to compile regex");
-            static ref ENTRY: regex::bytes::Regex =
-                regex::bytes::Regex::new(r"(?P<hour>\d{2})-(?P<min>\d{2})-(?P<second>\d{2}).[cC][sS][vV]").expect("Failed to compile regex");
+                regex::bytes::Regex::new(r"(?P<year>\d{2})-(?P<month>\d{2})-(?P<day>\d{2})")
+                    .expect("Failed to compile regex");
+            static ref ENTRY: regex::bytes::Regex = regex::bytes::Regex::new(
+                r"(?P<hour>\d{2})-(?P<min>\d{2})-(?P<second>\d{2}).[cC][sS][vV]"
+            ).expect("Failed to compile regex");
         }
 
         let mut out = vec![];
@@ -86,12 +88,10 @@ impl Staging for Flysight {
                             // end up with non utf8 garbage.
                             capturedate: entry.file_name().into_string().unwrap(),
                             capturetime: filename,
-                            file: File::open(file.path())?
+                            file: File::open(file.path())?,
                         });
-
                     }
                 }
-
             }
         }
         Ok(out)
@@ -122,12 +122,18 @@ mod tests {
         };
 
         let files = flysight.files().expect("Couldn't load test files");
-        assert_eq!(files[0].capture_datetime().unwrap(),
-                   Local.ymd(2018, 8, 24).and_hms(9, 55, 30));
-        assert_eq!(files[1].capture_datetime().unwrap(),
-                   Local.ymd(2018, 8, 24).and_hms(10, 39, 58));
-        assert_eq!(files[2].capture_datetime().unwrap(),
-                   Local.ymd(2018, 8, 24).and_hms(11, 0, 28));
+        assert_eq!(
+            files[0].capture_datetime().unwrap(),
+            Local.ymd(2018, 8, 24).and_hms(9, 55, 30)
+        );
+        assert_eq!(
+            files[1].capture_datetime().unwrap(),
+            Local.ymd(2018, 8, 24).and_hms(10, 39, 58)
+        );
+        assert_eq!(
+            files[2].capture_datetime().unwrap(),
+            Local.ymd(2018, 8, 24).and_hms(11, 0, 28)
+        );
     }
 
     #[test]

@@ -6,8 +6,8 @@ use std::path::Path;
 use super::ctx;
 use super::staging::UploadDescriptor;
 
-use chrono::prelude::*;
 use chrono;
+use chrono::prelude::*;
 use dropbox_content_hasher::DropboxContentHasher;
 use failure::Error;
 use hashing_copy;
@@ -60,10 +60,11 @@ impl<'a, 'b> Read for GoproFileReader<'a, 'b> {
         if self.offset + size as u32 > self.size {
             size = (self.size - self.offset) as usize;
         }
-        let vec = self.conn.camera.get_partialobject(self.handle,
-                                                     self.offset,
-                                                     size as u32,
-                                                     None).expect("FIXME couldn't read from buf");
+        let vec = self
+            .conn
+            .camera
+            .get_partialobject(self.handle, self.offset, size as u32, None)
+            .expect("FIXME couldn't read from buf");
         &buf[..vec.len()].copy_from_slice(&vec[..]);
         self.offset += vec.len() as u32;
         return Ok(vec.len());
@@ -71,7 +72,7 @@ impl<'a, 'b> Read for GoproFileReader<'a, 'b> {
 }
 
 #[repr(u16)]
-#[derive(Eq,PartialEq,Debug)]
+#[derive(Eq, PartialEq, Debug)]
 enum GoproObjectFormat {
     Directory = 0x3001,
     Video = 0x300d,
@@ -132,13 +133,17 @@ impl<'a> GoproConnection<'a> {
 
         // TODO(richo) Encapsulate this into some object that actually lets you poke around in the
         // libusb::Device and won't let you not close your session, etc.
-        let filehandles = self.camera.get_objecthandles_all(0xFFFFFFFF,
-                                                            Some(GoproObjectFormat::Video as u32),
-                                                            timeout)?;
+        let filehandles = self.camera.get_objecthandles_all(
+            0xFFFFFFFF,
+            Some(GoproObjectFormat::Video as u32),
+            timeout,
+        )?;
         for filehandle in filehandles {
             let object = self.camera.get_objectinfo(filehandle, timeout)?;
-            assert_eq!(GoproObjectFormat::from_u16(object.ObjectFormat),
-                       Some(GoproObjectFormat::Video));
+            assert_eq!(
+                GoproObjectFormat::from_u16(object.ObjectFormat),
+                Some(GoproObjectFormat::Video)
+            );
             out.push(GoproFile {
                 capturedate: object.CaptureDate,
                 filename: object.Filename,
@@ -185,7 +190,9 @@ impl<'a> Gopro<'a> {
 impl<'a> Gopro<'a> {
     // Consumes self, purely because connect does
     pub fn stage_files<T>(self, name: &str, destination: T) -> Result<(), Error>
-    where T: AsRef<Path> {
+    where
+        T: AsRef<Path>,
+    {
         let mut plan = Vec::new();
         let mut conn = self.connect()?;
 
@@ -194,14 +201,17 @@ impl<'a> Gopro<'a> {
         for file in conn.files()? {
             let capture_time = parse_gopro_date(&file.capturedate)?;
             let size = file.size as u64;
-            plan.push((file, UploadDescriptor {
-                capture_time,
-                device_name: name.to_string(),
-                // TODO(richo) is this always true?
-                extension: "mp4".to_string(),
-                content_hash: [0; 32],
-                size,
-            }));
+            plan.push((
+                file,
+                UploadDescriptor {
+                    capture_time,
+                    device_name: name.to_string(),
+                    // TODO(richo) is this always true?
+                    extension: "mp4".to_string(),
+                    content_hash: [0; 32],
+                    size,
+                },
+            ));
         }
 
         for (file, mut desc) in plan {
@@ -218,7 +228,10 @@ impl<'a> Gopro<'a> {
             trace!(" To {:?}", staging_path);
             {
                 let mut staged = options.open(&staging_path)?;
-                let (size, hash) = hashing_copy::copy_and_hash::<_, _, DropboxContentHasher>(&mut file.reader(&mut conn), &mut staged)?;
+                let (size, hash) = hashing_copy::copy_and_hash::<_, _, DropboxContentHasher>(
+                    &mut file.reader(&mut conn),
+                    &mut staged,
+                )?;
                 assert_eq!(size, desc.size);
                 info!("Shasum: {:x}", hash);
                 info!("size: {:x}", size);
@@ -263,7 +276,7 @@ pub fn locate_gopros(ctx: &ctx::Ctx) -> Result<Vec<Gopro>, Error> {
         let device_desc = device.device_descriptor()?;
 
         if device_desc.vendor_id() != GOPRO_VENDOR {
-            continue
+            continue;
         }
 
         // We'll just use the Manufacturer tag in the PtpDevice
@@ -272,18 +285,16 @@ pub fn locate_gopros(ctx: &ctx::Ctx) -> Result<Vec<Gopro>, Error> {
         let info = camera.get_device_info(None)?;
 
         if info.Manufacturer != GOPRO_MANUFACTURER {
-            continue
+            continue;
         }
 
         // TODO(richo) include the product from info so we can do something useful with unknowns
         match GoproKind::from_u16(device_desc.product_id()) {
             Some(kind) => {
                 res.push(Gopro::new(kind, info.SerialNumber, device)?);
-            },
-            None => { continue },
+            }
+            None => continue,
         }
-
-
     }
     Ok(res)
 }
@@ -296,7 +307,6 @@ mod tests {
     fn test_parses_gopro_date_correctly() {
         let dt = Local.ymd(2015, 1, 1).and_hms(0, 6, 49);
         // TODO(richo) get better testcases
-        assert_eq!(parse_gopro_date("20150101T000649"),
-                   Ok(dt.clone()));
+        assert_eq!(parse_gopro_date("20150101T000649"), Ok(dt.clone()));
     }
 }

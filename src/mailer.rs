@@ -1,6 +1,6 @@
-use sendgrid::{Mail,Destination};
-use sendgrid::SGClient;
 use failure::Error;
+use sendgrid::SGClient;
+use sendgrid::{Destination, Mail};
 
 // Urgh, I guess we're rewriting the sendgrid bindings too. So much allocating :<
 
@@ -17,7 +17,7 @@ impl SendgridMailer {
             mailer: SGClient::new(token),
             to,
             from,
-            subject
+            subject,
         }
     }
 }
@@ -32,11 +32,11 @@ impl MailReport for SendgridMailer {
             .add_to(Destination {
                 address: &self.to,
                 name: "archiver recipient",
-            })
-            .add_from(&self.from)
+            }).add_from(&self.from)
             .add_subject(&self.subject)
             .add_text(report);
-        self.mailer.send(msg)
+        self.mailer
+            .send(msg)
             .map_err(|e| format_err!("Sendgrid failed: {:?}", e))
     }
 }

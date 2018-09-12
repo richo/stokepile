@@ -13,16 +13,15 @@ pub trait Notify {
 
 impl PushoverNotifier {
     pub fn new(token: String, recipient: String) -> PushoverNotifier {
-        PushoverNotifier {
-            token, recipient
-        }
+        PushoverNotifier { token, recipient }
     }
 }
 
 impl Notify for PushoverNotifier {
     fn notify(&self, msg: &str) -> Result<(), Error> {
         let client = Pushover::new(self.token.clone());
-        client.request(&self.recipient, msg)
+        client
+            .request(&self.recipient, msg)
             .send()
             // We probably care about the return code or something, but we can deal with that later
             .map(|_| ())

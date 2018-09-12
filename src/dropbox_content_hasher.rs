@@ -1,9 +1,9 @@
 use digest;
 
-use digest::{Digest,Input,FixedOutput};
-use sha2::Sha256;
+use digest::generic_array::typenum::U64;
 use digest::generic_array::GenericArray;
-use digest::generic_array::typenum::{U64};
+use digest::{Digest, FixedOutput, Input};
+use sha2::Sha256;
 
 pub const BLOCK_SIZE: usize = 4 * 1024 * 1024;
 
@@ -55,7 +55,9 @@ impl DropboxContentHasher {
 }
 
 impl Default for DropboxContentHasher {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Input for DropboxContentHasher {
@@ -83,7 +85,8 @@ impl FixedOutput for DropboxContentHasher {
 
     fn fixed_result(mut self) -> GenericArray<u8, Self::OutputSize> {
         if self.block_pos > 0 {
-            self.overall_hasher.input(self.block_hasher.result().as_slice());
+            self.overall_hasher
+                .input(self.block_hasher.result().as_slice());
         }
         self.overall_hasher.result()
     }

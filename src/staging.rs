@@ -3,8 +3,8 @@ use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
 
-use chrono::prelude::*;
 use chrono;
+use chrono::prelude::*;
 use dropbox_content_hasher::DropboxContentHasher;
 use failure::Error;
 use hashing_copy;
@@ -17,12 +17,14 @@ pub trait UploadableFile {
     fn reader(&mut self) -> &mut Self::Reader;
 }
 
-pub trait Staging : Sized {
+pub trait Staging: Sized {
     type FileType: UploadableFile;
 
     fn files(&self) -> Result<Vec<Self::FileType>, Error>;
     fn stage_files<T>(self, name: &str, destination: T) -> Result<(), Error>
-    where T: AsRef<Path> {
+    where
+        T: AsRef<Path>,
+    {
         for mut file in self.files()? {
             let mut desc = UploadDescriptor {
                 capture_time: file.capture_datetime()?,
@@ -46,7 +48,10 @@ pub trait Staging : Sized {
             trace!(" To {:?}", staging_path);
             {
                 let mut staged = options.open(&staging_path)?;
-                let (size, hash) = hashing_copy::copy_and_hash::<_, _, DropboxContentHasher>(file.reader(), &mut staged)?;
+                let (size, hash) = hashing_copy::copy_and_hash::<_, _, DropboxContentHasher>(
+                    file.reader(),
+                    &mut staged,
+                )?;
                 // assert_eq!(size, desc.size);
                 info!("Shasum: {:x}", hash);
                 info!("size: {:x}", size);
@@ -68,7 +73,7 @@ pub trait Staging : Sized {
     }
 }
 
-#[derive(Debug,Serialize,Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UploadDescriptor {
     pub capture_time: DateTime<Local>,
     pub device_name: String,
@@ -79,7 +84,10 @@ pub struct UploadDescriptor {
 
 impl UploadDescriptor {
     pub fn staging_name(&self) -> String {
-        format!("{}-{}.{}", self.device_name, self.capture_time, self.extension)
+        format!(
+            "{}-{}.{}",
+            self.device_name, self.capture_time, self.extension
+        )
     }
 
     pub fn manifest_name(&self) -> String {
@@ -87,12 +95,13 @@ impl UploadDescriptor {
     }
 
     pub fn remote_path(&self) -> PathBuf {
-        format!("/{}/{}/{}.{}",
-                self.date_component(),
-                self.device_name,
-                self.time_component(),
-                self.extension
-                ).into()
+        format!(
+            "/{}/{}/{}.{}",
+            self.date_component(),
+            self.device_name,
+            self.time_component(),
+            self.extension
+        ).into()
     }
 
     fn date_component(&self) -> String {
@@ -121,7 +130,10 @@ mod tests {
             size: 0,
         };
 
-        assert_eq!(upload.remote_path(), PathBuf::from("/17-11-22/test/15-36-10.mp4".to_string()));
+        assert_eq!(
+            upload.remote_path(),
+            PathBuf::from("/17-11-22/test/15-36-10.mp4".to_string())
+        );
     }
 
     #[test]
@@ -137,6 +149,9 @@ mod tests {
             size: 0,
         };
 
-        assert_eq!(upload.remote_path(), PathBuf::from("/01-01-02/test/03-04-05.mp4".to_string()));
+        assert_eq!(
+            upload.remote_path(),
+            PathBuf::from("/01-01-02/test/03-04-05.mp4".to_string())
+        );
     }
 }

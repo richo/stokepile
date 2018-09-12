@@ -8,17 +8,17 @@ use toml;
 
 use dropbox;
 use flysight::Flysight;
-use mass_storage::MassStorage;
 use mailer::SendgridMailer;
+use mass_storage::MassStorage;
 use pushover_notifier::PushoverNotifier;
 
 #[allow(non_camel_case_types)]
-#[derive(Deserialize,Debug,Eq,PartialEq)]
+#[derive(Deserialize, Debug, Eq, PartialEq)]
 pub enum StorageBackend {
     dropbox,
 }
 
-#[derive(Deserialize,Debug,Eq,PartialEq)]
+#[derive(Deserialize, Debug, Eq, PartialEq)]
 pub struct Config {
     archiver: ArchiverConfig,
     dropbox: DropboxConfig,
@@ -38,18 +38,18 @@ lazy_static! {
     static ref EMPTY_GOPROS: Vec<GoproConfig> = vec![];
 }
 
-#[derive(Deserialize,Debug,Eq,PartialEq)]
+#[derive(Deserialize, Debug, Eq, PartialEq)]
 pub struct ArchiverConfig {
     storage_backend: StorageBackend,
     staging: Option<PathBuf>,
 }
 
-#[derive(Deserialize,Debug,Eq,PartialEq)]
+#[derive(Deserialize, Debug, Eq, PartialEq)]
 pub struct DropboxConfig {
     token: String,
 }
 
-#[derive(Deserialize,Debug,Eq,PartialEq,Clone)]
+#[derive(Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct FlysightConfig {
     pub name: String,
     pub mountpoint: String,
@@ -61,7 +61,7 @@ impl FlysightConfig {
     }
 }
 
-#[derive(Deserialize,Debug,Eq,PartialEq,Clone)]
+#[derive(Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct MassStorageConfig {
     pub name: String,
     pub mountpoint: String,
@@ -78,13 +78,13 @@ impl MassStorageConfig {
     }
 }
 
-#[derive(Deserialize,Debug,Eq,PartialEq,Clone)]
+#[derive(Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct PushoverConfig {
     pub token: String,
     pub recipient: String,
 }
 
-#[derive(Deserialize,Debug,Eq,PartialEq,Clone)]
+#[derive(Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct SendgridConfig {
     pub token: String,
     pub from: String,
@@ -92,7 +92,7 @@ pub struct SendgridConfig {
     pub subject: String,
 }
 
-#[derive(Deserialize,Debug,Eq,PartialEq,Clone)]
+#[derive(Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct GoproConfig {
     pub name: String,
     pub serial: String,
@@ -137,21 +137,25 @@ impl Config {
     }
 
     pub fn pushover(&self) -> Option<PushoverNotifier> {
-        self.pushover.as_ref().map(|cfg| PushoverNotifier::new(cfg.token.clone(), cfg.recipient.clone()))
+        self.pushover
+            .as_ref()
+            .map(|cfg| PushoverNotifier::new(cfg.token.clone(), cfg.recipient.clone()))
     }
 
     pub fn sendgrid(&self) -> Option<SendgridMailer> {
-        self.sendgrid.as_ref().map(|cfg| SendgridMailer::new(cfg.token.clone(),
-                                                             cfg.from.clone(),
-                                                             cfg.to.clone(),
-                                                             cfg.subject.clone()))
+        self.sendgrid.as_ref().map(|cfg| {
+            SendgridMailer::new(
+                cfg.token.clone(),
+                cfg.from.clone(),
+                cfg.to.clone(),
+                cfg.subject.clone(),
+            )
+        })
     }
 
     pub fn backend(&self) -> dropbox::DropboxFilesClient {
         match self.archiver.storage_backend {
-            StorageBackend::dropbox => {
-                dropbox::DropboxFilesClient::new(self.dropbox.token.clone())
-            }
+            StorageBackend::dropbox => dropbox::DropboxFilesClient::new(self.dropbox.token.clone()),
         }
     }
 
@@ -166,8 +170,8 @@ impl Config {
                     absolute_path.push(&staging);
                     Ok(Some(absolute_path))
                 }
-            },
-            None => { Ok(None) },
+            }
+            None => Ok(None),
         }
     }
 }
@@ -182,63 +186,81 @@ mod tests {
 
         assert_eq!(config.archiver.storage_backend, StorageBackend::dropbox);
 
-        assert_eq!(config.dropbox,
-                   DropboxConfig{ token: "DROPBOX_TOKEN_GOES_HERE".into() });
+        assert_eq!(
+            config.dropbox,
+            DropboxConfig {
+                token: "DROPBOX_TOKEN_GOES_HERE".into()
+            }
+        );
 
-        assert_eq!(config.flysight,
-                   Some(vec![FlysightConfig {
-                            name: "data".into(),
-                            mountpoint: "/mnt/archiver/flysight".into(),
-                   }]));
+        assert_eq!(
+            config.flysight,
+            Some(vec![FlysightConfig {
+                name: "data".into(),
+                mountpoint: "/mnt/archiver/flysight".into(),
+            }])
+        );
 
-        assert_eq!(config.mass_storage,
-                   Some(vec![MassStorageConfig {
-                            name: "video".into(),
-                            mountpoint: "/mnt/archiver/mass_storage".into(),
-                            extensions: vec!["mp4".into()],
-                   }]));
+        assert_eq!(
+            config.mass_storage,
+            Some(vec![MassStorageConfig {
+                name: "video".into(),
+                mountpoint: "/mnt/archiver/mass_storage".into(),
+                extensions: vec!["mp4".into()],
+            }])
+        );
 
-        assert_eq!(config.sendgrid,
-                   Some(SendgridConfig {
-                       token: "TOKEN_GOES_HERE".into(),
-                       from: "richo@example.net".into(),
-                       to: "richo@example.org".into(),
-                       subject: "archiver upload report".into(),
-                   }));
+        assert_eq!(
+            config.sendgrid,
+            Some(SendgridConfig {
+                token: "TOKEN_GOES_HERE".into(),
+                from: "richo@example.net".into(),
+                to: "richo@example.org".into(),
+                subject: "archiver upload report".into(),
+            })
+        );
 
-        assert_eq!(config.pushover,
-                   Some(PushoverConfig {
-                       token: "TOKEN_GOES_HERE".into(),
-                       recipient: "USER_TOKEN_GOES_HERE".into(),
-                   }));
+        assert_eq!(
+            config.pushover,
+            Some(PushoverConfig {
+                token: "TOKEN_GOES_HERE".into(),
+                recipient: "USER_TOKEN_GOES_HERE".into(),
+            })
+        );
     }
 
     #[test]
     fn test_invalid_backend() {
-        let error = Config::from_str(r#"
+        let error = Config::from_str(
+            r#"
 [archiver]
 storage_backend="butts"
-"#).unwrap_err();
-        assert!(format!("{}", error)
-                .contains("unknown variant `butts`, expected `dropbox` for key `archiver.storage_backend`"))
+"#,
+        ).unwrap_err();
+        assert!(format!("{}", error).contains(
+            "unknown variant `butts`, expected `dropbox` for key `archiver.storage_backend`"
+        ))
     }
 
     #[test]
     fn test_relative_staging() {
-        let cfg = Config::from_str(r#"
+        let cfg = Config::from_str(
+            r#"
 [archiver]
 storage_backend="dropbox"
 staging="test/dir"
 
 [dropbox]
 token = "TOKEN"
-"#).unwrap();
+"#,
+        ).unwrap();
         assert_eq!(cfg.archiver.staging, Some(PathBuf::from("test/dir")));
     }
 
     #[test]
     fn test_pushover() {
-        let cfg = Config::from_str(r#"
+        let cfg = Config::from_str(
+            r#"
 [archiver]
 storage_backend="dropbox"
 staging="test/dir"
@@ -249,37 +271,42 @@ token = "TOKEN"
 [pushover]
 token = "PUSHOVER_TOKEN"
 recipient = "RECIPIENT_TOKEN"
-"#).unwrap();
+"#,
+        ).unwrap();
         assert!(cfg.pushover().is_some(), "Couldn't construct notifier");
     }
 
     #[test]
     fn test_no_backend() {
-        let error = Config::from_str(r#"
+        let error = Config::from_str(
+            r#"
 [archiver]
-"#).unwrap_err();
-        assert!(format!("{}", error)
-                .contains("missing field `storage_backend` for key `archiver`"))
+"#,
+        ).unwrap_err();
+        assert!(format!("{}", error).contains("missing field `storage_backend` for key `archiver`"))
     }
 
     #[test]
     fn test_no_dropbox() {
-        let error = Config::from_str(r#"
+        let error = Config::from_str(
+            r#"
 [archiver]
 storage_backend="dropbox"
-"#).unwrap_err();
-        assert!(format!("{}", error)
-                .contains("missing field `dropbox`"))
+"#,
+        ).unwrap_err();
+        assert!(format!("{}", error).contains("missing field `dropbox`"))
     }
 
     #[test]
     fn test_no_peripherals() {
-        let config = Config::from_str(r#"
+        let config = Config::from_str(
+            r#"
 [archiver]
 storage_backend="dropbox"
 [dropbox]
 token="DROPBOX_TOKEN_GOES_HERE"
-"#).unwrap();
+"#,
+        ).unwrap();
         assert_no_mass_storages(&config);
         assert_no_flysights(&config);
     }
@@ -295,49 +322,59 @@ token="DROPBOX_TOKEN_GOES_HERE"
     }
 
     fn assert_mass_storages(cfg: &Config) {
-        assert_eq!(cfg.mass_storages(),
-        &vec![MassStorageConfig {
-                name: "front".into(),
-                mountpoint: "/mnt/archiver/front".into(),
-                extensions: vec!["mp4".into()],
-            },
-            MassStorageConfig {
-                name: "back".into(),
-                mountpoint: "/mnt/archiver/back".into(),
-                extensions: vec!["mov".into()],
-            }
-        ])
+        assert_eq!(
+            cfg.mass_storages(),
+            &vec![
+                MassStorageConfig {
+                    name: "front".into(),
+                    mountpoint: "/mnt/archiver/front".into(),
+                    extensions: vec!["mp4".into()],
+                },
+                MassStorageConfig {
+                    name: "back".into(),
+                    mountpoint: "/mnt/archiver/back".into(),
+                    extensions: vec!["mov".into()],
+                }
+            ]
+        )
     }
 
     fn assert_gopros(cfg: &Config) {
-        assert_eq!(cfg.gopros(),
-        &vec![GoproConfig {
-                name: "gopro4".into(),
-                serial: "C3131127500000".into(),
-            },
-            GoproConfig {
-                name: "gopro5".into(),
-                serial: "C3131127500001".into(),
-            }
-        ])
+        assert_eq!(
+            cfg.gopros(),
+            &vec![
+                GoproConfig {
+                    name: "gopro4".into(),
+                    serial: "C3131127500000".into(),
+                },
+                GoproConfig {
+                    name: "gopro5".into(),
+                    serial: "C3131127500001".into(),
+                }
+            ]
+        )
     }
 
     fn assert_flysights(cfg: &Config) {
-        assert_eq!(cfg.flysights(),
-        &vec![FlysightConfig {
-                name: "training".into(),
-                mountpoint: "/mnt/archiver/training".into(),
-            },
-            FlysightConfig {
-                name: "comp".into(),
-                mountpoint: "/mnt/archiver/comp".into(),
-            }
-        ])
+        assert_eq!(
+            cfg.flysights(),
+            &vec![
+                FlysightConfig {
+                    name: "training".into(),
+                    mountpoint: "/mnt/archiver/training".into(),
+                },
+                FlysightConfig {
+                    name: "comp".into(),
+                    mountpoint: "/mnt/archiver/comp".into(),
+                }
+            ]
+        )
     }
 
     #[test]
     fn test_mass_storages() {
-        let config = Config::from_str(r#"
+        let config = Config::from_str(
+            r#"
 [archiver]
 storage_backend="dropbox"
 [dropbox]
@@ -352,14 +389,16 @@ extensions = ["mp4"]
 name = "back"
 mountpoint="/mnt/archiver/back"
 extensions = ["mov"]
-"#).unwrap();
+"#,
+        ).unwrap();
         assert_mass_storages(&config);
         assert_no_flysights(&config);
     }
 
     #[test]
     fn test_gopros() {
-        let config = Config::from_str(r#"
+        let config = Config::from_str(
+            r#"
 [archiver]
 storage_backend="dropbox"
 [dropbox]
@@ -372,7 +411,8 @@ serial = "C3131127500000"
 [[gopro]]
 name = "gopro5"
 serial = "C3131127500001"
-"#).unwrap();
+"#,
+        ).unwrap();
         assert_gopros(&config);
         assert_no_mass_storages(&config);
         assert_no_flysights(&config);
@@ -380,7 +420,8 @@ serial = "C3131127500001"
 
     #[test]
     fn test_flysights() {
-        let config = Config::from_str(r#"
+        let config = Config::from_str(
+            r#"
 [archiver]
 storage_backend="dropbox"
 [dropbox]
@@ -393,14 +434,16 @@ mountpoint="/mnt/archiver/training"
 [[flysight]]
 name = "comp"
 mountpoint="/mnt/archiver/comp"
-"#).unwrap();
+"#,
+        ).unwrap();
         assert_flysights(&config);
         assert_no_mass_storages(&config);
     }
 
     #[test]
     fn test_mass_storages_and_flysights() {
-        let config = Config::from_str(r#"
+        let config = Config::from_str(
+            r#"
 [archiver]
 storage_backend="dropbox"
 [dropbox]
@@ -423,7 +466,8 @@ mountpoint="/mnt/archiver/training"
 [[flysight]]
 name = "comp"
 mountpoint="/mnt/archiver/comp"
-"#).unwrap();
+"#,
+        ).unwrap();
         assert_mass_storages(&config);
         assert_flysights(&config);
     }
