@@ -1,4 +1,4 @@
-use sendgrid::Mail;
+use sendgrid::{Mail,Destination};
 use sendgrid::SGClient;
 use failure::Error;
 
@@ -29,7 +29,10 @@ pub trait MailReport {
 impl MailReport for SendgridMailer {
     fn send_report(&self, report: &str) -> Result<String, Error> {
         let msg = Mail::new()
-            .add_to(&self.to)
+            .add_to(Destination {
+                address: &self.to,
+                name: "archiver recipient",
+            })
             .add_from(&self.from)
             .add_subject(&self.subject)
             .add_text(report);
