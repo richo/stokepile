@@ -33,7 +33,7 @@ hex = "0.3"
 digest = "0.7"
 sha2 = "0.7"
 handlebars = "1.0.3"
-sendgrid = { path = "../sendgrid-rs" }
+sendgrid = { "git" = "https://github.com/gsquire/sendgrid-rs" }
 
 rocket = { version = "0.3", optional = true }
 rocket_codegen = { version = "0.3", optional = true }
