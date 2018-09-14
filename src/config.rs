@@ -136,21 +136,23 @@ impl Config {
         }
     }
 
-    pub fn pushover(&self) -> Option<PushoverNotifier> {
-        self.pushover
-            .as_ref()
-            .map(|cfg| PushoverNotifier::new(cfg.token.clone(), cfg.recipient.clone()))
+    pub fn notifier(&self) -> Option<PushoverNotifier> {
+        if let Some(ref pshvr) = self.pushover {
+            return Some(PushoverNotifier::new(pshvr.token.clone(), pshvr.recipient.clone()))
+        }
+        None
     }
 
-    pub fn sendgrid(&self) -> Option<SendgridMailer> {
-        self.sendgrid.as_ref().map(|cfg| {
-            SendgridMailer::new(
-                cfg.token.clone(),
-                cfg.from.clone(),
-                cfg.to.clone(),
-                cfg.subject.clone(),
-            )
-        })
+    pub fn mailer(&self) -> Option<SendgridMailer> {
+        if let Some(ref sndgrd) = self.sendgrid {
+            return Some(SendgridMailer::new(
+                sndgrd.token.clone(),
+                sndgrd.from.clone(),
+                sndgrd.to.clone(),
+                sndgrd.subject.clone(),
+                ))
+        }
+        None
     }
 
     pub fn backend(&self) -> dropbox::DropboxFilesClient {
@@ -273,7 +275,7 @@ token = "PUSHOVER_TOKEN"
 recipient = "RECIPIENT_TOKEN"
 "#,
         ).unwrap();
-        assert!(cfg.pushover().is_some(), "Couldn't construct notifier");
+        assert!(cfg.notifier().is_some(), "Couldn't construct notifier");
     }
 
     #[test]

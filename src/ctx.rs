@@ -25,8 +25,8 @@ impl Ctx {
     pub fn create(cfg: config::Config) -> Result<Ctx, Error> {
         let staging = create_or_find_staging(&cfg)?;
         // TODO(richo) offload figuring out what notifier we should use to the config
-        let notifier = cfg.pushover();
-        let mailer = cfg.sendgrid();
+        let notifier = cfg.notifier();
+        let mailer = cfg.mailer();
 
         Ok(Ctx {
             usb_ctx: libusb::Context::new()?,
