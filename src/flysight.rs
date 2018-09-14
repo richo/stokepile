@@ -1,6 +1,7 @@
 use std::fs::{self, File};
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
+use std::cmp::Ordering;
 
 use super::peripheral::MountablePeripheral;
 use super::staging::{Staging, UploadableFile};
@@ -21,6 +22,32 @@ pub struct FlysightFile {
     capturetime: String,
     file: File,
 }
+
+impl Ord for FlysightFile {
+    fn cmp(&self, other: &FlysightFile) -> Ordering {
+        use std::cmp::Ordering::*;
+        match self.capturedate.cmp(&other.capturedate) {
+            Less => Less,
+            Greater => Greater,
+            Equal => self.capturetime.cmp(&other.capturetime)
+        }
+    }
+}
+
+impl PartialOrd for FlysightFile {
+    fn partial_cmp(&self, other: &FlysightFile) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for FlysightFile {
+    fn eq(&self, other: &FlysightFile) -> bool {
+        self.capturedate == other.capturedate &&
+            self.capturetime == other.capturetime
+    }
+}
+
+impl Eq for FlysightFile {}
 
 impl UploadableFile for FlysightFile {
     type Reader = File;
@@ -94,6 +121,7 @@ impl Staging for Flysight {
                 }
             }
         }
+        out.sort_unstable();
         Ok(out)
     }
 }
