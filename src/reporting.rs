@@ -87,9 +87,12 @@ mod tests {
     #[test]
     fn test_renders_report() {
         let report = dummy_report();
-        assert_eq!(
-            &report.to_plaintext().unwrap(),
-            "\
+        // We use LocalTime throughout, since it's reasonable to assume that is correct. However,
+        // localtime formats including its offset, which we can't predict in tests. We construct
+        // one, remove its offset, and template it in here for the testcase.
+        let local = Local::today();
+        let offset = local.offset();
+        let expected = format!("\
 ARCHIVER UPLOAD REPORT
 ======================
 
@@ -97,11 +100,14 @@ test-device
 ===========
 
     # Succeeded
-2018-08-24T09:55:30-07:00.mp4 (0b)
+2018-08-24T09:55:30{offset}.mp4 (0b)
 
-    # Upload failed: ErrorMessage { msg: &quot;Something bad happened&quot; }
-2018-08-24T12:30:30-07:00.mp4 (0b)
-"
+    # Upload failed: ErrorMessage {{ msg: &quot;Something bad happened&quot; }}
+2018-08-24T12:30:30{offset}.mp4 (0b)
+", offset = offset);
+        assert_eq!(
+            report.to_plaintext().unwrap(),
+            expected
         );
     }
 }
