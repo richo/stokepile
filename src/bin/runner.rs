@@ -1,68 +1,30 @@
-#![deny(unused_must_use)]
-
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-#[macro_use]
-extern crate failure;
-#[macro_use]
-extern crate handlebars;
-#[macro_use]
-extern crate hyper;
-#[macro_use]
-extern crate lazy_static;
 #[macro_use]
 extern crate log;
 
-extern crate chrono;
 extern crate clap;
-extern crate digest;
-extern crate hashing_copy;
-extern crate hex;
-extern crate libusb;
 extern crate pretty_env_logger;
-extern crate ptp;
-extern crate regex;
-extern crate reqwest;
-extern crate sendgrid;
-extern crate serde_json;
-extern crate sha2;
-extern crate toml;
-extern crate walkdir;
+extern crate failure;
 
-mod dropbox_content_hasher;
+extern crate archiver;
 
 use clap::{App, Arg, SubCommand};
 use failure::Error;
 use std::env;
-use std::fs;
-use std::io;
-use std::path::PathBuf;
 use std::process;
 use std::thread;
 
-mod config;
-mod ctx;
-mod device;
-mod dropbox;
-mod flysight;
-mod mailer;
-mod mass_storage;
-mod peripheral;
-mod ptp_device;
-mod pushover;
-mod pushover_notifier;
-mod reporting;
-mod staging;
-mod storage;
-mod version;
-
-use mailer::MailReport;
-use pushover_notifier::Notify;
+use archiver::config;
+use archiver::ctx::Ctx;
+use archiver::device;
+use archiver::mailer::MailReport;
+use archiver::pushover_notifier::Notify;
+use archiver::ptp_device;
+use archiver::storage;
+use archiver::VERSION;
 
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
     App::new("archiver")
-        .version(version::VERSION)
+        .version(VERSION)
         .about("Footage archiver")
         .author("richö butts")
         .arg(
@@ -72,18 +34,18 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
                 .help("Path to configuration file"),
         ).subcommand(
             SubCommand::with_name("daemon")
-                .version(version::VERSION)
+                .version(VERSION)
                 .author("richö butts")
                 .about("Runs archiver in persistent mode"),
         ).subcommand(
             SubCommand::with_name("scan")
-                .version(version::VERSION)
+                .version(VERSION)
                 .author("richö butts")
                 .about("Scan for attached devices"),
         ).subcommand(
             SubCommand::with_name("run")
                 .about("Runs archiver in persistent mode")
-                .version(version::VERSION)
+                .version(VERSION)
                 .author("richö butts")
                 .arg(
                     Arg::with_name("plan-only")
@@ -93,44 +55,11 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
         )
 }
 
-fn create_ctx(matches: &clap::ArgMatches) -> Result<ctx::Ctx, Error> {
-    let usb_ctx = libusb::Context::new()?;
-    let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("archiver.toml"))?;
-    let notifier = cfg.pushover();
-    let mailer = cfg.sendgrid();
-    let staging = create_or_find_staging(&cfg)?;
-    Ok(ctx::Ctx {
-        // Loading config here lets us bail at a convenient time before we get in the weeds
-        usb_ctx,
-        cfg,
-        staging,
-        notifier,
-        mailer,
-    })
-}
-
 fn init_logging() {
     if let None = env::var_os("RUST_LOG") {
         env::set_var("RUST_LOG", "INFO");
-        pretty_env_logger::init();
     }
-}
-
-fn create_or_find_staging(cfg: &config::Config) -> Result<PathBuf, Error> {
-    let path = cfg
-        .staging_dir()?
-        .unwrap_or_else(|| PathBuf::from("staging"));
-
-    if let Err(e) = fs::create_dir(&path) {
-        if e.kind() == io::ErrorKind::AlreadyExists {
-            info!("Reusing existing staging dir");
-        } else {
-            error!("{:?}", e);
-            panic!();
-        }
-    }
-
-    Ok(path)
+    pretty_env_logger::init();
 }
 
 fn main() {
@@ -149,7 +78,8 @@ fn run() -> Result<(), Error> {
     let matches = cli_opts().get_matches();
 
     // TODO(richo) run -> Result<(), Error> so I can use ?
-    let ctx = create_ctx(&matches)?;
+    let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("archiver.toml"))?;
+    let ctx = Ctx::create(cfg)?;
 
     match matches.subcommand() {
         ("daemon", Some(_subm)) => {
