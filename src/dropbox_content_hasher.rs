@@ -18,8 +18,8 @@ pub const BLOCK_SIZE: usize = 4 * 1024 * 1024;
 ///
 /// ```
 /// extern crate digest;
-/// extern crate dropbox_content_hasher;
-/// use dropbox_content_hasher::{DropboxContentHasher, hex};
+/// extern crate archiver;
+/// use archiver::dropbox_content_hasher::DropboxContentHasher;
 /// use std::io::Read;
 /// use digest::{Digest,Input,FixedOutput};
 ///
