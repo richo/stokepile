@@ -2,3 +2,5 @@
 **/*.rs.bk
 *.swp
 /staging
+
+archiver.toml
