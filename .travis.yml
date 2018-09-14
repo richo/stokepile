@@ -10,4 +10,11 @@ matrix:
 
 before_install:
   - sudo apt-get update
-  - sudo apt-get install -y libusb-dev
+# This is shamelessly lifted from the .travis.yml in the libusb-sys crate
+  - sudo apt-get install -y build-essential libudev-dev
+  - wget https://github.com/libusb/libusb/archive/v1.0.19.tar.gz -O libusb-1.0.19.tar.gz
+  - tar -zxvf libusb-1.0.19.tar.gz
+  - cd libusb-1.0.19 && ./autogen.sh && ./configure --prefix=/usr && make && sudo make install
+  - pkg-config --list-all
+  - pkg-config --libs libusb-1.0
+  - pkg-config --modversion libusb-1.0
