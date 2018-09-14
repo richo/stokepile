@@ -3,6 +3,13 @@ name = "archiver"
 version = "0.1.0"
 authors = ["Richo Healey <richo@psych0tik.net>"]
 
+[features]
+"web" = [
+  "rocket",
+  "rocket_codegen",
+  "rocket_contrib",
+]
+
 [dependencies]
 toml = "0.4.6"
 clap = "2.32.0"
@@ -27,3 +34,16 @@ digest = "0.7"
 sha2 = "0.7"
 handlebars = "1.0.3"
 sendgrid = { path = "../sendgrid-rs" }
+
+rocket = { version = "0.3", optional = true }
+rocket_codegen = { version = "0.3", optional = true }
+rocket_contrib = { version = "0.3", optional = true }
+
+[[bin]]
+name = "server"
+path = "src/bin/server.rs"
+required-features = ["web"]
+
+[[bin]]
+name = "runner"
+path = "src/bin/runner.rs"
