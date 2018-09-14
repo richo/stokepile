@@ -25,11 +25,6 @@ fn get_config() -> Result<Json<Config>, Error> {
     Ok(Json(config))
 }
 
-fn run() -> Result<(), Error> {
-    rocket::ignite().mount("/", routes![get_config]).launch();
-    Ok(())
-}
-
 fn init_logging() {
     if let None = env::var_os("RUST_LOG") {
         env::set_var("RUST_LOG", "INFO");
@@ -39,12 +34,5 @@ fn init_logging() {
 
 fn main() {
     init_logging();
-    if let Err(e) = run() {
-        error!("Error running archiver");
-        error!("{:?}", e);
-        if env::var("RUST_BACKTRACE").is_ok() {
-            error!("{:?}", e.backtrace());
-        }
-        process::exit(1);
-    }
+    rocket::ignite().mount("/", routes![get_config]).launch();
 }
