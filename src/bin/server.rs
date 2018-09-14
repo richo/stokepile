@@ -16,15 +16,17 @@ use failure::Error;
 use std::env;
 use std::process;
 
-use archiver::config;
+use archiver::config::Config;
 
-#[get("/")]
-fn index() -> &'static str {
-        "Hello, world!"
+#[get("/config")]
+fn get_config() -> Result<Json<Config>, Error> {
+    let config = Config::from_file("archiver.toml.example")?;
+    info!("Butts");
+    Ok(Json(config))
 }
 
 fn run() -> Result<(), Error> {
-    rocket::ignite().mount("/", routes![index]).launch();
+    rocket::ignite().mount("/", routes![get_config]).launch();
     Ok(())
 }
 
