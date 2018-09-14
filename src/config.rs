@@ -13,12 +13,12 @@ use mass_storage::MassStorage;
 use pushover_notifier::PushoverNotifier;
 
 #[allow(non_camel_case_types)]
-#[derive(Deserialize, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub enum StorageBackend {
     dropbox,
 }
 
-#[derive(Deserialize, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct Config {
     archiver: ArchiverConfig,
     dropbox: DropboxConfig,
@@ -38,18 +38,18 @@ lazy_static! {
     static ref EMPTY_GOPROS: Vec<GoproConfig> = vec![];
 }
 
-#[derive(Deserialize, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct ArchiverConfig {
     storage_backend: StorageBackend,
     staging: Option<PathBuf>,
 }
 
-#[derive(Deserialize, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct DropboxConfig {
     token: String,
 }
 
-#[derive(Deserialize, Debug, Eq, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct FlysightConfig {
     pub name: String,
     pub mountpoint: String,
@@ -61,7 +61,7 @@ impl FlysightConfig {
     }
 }
 
-#[derive(Deserialize, Debug, Eq, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct MassStorageConfig {
     pub name: String,
     pub mountpoint: String,
@@ -78,13 +78,13 @@ impl MassStorageConfig {
     }
 }
 
-#[derive(Deserialize, Debug, Eq, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct PushoverConfig {
     pub token: String,
     pub recipient: String,
 }
 
-#[derive(Deserialize, Debug, Eq, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct SendgridConfig {
     pub token: String,
     pub from: String,
@@ -92,7 +92,7 @@ pub struct SendgridConfig {
     pub subject: String,
 }
 
-#[derive(Deserialize, Debug, Eq, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct GoproConfig {
     pub name: String,
     pub serial: String,
