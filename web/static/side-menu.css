@@ -11,7 +11,7 @@ body {
 Add transition to containers so they can push in and out.
 */
 #layout,
-#menu,
+#menu, #right-menu
 .menu-link {
     -webkit-transition: all 0.2s ease-out;
     -moz-transition: all 0.2s ease-out;
@@ -26,7 +26,9 @@ This is the parent `<div>` that contains the menu and the content area.
 #layout {
     position: relative;
     left: 0;
+    right: 0;
     padding-left: 0;
+    padding-right: 0;
 }
     #layout.active #menu {
         left: 150px;
@@ -35,6 +37,15 @@ This is the parent `<div>` that contains the menu and the content area.
 
     #layout.active .menu-link {
         left: 150px;
+    }
+
+    #layout.active #right-menu {
+        right: 150px;
+        width: 150px;
+    }
+
+    #layout.active .right-menu-link {
+        right: 150px;
     }
 /*
 The content `<div>` is where all your content goes.
@@ -94,7 +105,7 @@ appears on the left side of the page.
     /*
     All anchors inside the menu should be styled like this.
     */
-    #menu a {
+    .menu a {
         color: #999;
         border: none;
         padding: 0.6em 0 0.6em 0.6em;
@@ -103,8 +114,8 @@ appears on the left side of the page.
     /*
     Remove all background/borders, since we are applying them to #menu.
     */
-     #menu .pure-menu,
-     #menu .pure-menu ul {
+     .menu .pure-menu,
+     .menu .pure-menu ul {
         border: none;
         background: transparent;
     }
@@ -112,8 +123,8 @@ appears on the left side of the page.
     /*
     Add that light border to separate items into groups.
     */
-    #menu .pure-menu ul,
-    #menu .pure-menu .menu-item-divided {
+    .menu .pure-menu ul,
+    .menu .pure-menu .menu-item-divided {
         border-top: 1px solid #333;
     }
         /*
@@ -127,25 +138,45 @@ appears on the left side of the page.
     /*
     This styles the selected menu item `<li>`.
     */
-    #menu .pure-menu-selected,
-    #menu .pure-menu-heading {
+    .menu .pure-menu-selected,
+    .menu .pure-menu-heading {
         background: #1f8dd6;
+    }
+
+    .menu .menu-item-configured {
+        background: #00fa9a;
+    }
+
+    .menu .menu-item-not-configured {
+        background: #c71585;
     }
         /*
         This styles a link within a selected menu item `<li>`.
         */
-        #menu .pure-menu-selected a {
+        .menu .pure-menu-selected a {
             color: #fff;
         }
 
     /*
     This styles the menu heading.
     */
-    #menu .pure-menu-heading {
+    .menu .pure-menu-heading {
         font-size: 110%;
         color: #fff;
         margin: 0;
     }
+
+#right-menu {
+    width: 150px;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000; /* so the menu or its navicon stays above all content */
+    background: #191818;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
 
 /* -- Dynamic Button For Responsive Menu -------------------------------------*/
 
@@ -158,7 +189,7 @@ how it works:
 `.menu-link` represents the responsive menu toggle that shows/hides on
 small screens.
 */
-.menu-link {
+.right-menu-link {
     position: fixed;
     display: block; /* show this only on small screens */
     top: 0;

@@ -1,5 +1,23 @@
+    </div> <!-- id=main -->
+    <!-- Menu toggle -->
+    <a href="#right-menu" id="right-menu-link" class="right-menu-link">
+        <!-- Hamburger icon -->
+        <span></span>
+    </a>
+
+    <div id="right-menu" class="menu">
+        <div class="pure-menu">
+            <a class="pure-menu-heading" href="#">INTEGRATIONS</a>
+
+            <ul class="pure-menu-list">
+              {{#each integrations}}
+              <li class="pure-menu-item {{#if this.configured}}menu-item-configured{{else}}menu-item-not-configured{{/if}}">
+                <a href="#" class="pure-menu-link">{{this.name}}</a></li>
+              {{/each}}
+            </ul>
+        </div>
     </div>
-</div>
+</div> <!-- id=layout -->
 <script src="/static/ui.js"></script>
 
 </body>
