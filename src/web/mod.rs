@@ -8,16 +8,18 @@ pub mod oauth2;
 use web::nav::{NavMap, NavEntry};
 
 #[derive(Serialize)]
-pub struct Ctx {
+pub struct Ctx<T> {
     nav: NavMap,
+    pub local: Option<T>,
 }
 
-impl<'a, 'r> FromRequest<'a, 'r> for Ctx {
+impl<'a, 'r, T> FromRequest<'a, 'r> for Ctx<T> {
     type Error = ();
 
-    fn from_request(request: &'a Request<'r>) -> request::Outcome<Ctx, ()> {
+    fn from_request(request: &'a Request<'r>) -> request::Outcome<Ctx<T>, ()> {
         let mut ctx = Ctx {
             nav: nav::NAV_MAP.clone(),
+            local: None,
         };
 
         let mut found = false;

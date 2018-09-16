@@ -1,10 +1,14 @@
 <!-- vim: ft=html -->
 {{> common/header }}
 <div class="content">
-  <h2 class="content-subhead">Dropbox configured</h2>
+  <h2 class="content-subhead">Dropbox configuration</h2>
 
   <p>
+  {{#if local.success}}
   Congratulations, you connected your dropbox account
+  {{else}}
+  Something went wrong configuring dropbox
+  {{/if}}
   </p>
 
 </div>

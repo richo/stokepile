@@ -5,6 +5,7 @@
 extern crate log;
 
 extern crate serde;
+#[macro_use]
 extern crate serde_derive;
 
 #[macro_use]
@@ -41,8 +42,11 @@ lazy_static! {
     };
 }
 
+#[derive(Serialize)]
+struct NoLocal {}
+
 #[get("/")]
-fn index(ctx: Ctx) -> Template {
+fn index(ctx: Ctx<NoLocal>) -> Template {
     Template::render("index", &ctx)
 }
 
@@ -56,10 +60,25 @@ fn dropbox_auth(mut cookies: Cookies) -> Redirect {
     Redirect::to(authorize_url.as_str().to_string())
 }
 
+#[derive(Serialize)]
+struct DropboxOauthState {
+    success: bool,
+}
 #[get("/dropbox/finish?<resp>")]
-fn dropbox_finish(ctx: Ctx, resp: Oauth2Response) -> Template {
-    info!("Got a response from dropbox: {:?}", resp);
-    Template::render("dropbox_finish", &ctx)
+fn dropbox_finish(mut ctx: Ctx<DropboxOauthState>, resp: Oauth2Response, cookies: Cookies) -> Template {
+    let mut local = DropboxOauthState {
+        success: false,
+    };
+
+    if cookies.get("dropbox_oauth_state").map(|c| c.value()) != Some(&resp.state) {
+        warn!("Something went wrong with your oauth state");
+    } else {
+        // TODO(richo) persist the token
+        local.success = true;
+    }
+
+    ctx.local = Some(local);
+    return Template::render("dropbox_finish", &ctx);
 }
 
 #[get("/config")]
