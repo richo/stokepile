@@ -88,8 +88,6 @@ fn dropbox_finish(mut ctx: Ctx<OauthState>, resp: Oauth2Response, mut cookies: C
         service: "dropbox",
     };
 
-    info!("cookies: {:?}", cookies.iter().collect::<Vec<_>>());
-
     if cookies.get("dropbox_oauth_state").map(|c| c.value()) != Some(&resp.state) {
         warn!("Something went wrong with your oauth state");
     } else {
@@ -108,8 +106,6 @@ fn youtube_finish(mut ctx: Ctx<OauthState>, resp: Oauth2Response, mut cookies: C
         service: "youtube",
     };
 
-    info!("cookies: {:?}", cookies.iter().collect::<Vec<_>>());
-
     if cookies.get("youtube_oauth_state").map(|c| c.value()) != Some(&resp.state) {
         warn!("Something went wrong with your oauth state");
     } else {
@@ -127,7 +123,6 @@ fn get_config(cookies: Cookies) -> Result<Json<Config>, BadRequest<&'static str>
         let mut config = Config::build(dbx_token.value().to_string());
         Ok(Json(config))
     } else {
-        info!("cookies: {:?}", cookies.iter().collect::<Vec<_>>());
         Err(BadRequest(Some("dropbox account not linked")))
     }
 }
