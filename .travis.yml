@@ -15,4 +15,4 @@ before_install:
 script:
   - cargo build
   - cargo test --verbose
-  - if [ "$TRAVIS_RUST_VERSION" = "nightly" ]; cargo +nightly test --features web; fi
+  - if [ "$TRAVIS_RUST_VERSION" = "nightly" ]; then cargo +nightly test --features web; fi
