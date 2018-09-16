@@ -1,4 +1,3 @@
-use std::ffi::OsStr;
 use std::fs;
 use std::path::PathBuf;
 
@@ -30,10 +29,13 @@ impl<T: MountablePeripheral> Peripheral for T {
             return false;
         }
 
-        #[cfg(test)] // Only allow .gitkeep in tests
-        match files.as_slice() {
-            &[Ok(ref file)] if file.file_name() == OsStr::new(".gitkeep") => return false,
-            _ => {}
+        #[cfg(test)]
+        { // Only allow .gitkeep in tests
+            use std::ffi::OsStr;
+            match files.as_slice() {
+                &[Ok(ref file)] if file.file_name() == OsStr::new(".gitkeep") => return false,
+                _ => {}
+            }
         }
 
         return true;

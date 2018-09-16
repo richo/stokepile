@@ -85,7 +85,7 @@ fn run() -> Result<(), Error> {
         ("daemon", Some(_subm)) => {
             unimplemented!();
         }
-        ("run", Some(subm)) => {
+        ("run", Some(_subm)) => {
             let devices = device::attached_devices(&ctx)?;
             println!("Attached devices:");
             for device in &devices {
