@@ -3,8 +3,9 @@ use rocket::http::Status;
 use rocket::request::{self, Request, FromRequest};
 
 pub mod nav;
+pub mod oauth2;
 
-use web::nav::NavMap;
+use web::nav::{NavMap, NavEntry};
 
 #[derive(Serialize)]
 pub struct Ctx {
@@ -23,15 +24,9 @@ impl<'a, 'r> FromRequest<'a, 'r> for Ctx {
         for mut i in ctx.nav.routes.iter_mut() {
             if i.location == request.uri().path() {
                 i.active = true;
-                found = true;
-                break;
             }
         }
-        if found {
-            return Outcome::Success(ctx);
-        } else {
-            return Outcome::Failure((Status::BadRequest, ()));
-        }
+        return Outcome::Success(ctx);
     }
 }
 

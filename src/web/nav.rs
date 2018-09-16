@@ -13,8 +13,8 @@ pub struct NavMap {
 lazy_static! {
     pub static ref NAV_MAP: NavMap = NavMap {
         routes: vec![
-            NavEntry { name: "index", active: false, location: "/" },
-            NavEntry { name: "authorize_dropbox", active: false, location: "/authorize/dropbox" },
+            NavEntry { name: "Home", active: false, location: "/" },
+            NavEntry { name: "Link Dropbox", active: false, location: "/dropbox/auth" },
         ]
     };
 }

@@ -50,4 +50,9 @@ pub use version::VERSION;
 #[cfg(feature = "web")]
 pub mod web;
 #[cfg(feature = "web")]
+#[macro_use]
 extern crate rocket;
+#[cfg(feature = "web")]
+extern crate oauth2;
+#[cfg(feature = "web")]
+extern crate url;

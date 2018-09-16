@@ -8,6 +8,8 @@ authors = ["Richo Healey <richo@psych0tik.net>"]
   "rocket",
   "rocket_codegen",
   "rocket_contrib",
+  "oauth2",
+  "url",
 ]
 
 [dependencies]
@@ -38,6 +40,8 @@ sendgrid = { "git" = "https://github.com/gsquire/sendgrid-rs" }
 rocket = { git = "https://github.com/SergioBenitez/Rocket", optional = true }
 rocket_codegen = { git = "https://github.com/SergioBenitez/Rocket", optional = true }
 rocket_contrib = { git = "https://github.com/SergioBenitez/Rocket", optional = true, default-features = false, features = ["handlebars_templates", "json", "static_files"] }
+oauth2 = { version = "2.0.0-alpha.2", optional = true }
+url = { version = "1.7", optional = true }
 
 [[bin]]
 name = "server"
