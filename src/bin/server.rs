@@ -43,6 +43,8 @@ lazy_static! {
     };
 }
 
+static DROPBOX_TOKEN_COOKIE_NAME: &'static str = "dropbox_token";
+
 #[derive(Serialize)]
 struct NoLocal {}
 
@@ -75,7 +77,7 @@ fn dropbox_finish(mut ctx: Ctx<DropboxOauthState>, resp: Oauth2Response, mut coo
     if cookies.get("dropbox_oauth_state").map(|c| c.value()) != Some(&resp.state) {
         warn!("Something went wrong with your oauth state");
     } else {
-        cookies.add(Cookie::new("dropbox_token", resp.code));
+        cookies.add(Cookie::build(DROPBOX_TOKEN_COOKIE_NAME, resp.code).path("/").finish());
         local.success = true;
     }
 
@@ -85,7 +87,7 @@ fn dropbox_finish(mut ctx: Ctx<DropboxOauthState>, resp: Oauth2Response, mut coo
 
 #[get("/config.json")]
 fn get_config(cookies: Cookies) -> Result<Json<Config>, BadRequest<&'static str>> {
-    if let Some(dbx_token) = cookies.get("dropbox_token") {
+    if let Some(dbx_token) = cookies.get(DROPBOX_TOKEN_COOKIE_NAME) {
         let mut config = Config::build(dbx_token.value().to_string());
         Ok(Json(config))
     } else {
