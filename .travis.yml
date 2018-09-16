@@ -11,3 +11,8 @@ matrix:
 before_install:
   - sudo apt-get update
   - sudo apt-get install libusb-1.0-0 libusb-1.0-0-dev
+
+script:
+  - cargo build
+  - cargo test --verbose
+  - if [ "$TRAVIS_RUST_VERSION" = "nightly" ]; cargo +nightly test --features web; fi
