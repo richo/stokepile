@@ -15,6 +15,7 @@ lazy_static! {
         routes: vec![
             NavEntry { name: "Home", active: false, location: "/" },
             NavEntry { name: "Link Dropbox", active: false, location: "/dropbox/auth" },
+            NavEntry { name: "Download Config", active: false, location: "/config.json" },
         ]
     };
 }

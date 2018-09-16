@@ -22,6 +22,7 @@ extern crate archiver;
 
 use rocket::http::{Cookie, Cookies, Status};
 use rocket::response::{Response, Responder, Redirect};
+use rocket::response::status::{BadRequest};
 use rocket::request::{Request};
 use rocket_contrib::{Template, Json};
 use rocket_contrib::static_files::StaticFiles;
@@ -56,7 +57,6 @@ fn dropbox_auth(mut cookies: Cookies) -> Redirect {
     let (authorize_url, csrf_state) = client.authorize_url(CsrfToken::new_random);
     cookies.add(Cookie::new("dropbox_oauth_state", csrf_state.secret().to_string()));
 
-    info!("Redirecting to {} ({})", &authorize_url, authorize_url.as_str());
     Redirect::to(authorize_url.as_str().to_string())
 }
 
@@ -65,15 +65,17 @@ struct DropboxOauthState {
     success: bool,
 }
 #[get("/dropbox/finish?<resp>")]
-fn dropbox_finish(mut ctx: Ctx<DropboxOauthState>, resp: Oauth2Response, cookies: Cookies) -> Template {
+fn dropbox_finish(mut ctx: Ctx<DropboxOauthState>, resp: Oauth2Response, mut cookies: Cookies) -> Template {
     let mut local = DropboxOauthState {
         success: false,
     };
 
+    info!("cookies: {:?}", cookies.iter().collect::<Vec<_>>());
+
     if cookies.get("dropbox_oauth_state").map(|c| c.value()) != Some(&resp.state) {
         warn!("Something went wrong with your oauth state");
     } else {
-        // TODO(richo) persist the token
+        cookies.add(Cookie::new("dropbox_token", resp.code));
         local.success = true;
     }
 
@@ -81,11 +83,15 @@ fn dropbox_finish(mut ctx: Ctx<DropboxOauthState>, resp: Oauth2Response, cookies
     return Template::render("dropbox_finish", &ctx);
 }
 
-#[get("/config")]
-fn get_config() -> Result<Json<Config>, Error> {
-    let config = Config::from_file("archiver.toml.example")?;
-    info!("Butts");
-    Ok(Json(config))
+#[get("/config.json")]
+fn get_config(cookies: Cookies) -> Result<Json<Config>, BadRequest<&'static str>> {
+    if let Some(dbx_token) = cookies.get("dropbox_token") {
+        let mut config = Config::build(dbx_token.value().to_string());
+        Ok(Json(config))
+    } else {
+        info!("cookies: {:?}", cookies.iter().collect::<Vec<_>>());
+        Err(BadRequest(Some("dropbox account not linked")))
+    }
 }
 
 fn init_logging() {
@@ -103,6 +109,7 @@ fn main() {
     rocket::ignite()
         .mount("/", routes![index,
                dropbox_auth, dropbox_finish,
+               get_config,
         ])
         .mount("/static", StaticFiles::from("web/static"))
         .attach(Template::fairing())

@@ -114,6 +114,24 @@ impl Config {
         }
     }
 
+    /// TODO(richo) replace this with a builder interface internally
+    pub fn build(dropbox_token: String) -> Config {
+        Config {
+            archiver: ArchiverConfig {
+                storage_backend: StorageBackend::dropbox,
+                staging: None,
+            },
+            dropbox: DropboxConfig {
+                token: dropbox_token,
+            },
+            flysight: Some(vec![]),
+            gopro: Some(vec![]),
+            mass_storage: Some(vec![]),
+            sendgrid: None,
+            pushover: None,
+        }
+    }
+
     // Do we eventually want to make a camera/mass_storage distinction?
     pub fn mass_storages(&self) -> &Vec<MassStorageConfig> {
         match self.mass_storage {
