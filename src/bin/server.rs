@@ -41,9 +41,14 @@ lazy_static! {
         info!("Initializing Dropbox oauth config");
         Oauth2Config::dropbox()
     };
+    static ref YOUTUBE_CONFIG: Oauth2Config = {
+        info!("Initializing Youtube oauth config");
+        Oauth2Config::youtube()
+    };
 }
 
 static DROPBOX_TOKEN_COOKIE_NAME: &'static str = "dropbox_token";
+static YOUTUBE_TOKEN_COOKIE_NAME: &'static str = "youtube_token";
 
 #[derive(Serialize)]
 struct NoLocal {}
@@ -62,14 +67,25 @@ fn dropbox_auth(mut cookies: Cookies) -> Redirect {
     Redirect::to(authorize_url.as_str().to_string())
 }
 
+#[get("/youtube/auth")]
+fn youtube_auth(mut cookies: Cookies) -> Redirect {
+    let client = YOUTUBE_CONFIG.client();
+    let (authorize_url, csrf_state) = client.authorize_url(CsrfToken::new_random);
+    cookies.add(Cookie::new("youtube_oauth_state", csrf_state.secret().to_string()));
+
+    Redirect::to(authorize_url.as_str().to_string())
+}
+
 #[derive(Serialize)]
-struct DropboxOauthState {
+struct OauthState<'a> {
     success: bool,
+    service: &'a str,
 }
 #[get("/dropbox/finish?<resp>")]
-fn dropbox_finish(mut ctx: Ctx<DropboxOauthState>, resp: Oauth2Response, mut cookies: Cookies) -> Template {
-    let mut local = DropboxOauthState {
+fn dropbox_finish(mut ctx: Ctx<OauthState>, resp: Oauth2Response, mut cookies: Cookies) -> Template {
+    let mut local = OauthState {
         success: false,
+        service: "dropbox",
     };
 
     info!("cookies: {:?}", cookies.iter().collect::<Vec<_>>());
@@ -82,7 +98,27 @@ fn dropbox_finish(mut ctx: Ctx<DropboxOauthState>, resp: Oauth2Response, mut coo
     }
 
     ctx.local = Some(local);
-    return Template::render("dropbox_finish", &ctx);
+    return Template::render("oauth_finish", &ctx);
+}
+
+#[get("/youtube/finish?<resp>")]
+fn youtube_finish(mut ctx: Ctx<OauthState>, resp: Oauth2Response, mut cookies: Cookies) -> Template {
+    let mut local = OauthState {
+        success: false,
+        service: "youtube",
+    };
+
+    info!("cookies: {:?}", cookies.iter().collect::<Vec<_>>());
+
+    if cookies.get("youtube_oauth_state").map(|c| c.value()) != Some(&resp.state) {
+        warn!("Something went wrong with your oauth state");
+    } else {
+        cookies.add(Cookie::build(YOUTUBE_TOKEN_COOKIE_NAME, resp.code).path("/").finish());
+        local.success = true;
+    }
+
+    ctx.local = Some(local);
+    return Template::render("oauth_finish", &ctx);
 }
 
 #[get("/config.json")]
@@ -107,10 +143,12 @@ fn main() {
     init_logging();
     // Poke these statics to verify they don't panic
     let _ = DROPBOX_CONFIG.client();
+    let _ = YOUTUBE_CONFIG.client();
 
     rocket::ignite()
         .mount("/", routes![index,
                dropbox_auth, dropbox_finish,
+               youtube_auth, youtube_finish,
                get_config,
         ])
         .mount("/static", StaticFiles::from("web/static"))

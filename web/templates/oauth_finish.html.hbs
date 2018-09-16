@@ -1,0 +1,15 @@
+<!-- vim: ft=html -->
+{{> common/header }}
+<div class="content">
+  <h2 class="content-subhead">{{local.service}} configuration</h2>
+
+  <p>
+  {{#if local.success}}
+  Congratulations, you connected your {{local.service}} account
+  {{else}}
+  Something went wrong configuring {{local.service}}
+  {{/if}}
+  </p>
+
+</div>
+{{> common/footer }}

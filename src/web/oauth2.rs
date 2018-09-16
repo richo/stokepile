@@ -21,6 +21,7 @@ pub struct Oauth2Config {
 pub struct Oauth2Response {
     pub state: String,
     pub code: String,
+    pub scope: Option<String>,
 }
 
 impl Oauth2Config {
@@ -30,7 +31,7 @@ impl Oauth2Config {
         let client_id = ClientId::new(env::var("ARCHIVER_DROPBOX_APP_KEY")
                                       .expect("Missing the ARCHIVER_DROPBOX_APP_KEY environment variable."));
         let client_secret = ClientSecret::new(env::var("ARCHIVER_DROPBOX_APP_SECRET")
-                                              .expect("Missing the GITHUB_CLIENT_SECRET environment variable."));
+                                              .expect("Missing the ARCHIVER_DROPBOX_APP_SECRET environment variable."));
         let auth_url = AuthUrl::new(Url::parse("https://www.dropbox.com/oauth2/authorize")
                                     .expect("Invalid authorization endpoint URL"));
         let token_url = TokenUrl::new(Url::parse("https://www.dropbox.com/oauth2/token")
@@ -38,6 +39,29 @@ impl Oauth2Config {
         let redirect_url = RedirectUrl::new(Url::parse("http://localhost:8000/dropbox/finish")
                                             .expect("Invalid redirect URL"));
         let scopes = &[];
+
+        Oauth2Config {
+            client_id,
+            client_secret,
+            auth_url,
+            token_url,
+            scopes,
+            redirect_url,
+        }
+    }
+
+    pub fn youtube() -> Oauth2Config {
+        let client_id = ClientId::new(env::var("ARCHIVER_YOUTUBE_APP_KEY")
+                                      .expect("Missing the ARCHIVER_YOUTUBE_APP_KEY environment variable."));
+        let client_secret = ClientSecret::new(env::var("ARCHIVER_YOUTUBE_APP_SECRET")
+                                              .expect("Missing the ARCHIVER_YOUTUBE_APP_SECRET environment variable."));
+        let auth_url = AuthUrl::new(Url::parse("https://accounts.google.com/o/oauth2/v2/auth")
+                                    .expect("Invalid authorization endpoint URL"));
+        let token_url = TokenUrl::new(Url::parse("https://www.googleapis.com/oauth2/v4/token")
+                                      .expect("Invalid token endpoint URL"));
+        let redirect_url = RedirectUrl::new(Url::parse("http://localhost:8000/youtube/finish")
+                                            .expect("Invalid redirect URL"));
+        let scopes = &["https://www.googleapis.com/auth/youtube.upload"];
 
         Oauth2Config {
             client_id,
