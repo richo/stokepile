@@ -12,12 +12,6 @@ use mailer::SendgridMailer;
 use mass_storage::MassStorage;
 use pushover_notifier::PushoverNotifier;
 
-#[allow(non_camel_case_types)]
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
-pub enum StorageBackend {
-    dropbox,
-}
-
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct Config {
     archiver: ArchiverConfig,
@@ -40,7 +34,6 @@ lazy_static! {
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct ArchiverConfig {
-    storage_backend: StorageBackend,
     staging: Option<PathBuf>,
 }
 
@@ -156,9 +149,7 @@ impl Config {
     }
 
     pub fn backend(&self) -> dropbox::DropboxFilesClient {
-        match self.archiver.storage_backend {
-            StorageBackend::dropbox => dropbox::DropboxFilesClient::new(self.dropbox.token.clone()),
-        }
+        dropbox::DropboxFilesClient::new(self.dropbox.token.clone())
     }
 
     /// Returns an owned reference to the staging directory, expanded to be absolute
@@ -185,8 +176,6 @@ mod tests {
     #[test]
     fn test_example_config_parses() {
         let config = Config::from_file("archiver.toml.example").unwrap();
-
-        assert_eq!(config.archiver.storage_backend, StorageBackend::dropbox);
 
         assert_eq!(
             config.dropbox,
@@ -232,24 +221,10 @@ mod tests {
     }
 
     #[test]
-    fn test_invalid_backend() {
-        let error = Config::from_str(
-            r#"
-[archiver]
-storage_backend="butts"
-"#,
-        ).unwrap_err();
-        assert!(format!("{}", error).contains(
-            "unknown variant `butts`, expected `dropbox` for key `archiver.storage_backend`"
-        ))
-    }
-
-    #[test]
     fn test_relative_staging() {
         let cfg = Config::from_str(
             r#"
 [archiver]
-storage_backend="dropbox"
 staging="test/dir"
 
 [dropbox]
@@ -264,7 +239,6 @@ token = "TOKEN"
         let cfg = Config::from_str(
             r#"
 [archiver]
-storage_backend="dropbox"
 staging="test/dir"
 
 [dropbox]
@@ -279,21 +253,10 @@ recipient = "RECIPIENT_TOKEN"
     }
 
     #[test]
-    fn test_no_backend() {
-        let error = Config::from_str(
-            r#"
-[archiver]
-"#,
-        ).unwrap_err();
-        assert!(format!("{}", error).contains("missing field `storage_backend` for key `archiver`"))
-    }
-
-    #[test]
     fn test_no_dropbox() {
         let error = Config::from_str(
             r#"
 [archiver]
-storage_backend="dropbox"
 "#,
         ).unwrap_err();
         assert!(format!("{}", error).contains("missing field `dropbox`"))
@@ -304,7 +267,6 @@ storage_backend="dropbox"
         let config = Config::from_str(
             r#"
 [archiver]
-storage_backend="dropbox"
 [dropbox]
 token="DROPBOX_TOKEN_GOES_HERE"
 "#,
@@ -378,7 +340,6 @@ token="DROPBOX_TOKEN_GOES_HERE"
         let config = Config::from_str(
             r#"
 [archiver]
-storage_backend="dropbox"
 [dropbox]
 token="DROPBOX_TOKEN_GOES_HERE"
 
@@ -402,7 +363,6 @@ extensions = ["mov"]
         let config = Config::from_str(
             r#"
 [archiver]
-storage_backend="dropbox"
 [dropbox]
 token="DROPBOX_TOKEN_GOES_HERE"
 
@@ -425,7 +385,6 @@ serial = "C3131127500001"
         let config = Config::from_str(
             r#"
 [archiver]
-storage_backend="dropbox"
 [dropbox]
 token="DROPBOX_TOKEN_GOES_HERE"
 
@@ -447,7 +406,6 @@ mountpoint="/mnt/archiver/comp"
         let config = Config::from_str(
             r#"
 [archiver]
-storage_backend="dropbox"
 [dropbox]
 token="DROPBOX_TOKEN_GOES_HERE"
 
