@@ -13,7 +13,7 @@ pub struct Oauth2Config {
     pub client_secret: ClientSecret,
     pub auth_url: AuthUrl,
     pub token_url: TokenUrl,
-    // TODO(richo) scopes?
+    pub scopes: &'static [&'static str],
     pub redirect_url: RedirectUrl,
 }
 
@@ -37,13 +37,14 @@ impl Oauth2Config {
                                       .expect("Invalid token endpoint URL"));
         let redirect_url = RedirectUrl::new(Url::parse("http://localhost:8000/dropbox/finish")
                                             .expect("Invalid redirect URL"));
+        let scopes = &[];
 
         Oauth2Config {
             client_id,
             client_secret,
             auth_url,
             token_url,
-            // TODO(richo) stuff this in config somewhere
+            scopes,
             redirect_url,
         }
     }
@@ -54,13 +55,15 @@ impl Oauth2Config {
             client_secret,
             auth_url,
             token_url,
+            scopes,
             redirect_url,
         } = self;
-        BasicClient::new(
+        let client = BasicClient::new(
             client_id.clone(),
             Some(client_secret.clone()),
             auth_url.clone(),
             Some(token_url.clone())
-        ).set_redirect_url(redirect_url.clone())
+        ).set_redirect_url(redirect_url.clone());
+        self.scopes.iter().fold(client, |client, scope| client.add_scope(Scope::new(scope.to_string())))
     }
 }
