@@ -9,11 +9,18 @@ services:
       - target:/app/target
     depends_on:
       - db
+    environment:
+      DATABASE_URL: postgres://archiver:archiver@db/archiver_web
 
   db:
     image: postgres
     volumes:
       - /var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: archiver
+      POSTGRES_PASSWORD: archiver
 
 volumes:
   target: {}
