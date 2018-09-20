@@ -1,7 +1,10 @@
 FROM rustlang/rust:nightly
 RUN apt-get update
-RUN apt-get -y install libusb-1.0-0-dev
+RUN apt-get -y install \
+  libusb-1.0-0-dev \
+  postgresql-client
 ADD . /app
 WORKDIR /app
+RUN cargo install diesel_cli
 RUN cargo +nightly build --features=web
-CMD ["cargo", "+nightly", "run", "--bin=server", "--features=web"]
+CMD /usr/local/cargo/bin/diesel setup && cargo +nightly run --bin=server --features=web

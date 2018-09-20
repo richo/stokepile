@@ -46,3 +46,13 @@ mod staging;
 pub mod storage;
 mod version;
 pub use version::VERSION;
+
+#[cfg(feature = "web")]
+pub mod web;
+#[cfg(feature = "web")]
+#[macro_use]
+extern crate diesel;
+#[cfg(feature = "web")]
+extern crate bcrypt;
+#[cfg(feature = "web")]
+extern crate rocket;
