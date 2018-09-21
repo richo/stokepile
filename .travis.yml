@@ -8,9 +8,19 @@ matrix:
     - rust: nightly
   fast_finish: true
 
+services:
+  - postgresql
+
 before_install:
   - sudo apt-get update
   - sudo apt-get install libusb-1.0-0 libusb-1.0-0-dev
+
+env:
+  - DATABASE_URL=postgres://archiver:archiver@localhost/archiver_web
+
+before_script:
+  - psql -c "CREATE USER archiver PASSWORD 'archiver';" -U postgres
+  - psql -c "CREATE DATABASE archiver_web OWNER archiver;" -U postgres
 
 script:
   - cargo build
