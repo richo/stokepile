@@ -21,6 +21,8 @@ env:
 before_script:
   - psql -c "CREATE USER archiver PASSWORD 'archiver';" -U postgres
   - psql -c "CREATE DATABASE archiver_web OWNER archiver;" -U postgres
+  - cargo install diesel_cli
+  - diesel setup
 
 script:
   - cargo build
