@@ -1,0 +1,71 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `v3` mod in crate `sendgrid`."><meta name="keywords" content="rust, rustlang, rust-lang, v3"><title>sendgrid::v3 - Rust</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css"><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script src="../../storage.js"></script></head><body class="rustdoc mod"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><p class='location'>Module v3</p><div class="sidebar-elems"><div class="block items"><ul><li><a href="#structs">Structs</a></li><li><a href="#types">Type Definitions</a></li></ul></div><p class='location'><a href='../index.html'>sendgrid</a></p><script>window.sidebarCurrent = {name: 'v3', ty: 'mod', relpath: '../'};</script><script defer src="../sidebar-items.js"></script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><input class="search-input" name="search" autocomplete="off" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class='fqn'><span class='in-band'>Module <a href='../index.html'>sendgrid</a>::<wbr><a class="mod" href=''>v3</a></span><span class='out-of-band'><span id='render-detail'><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class='inner'>&#x2212;</span>]</a></span><a class='srclink' href='../../src/sendgrid/v3.rs.html#1-304' title='goto source code'>[src]</a></span></h1><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Attachment.html"
+                                  title='struct sendgrid::v3::Attachment'>Attachment</a></td>
+                           <td class='docblock-short'>
+                                <p>An attachment block for a V3 message. Content and filename are required. If the
+mime_type is unspecified, the email will use Sendgrid's default for attachments
+which is 'application/octet-stream'.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Content.html"
+                                  title='struct sendgrid::v3::Content'>Content</a></td>
+                           <td class='docblock-short'>
+                                <p>The body of an email with the content type and the message.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Email.html"
+                                  title='struct sendgrid::v3::Email'>Email</a></td>
+                           <td class='docblock-short'>
+                                <p>An email with a required address and an optional name field.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Personalization.html"
+                                  title='struct sendgrid::v3::Personalization'>Personalization</a></td>
+                           <td class='docblock-short'>
+                                <p>A personalization block for a V3 message. It has to at least contain one email as a to
+address. All other fields are optional.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Response.html"
+                                  title='struct sendgrid::v3::Response'>Response</a></td>
+                           <td class='docblock-short'>
+                                <p>A Response to a submitted <code>Request</code>.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.SGMailV3.html"
+                                  title='struct sendgrid::v3::SGMailV3'>SGMailV3</a></td>
+                           <td class='docblock-short'>
+                                <p>The main structure for a V3 API mail send call. This is composed of many other smaller
+structures used to add lots of customization to your message.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.V3Sender.html"
+                                  title='struct sendgrid::v3::V3Sender'>V3Sender</a></td>
+                           <td class='docblock-short'>
+                                <p>Used to send a V3 message body.</p>
+
+                           </td>
+                       </tr></table><h2 id='types' class='section-header'><a href="#types">Type Definitions</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="type" href="type.SGMap.html"
+                                  title='type sendgrid::v3::SGMap'>SGMap</a></td>
+                           <td class='docblock-short'>
+                                <p>Just a redefinition of a map to store string keys and values.</p>
+
+                           </td>
+                       </tr></table></section><section id="search" class="content hidden"></section><section class="footer"></section><aside id="help" class="hidden"><div><h1 class="hidden">Help</h1><div class="shortcuts"><h2>Keyboard Shortcuts</h2><dl><dt><kbd>?</kbd></dt><dd>Show this help dialog</dd><dt><kbd>S</kbd></dt><dd>Focus the search field</dd><dt><kbd>↑</kbd></dt><dd>Move up in search results</dd><dt><kbd>↓</kbd></dt><dd>Move down in search results</dd><dt><kbd>↹</kbd></dt><dd>Switch tab</dd><dt><kbd>&#9166;</kbd></dt><dd>Go to active search result</dd><dt><kbd>+</kbd></dt><dd>Expand all sections</dd><dt><kbd>-</kbd></dt><dd>Collapse all sections</dd></dl></div><div class="infos"><h2>Search Tricks</h2><p>Prefix searches with a type followed by a colon (e.g. <code>fn:</code>) to restrict the search to a given type.</p><p>Accepted types are: <code>fn</code>, <code>mod</code>, <code>struct</code>, <code>enum</code>, <code>trait</code>, <code>type</code>, <code>macro</code>, and <code>const</code>.</p><p>Search functions by type signature (e.g. <code>vec -> usize</code> or <code>* -> vec</code>)</p><p>Search multiple things at once by splitting your query with comma (e.g. <code>str,u8</code> or <code>String,struct:Vec,test</code>)</p></div></div></aside><script>window.rootPath = "../../";window.currentCrate = "sendgrid";</script><script src="../../aliases.js"></script><script src="../../main.js"></script><script defer src="../../search-index.js"></script></body></html>

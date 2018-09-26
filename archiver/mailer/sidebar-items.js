@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["SendgridMailer",""]],"trait":[["MailReport",""]]});

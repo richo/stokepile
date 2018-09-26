@@ -1,0 +1,223 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `src/lib.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>lib.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css"><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script src="../../storage.js"></script></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><input class="search-input" name="search" autocomplete="off" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
+<span id="2">  2</span>
+<span id="3">  3</span>
+<span id="4">  4</span>
+<span id="5">  5</span>
+<span id="6">  6</span>
+<span id="7">  7</span>
+<span id="8">  8</span>
+<span id="9">  9</span>
+<span id="10"> 10</span>
+<span id="11"> 11</span>
+<span id="12"> 12</span>
+<span id="13"> 13</span>
+<span id="14"> 14</span>
+<span id="15"> 15</span>
+<span id="16"> 16</span>
+<span id="17"> 17</span>
+<span id="18"> 18</span>
+<span id="19"> 19</span>
+<span id="20"> 20</span>
+<span id="21"> 21</span>
+<span id="22"> 22</span>
+<span id="23"> 23</span>
+<span id="24"> 24</span>
+<span id="25"> 25</span>
+<span id="26"> 26</span>
+<span id="27"> 27</span>
+<span id="28"> 28</span>
+<span id="29"> 29</span>
+<span id="30"> 30</span>
+<span id="31"> 31</span>
+<span id="32"> 32</span>
+<span id="33"> 33</span>
+<span id="34"> 34</span>
+<span id="35"> 35</span>
+<span id="36"> 36</span>
+<span id="37"> 37</span>
+<span id="38"> 38</span>
+<span id="39"> 39</span>
+<span id="40"> 40</span>
+<span id="41"> 41</span>
+<span id="42"> 42</span>
+<span id="43"> 43</span>
+<span id="44"> 44</span>
+<span id="45"> 45</span>
+<span id="46"> 46</span>
+<span id="47"> 47</span>
+<span id="48"> 48</span>
+<span id="49"> 49</span>
+<span id="50"> 50</span>
+<span id="51"> 51</span>
+<span id="52"> 52</span>
+<span id="53"> 53</span>
+<span id="54"> 54</span>
+<span id="55"> 55</span>
+<span id="56"> 56</span>
+<span id="57"> 57</span>
+<span id="58"> 58</span>
+<span id="59"> 59</span>
+<span id="60"> 60</span>
+<span id="61"> 61</span>
+<span id="62"> 62</span>
+<span id="63"> 63</span>
+<span id="64"> 64</span>
+<span id="65"> 65</span>
+<span id="66"> 66</span>
+<span id="67"> 67</span>
+<span id="68"> 68</span>
+<span id="69"> 69</span>
+<span id="70"> 70</span>
+<span id="71"> 71</span>
+<span id="72"> 72</span>
+<span id="73"> 73</span>
+<span id="74"> 74</span>
+<span id="75"> 75</span>
+<span id="76"> 76</span>
+<span id="77"> 77</span>
+<span id="78"> 78</span>
+<span id="79"> 79</span>
+<span id="80"> 80</span>
+<span id="81"> 81</span>
+<span id="82"> 82</span>
+<span id="83"> 83</span>
+<span id="84"> 84</span>
+<span id="85"> 85</span>
+<span id="86"> 86</span>
+<span id="87"> 87</span>
+<span id="88"> 88</span>
+<span id="89"> 89</span>
+<span id="90"> 90</span>
+<span id="91"> 91</span>
+<span id="92"> 92</span>
+<span id="93"> 93</span>
+<span id="94"> 94</span>
+<span id="95"> 95</span>
+<span id="96"> 96</span>
+<span id="97"> 97</span>
+<span id="98"> 98</span>
+<span id="99"> 99</span>
+<span id="100">100</span>
+<span id="101">101</span>
+<span id="102">102</span>
+<span id="103">103</span>
+<span id="104">104</span>
+<span id="105">105</span>
+<span id="106">106</span>
+<span id="107">107</span>
+<span id="108">108</span>
+<span id="109">109</span>
+<span id="110">110</span>
+</pre><pre class="rust ">
+<span class="attribute">#![<span class="ident">deny</span>(<span class="ident">unused_must_use</span>)]</span>
+
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">serde</span>;
+<span class="attribute">#[<span class="ident">macro_use</span>]</span>
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">serde_derive</span>;
+<span class="attribute">#[<span class="ident">macro_use</span>]</span>
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">failure</span>;
+<span class="attribute">#[<span class="ident">macro_use</span>]</span>
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">handlebars</span>;
+<span class="attribute">#[<span class="ident">macro_use</span>]</span>
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">hyper</span>;
+<span class="attribute">#[<span class="ident">macro_use</span>]</span>
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">lazy_static</span>;
+<span class="attribute">#[<span class="ident">macro_use</span>]</span>
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">log</span>;
+
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">chrono</span>;
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">digest</span>;
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">hashing_copy</span>;
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">hex</span>;
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">libusb</span>;
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">ptp</span>;
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">regex</span>;
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">reqwest</span>;
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">sendgrid</span>;
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">serde_json</span>;
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">sha2</span>;
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">toml</span>;
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">walkdir</span>;
+
+<span class="doccomment">/// Currently, we have vendored Dropbox&#39;s implementation of their content hashing algorithm.</span>
+<span class="doccomment">/// There&#39;s an outstanding pull request open to upstream the changes I made, at which point this</span>
+<span class="doccomment">/// can go.</span>
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">dropbox_content_hasher</span>;
+
+<span class="doccomment">/// Details pertaining to parsing the configuration file, as well as constructing the internal</span>
+<span class="doccomment">/// objects specified by the configuration.</span>
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">config</span>;
+
+<span class="doccomment">/// The global context object that is threaded throughout the run of the program. This module also</span>
+<span class="doccomment">/// deals with some implementation details, like ensuring that the staging directory exists as part</span>
+<span class="doccomment">/// of standing up the context.</span>
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">ctx</span>;
+
+<span class="doccomment">/// Some helpers to abstract over the various types of devices that we can interact with. Much of</span>
+<span class="doccomment">/// this will probably go away at some point, and Device will become a trait instead of the enum</span>
+<span class="doccomment">/// that it is today.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// This module also contains the logic for simply enumerating all currently attached devices as</span>
+<span class="doccomment">/// part of generating a plan for an upload run.</span>
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">device</span>;
+
+<span class="doccomment">/// Our interface to the dropbox API. This should really be it&#39;s own crate, but until I have the</span>
+<span class="doccomment">/// enthusiasm to implement more than the bare minimum archiver needs, it will remain vendored</span>
+<span class="doccomment">/// here.</span>
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">dropbox</span>;
+
+<span class="doccomment">/// Flysight specific code. This mostly relates to parsing out the filenames that flysights create.</span>
+<span class="kw">mod</span> <span class="ident">flysight</span>;
+
+<span class="doccomment">/// Contains the MailReport trait which all mailers must implement, as well as the archiver</span>
+<span class="doccomment">/// specific glue for the `SGClient` object we use from the `sendgrid` crate.</span>
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">mailer</span>;
+
+<span class="doccomment">/// Code relating to the `mass_storage` device type. This is any device that can be mounted to the</span>
+<span class="doccomment">/// local filesystem.</span>
+<span class="kw">mod</span> <span class="ident">mass_storage</span>;
+
+<span class="doccomment">/// Contains the `MountablePeripheral` trait, common to `flysight`s and `mass_storage`s. This is</span>
+<span class="doccomment">/// simply the glue that makes it easy to check if they&#39;re currently present.</span>
+<span class="kw">mod</span> <span class="ident">peripheral</span>;
+
+<span class="doccomment">/// Our bindings to the ptp crate, which we use to talk to devices like Gopros over USB, allowing</span>
+<span class="doccomment">/// us to avoid having to pull the SD card in order to upload footage.</span>
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">ptp_device</span>;
+
+<span class="doccomment">/// Bindings written for the pushover notification service. Like Dropbox, this can and should be</span>
+<span class="doccomment">/// extracted into its own crate, but until it&#39;s a little more stable it can remain here.</span>
+<span class="kw">mod</span> <span class="ident">pushover</span>;
+
+<span class="doccomment">/// Contains the `Notify` trait, which all notifiers must implement. Contains impls, as well as a</span>
+<span class="doccomment">/// little local glue to bind `config` and `pushover` together.</span>
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">pushover_notifier</span>;
+
+<span class="doccomment">/// Contains the machinery for generating an upload report. This handles both building the report</span>
+<span class="doccomment">/// object up in memory, as well as rendering it to something we can mail to a user.</span>
+<span class="kw">mod</span> <span class="ident">reporting</span>;
+
+<span class="doccomment">/// Machinry for locally staging files from attached devices. It includes the `Staging` trait,</span>
+<span class="doccomment">/// which when implemented allows for not implementing some of the heavy lifting.</span>
+<span class="kw">mod</span> <span class="ident">staging</span>;
+
+<span class="doccomment">/// Contains the logic for consuming the locally staged files and uploading them to the selected</span>
+<span class="doccomment">/// storage backend. Also deals with deduping (Locally hashing files to ensure that we&#39;re not</span>
+<span class="doccomment">/// pointlessly uploading things that are already there) and cleaning up the local staging area.</span>
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">storage</span>;
+
+<span class="kw">mod</span> <span class="ident">version</span>;
+<span class="doccomment">/// What version of archiver do you have :)</span>
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">version</span>::<span class="ident">VERSION</span>;
+
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;web&quot;</span>)]</span>
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">web</span>;
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;web&quot;</span>)]</span>
+<span class="attribute">#[<span class="ident">macro_use</span>]</span>
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">diesel</span>;
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;web&quot;</span>)]</span>
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">bcrypt</span>;
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;web&quot;</span>)]</span>
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">rocket</span>;
+</pre>
+</section><section id="search" class="content hidden"></section><section class="footer"></section><aside id="help" class="hidden"><div><h1 class="hidden">Help</h1><div class="shortcuts"><h2>Keyboard Shortcuts</h2><dl><dt><kbd>?</kbd></dt><dd>Show this help dialog</dd><dt><kbd>S</kbd></dt><dd>Focus the search field</dd><dt><kbd>↑</kbd></dt><dd>Move up in search results</dd><dt><kbd>↓</kbd></dt><dd>Move down in search results</dd><dt><kbd>↹</kbd></dt><dd>Switch tab</dd><dt><kbd>&#9166;</kbd></dt><dd>Go to active search result</dd><dt><kbd>+</kbd></dt><dd>Expand all sections</dd><dt><kbd>-</kbd></dt><dd>Collapse all sections</dd></dl></div><div class="infos"><h2>Search Tricks</h2><p>Prefix searches with a type followed by a colon (e.g. <code>fn:</code>) to restrict the search to a given type.</p><p>Accepted types are: <code>fn</code>, <code>mod</code>, <code>struct</code>, <code>enum</code>, <code>trait</code>, <code>type</code>, <code>macro</code>, and <code>const</code>.</p><p>Search functions by type signature (e.g. <code>vec -> usize</code> or <code>* -> vec</code>)</p><p>Search multiple things at once by splitting your query with comma (e.g. <code>str,u8</code> or <code>String,struct:Vec,test</code>)</p></div></div></aside><script>window.rootPath = "../../";window.currentCrate = "archiver";</script><script src="../../aliases.js"></script><script src="../../main.js"></script><script defer src="../../search-index.js"></script></body></html>

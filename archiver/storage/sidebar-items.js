@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["content_path_from_manifest","Converts a manifest path back into the filename to set"],["is_manifest",""],["upload_from_staged",""]]});

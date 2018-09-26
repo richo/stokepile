@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["errors",""],["v3",""]],"struct":[["Destination",""],["Mail","This is a representation of a valid SendGrid message. It has support for all of the fields in the V2 API."],["SGClient","This is the struct that allows you to authenticate to the SendGrid API. It's only field is the API key which allows you to send messages."]]});
