@@ -45,3 +45,11 @@ what you're trying to achieve the better. As a concrete example, I would love
 to support the various sony action cams, but know very little about them. If
 they support PTP/MTP, I should just need their USB vendor and product IDs in
 order to put something together to test.
+
+Documentation
+-------------
+
+Increasingly, documentation is getting added to the code, compatible with rustdoc.
+
+Documentation is periodically rebuilt and uploaded to [https://richo.github.com/archiver](https://richo.github.com/archiver).
+
