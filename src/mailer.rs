@@ -42,6 +42,7 @@ impl MailReport for SendgridMailer {
 }
 
 impl MailReport for Option<SendgridMailer> {
+    // This returns a String because for some reason the sendgrid bindings do?!
     fn send_report(&self, report: &str) -> Result<String, Error> {
         match self {
             Some(mailer) => mailer.send_report(report),

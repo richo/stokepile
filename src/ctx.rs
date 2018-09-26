@@ -9,11 +9,19 @@ use config;
 use mailer;
 use pushover_notifier;
 
+/// Ctx is the global context object. Constructed by consuming a `config::Config`.
 pub struct Ctx {
+    /// a USB context, used for finding and interacting with PTP devices
     pub usb_ctx: libusb::Context,
     pub cfg: config::Config,
+    /// The directory that will be used for staging files before they're uploaded.
+    ///
+    /// This directory will be treated as durable! Do not set it to `/tmp` if you care about your
+    /// files.
     pub staging: PathBuf,
+    /// An optional notifier to call on changes to uploads.
     pub notifier: Option<pushover_notifier::PushoverNotifier>,
+    /// An optional mailer that will be used to send reports when uploads finish or fail.
     pub mailer: Option<mailer::SendgridMailer>,
 }
 
