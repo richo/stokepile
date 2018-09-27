@@ -107,4 +107,6 @@ extern crate diesel;
 #[cfg(feature = "web")]
 extern crate bcrypt;
 #[cfg(feature = "web")]
+extern crate rand;
+#[cfg(feature = "web")]
 extern crate rocket;
