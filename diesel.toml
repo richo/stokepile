@@ -3,3 +3,4 @@
 
 [print_schema]
 file = "src/web/schema.rs"
+patch_file = "src/web/schema.patch"

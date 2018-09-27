@@ -40,14 +40,12 @@ struct SignUp {
     password: String,
 }
 
-#[post("/signup", data = "<signup_form>")]
+#[post("/signup", data = "<signup>")]
 fn signup(
     conn: DbConn,
-    signup_form: Form<SignUp>,
+    signup: Form<SignUp>,
     mut cookies: Cookies,
 ) -> Result<Redirect, Flash<Redirect>> {
-    let signup = signup_form.get();
-
     match NewUser::new(&signup.email, &signup.password).create(&*conn) {
         Ok(user) => {
             let session = NewSession::new(&user).create(&*conn).unwrap();
@@ -64,14 +62,12 @@ struct SignIn {
     password: String,
 }
 
-#[post("/signin", data = "<signin_form>")]
+#[post("/signin", data = "<signin>")]
 fn signin(
     conn: DbConn,
-    signin_form: Form<SignIn>,
+    signin: Form<SignIn>,
     mut cookies: Cookies,
 ) -> Result<Redirect, Flash<Redirect>> {
-    let signin = signin_form.get();
-
     if let Some(user) = User::by_credentials(&*conn, &signin.email, &signin.password) {
         let session = NewSession::new(&user).create(&*conn).unwrap();
         cookies.add(
