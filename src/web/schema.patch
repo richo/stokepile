@@ -1,0 +1,8 @@
+--- a/src/web/schema.rs
++++ b/src/web/schema.rs
+@@ -1,3 +1,5 @@
++#![allow(proc_macro_derive_resolution_fallback)]
++
+ table! {
+     sessions (id) {
+         id -> Varchar,
