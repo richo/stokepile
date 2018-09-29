@@ -76,7 +76,7 @@ pub mod ptp_device;
 
 /// Bindings written for the pushover notification service. Like Dropbox, this can and should be
 /// extracted into its own crate, but until it's a little more stable it can remain here.
-mod pushover;
+pub mod pushover;
 
 /// Contains the `Notify` trait, which all notifiers must implement. Contains impls, as well as a
 /// little local glue to bind `config` and `pushover` together.
