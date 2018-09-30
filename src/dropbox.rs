@@ -144,6 +144,12 @@ impl DropboxFilesClient {
         }
     }
 
+    fn bearer_token(&self) -> Result<HeaderValue, Error> {
+        let mut header = HeaderValue::from_str(&format!("Bearer {}", self.token.clone()))?;
+        header.set_sensitive(true);
+        Ok(header)
+    }
+
     fn request(
         &self,
         url: (&str, &str),
@@ -152,7 +158,7 @@ impl DropboxFilesClient {
     ) -> Result<reqwest::Response, Error> {
         let url = format!("https://{}.dropboxapi.com/{}", url.0, url.1);
 
-        headers.insert(header::AUTHORIZATION, HeaderValue::from_str(&format!("Bearer {}", self.token.clone()))?);
+        headers.insert(header::AUTHORIZATION, self.bearer_token()?);
         headers.insert(header::USER_AGENT, HeaderValue::from_str(&self.user_agent)?);
         headers.insert(header::CONTENT_TYPE, HeaderValue::from_str(match &body {
             DropboxBody::JSON(_) => "application/json",
