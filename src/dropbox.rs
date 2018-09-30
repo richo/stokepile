@@ -177,8 +177,10 @@ impl DropboxFilesClient {
         let mut res = self.request(("api", "2/files/get_metadata"), JSON(req), headers)?;
         // let meta: MetadataResponse = serde_json::from_str(&res.text()?)?;
         let text = res.text()?;
-        let meta: MetadataResponse = serde_json::from_str(&text)?;
-        Ok(meta)
+        match serde_json::from_str(&text) {
+            Ok(meta) => Ok(meta),
+            Err(_) => Err(format_err!("Dropbox error: {}", text))
+        }
     }
 
     pub fn new_session<'a>(&'a self) -> Result<UploadSession<'a>, Error> {
@@ -233,9 +235,10 @@ impl DropboxFilesClient {
             headers,
         )?;
         let text = &res.text()?;
-        println!("{}", text);
-        let resp: StartUploadSessionResponse = serde_json::from_str(text)?;
-        Ok(resp)
+        match serde_json::from_str(&text) {
+            Ok(meta) => Ok(meta),
+            Err(_) => Err(format_err!("Dropbox error: {}", text))
+        }
     }
 
     fn upload_session_append<'a>(&self, data: &[u8], cursor: &Cursor) -> Result<(), Error> {
@@ -271,8 +274,10 @@ impl DropboxFilesClient {
             headers,
         )?;
         let text = res.text()?;
-        let meta: UploadMetadataResponse = serde_json::from_str(&text)?;
-        Ok(meta)
+        match serde_json::from_str(&text) {
+            Ok(meta) => Ok(meta),
+            Err(_) => Err(format_err!("Dropbox error: {}", text))
+        }
     }
 }
 
