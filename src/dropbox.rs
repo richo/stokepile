@@ -119,13 +119,13 @@ pub struct UploadSession<'a> {
 }
 
 impl<'a> UploadSession<'a> {
-    fn append(&mut self, data: &[u8]) -> Result<(), Error> {
+    pub fn append(&mut self, data: &[u8]) -> Result<(), Error> {
         self.client.upload_session_append(data, &self.cursor)?;
         self.cursor.offset += data.len() as u64;
         Ok(())
     }
 
-    fn finish(self, path: &Path) -> Result<UploadMetadataResponse, Error> {
+    pub fn finish(self, path: &Path) -> Result<UploadMetadataResponse, Error> {
         let commit = Commit {
             path: &path,
             mode: "overwrite".to_string(),
