@@ -13,8 +13,8 @@ use reqwest;
 use reqwest::header::{self, HeaderMap, HeaderName, HeaderValue};
 use serde_json;
 
-fn dropbox_api_arg() -> HeaderName {
-    HeaderName::from_static("dropbox-api-arg")
+lazy_static! {
+    static ref DROPBOX_API_ARG: HeaderName = HeaderName::from_static("dropbox-api-arg");
 }
 
 const DEFAULT_CHUNK_SIZE: usize = 4 * 1024 * 1024;
@@ -245,7 +245,7 @@ impl DropboxFilesClient {
         use self::DropboxBody::*;
         let req = serde_json::to_vec(&UploadSessionAppendRequest { cursor })?;
         let mut headers = HeaderMap::new();
-        headers.insert(dropbox_api_arg(), HeaderValue::from_str(&String::from_utf8(req)?)?);
+        headers.insert(DROPBOX_API_ARG.clone(), HeaderValue::from_str(&String::from_utf8(req)?)?);
         let mut res = self.request(
             ("content", "2/files/upload_session/append_v2"),
             Binary(data.to_vec()),
@@ -267,7 +267,7 @@ impl DropboxFilesClient {
             commit: &commit,
         })?;
         let mut headers = HeaderMap::new();
-        headers.insert(dropbox_api_arg(), HeaderValue::from_str(&String::from_utf8(req)?)?);
+        headers.insert(DROPBOX_API_ARG.clone(), HeaderValue::from_str(&String::from_utf8(req)?)?);
         let mut res = self.request(
             ("content", "2/files/upload_session/finish"),
             Binary(data.to_vec()),
