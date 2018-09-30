@@ -8,8 +8,6 @@ extern crate failure;
 #[macro_use]
 extern crate handlebars;
 #[macro_use]
-extern crate hyper;
-#[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
