@@ -4,6 +4,8 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 #[macro_use]
+extern crate serde_json;
+#[macro_use]
 extern crate failure;
 #[macro_use]
 extern crate handlebars;
@@ -21,9 +23,9 @@ extern crate ptp;
 extern crate regex;
 extern crate reqwest;
 extern crate sendgrid;
-extern crate serde_json;
 extern crate sha2;
 extern crate toml;
+extern crate tus;
 extern crate walkdir;
 
 /// Currently, we have vendored Dropbox's implementation of their content hashing algorithm.
@@ -92,6 +94,9 @@ mod staging;
 /// storage backend. Also deals with deduping (Locally hashing files to ensure that we're not
 /// pointlessly uploading things that are already there) and cleaning up the local staging area.
 pub mod storage;
+
+/// The vimeo upload backend.
+pub mod vimeo;
 
 mod version;
 /// What version of archiver do you have :)
