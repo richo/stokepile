@@ -8,7 +8,7 @@ use failure::Error;
 use serde_json;
 
 /// A client for the vimeo API
-struct VimeoClient {
+pub struct VimeoClient {
     token: String,
 }
 
@@ -20,27 +20,42 @@ struct UploadHandle {
 
 #[derive(Deserialize)]
 struct CreateVideoResponse {
-    upload: InnerCreateVideoResponse,
+    uri: String,
+    resource_key: String,
+    upload: InnerUploadCreateVideoResponse,
 }
 
 #[derive(Deserialize)]
-struct InnerCreateVideoResponse {
+struct InnerUploadCreateVideoResponse {
     upload_link: String,
 }
 
 impl VimeoClient {
+    /// Create a new VimeoClient authenticated by `token`.
+    pub fn new(token: String) -> VimeoClient {
+        VimeoClient {
+            token,
+        }
+    }
+
     /// Upload a file from the local filesystem to vimeo.
-    pub fn upload_file(&self, file: File) -> Result<(), Error> {
+    pub fn upload_file(&self, mut file: File) -> Result<(), Error> {
         // First we find out how big the file is so we can create our video object upstream
         let size = file.metadata()?.len();
+        println!("Preparing to upload {} bytes", size);
         // Then we create an upload handle
         let mut handle = self.create_upload_handle(size)?;
+
+        let mut headers = HeaderMap::new();
+        let tusclient = tus::Client::new(&handle.url, headers);
+        let sent = tusclient.upload(file)?;
+        println!("Uploaded {} bytes", sent);
 
         Ok(())
     }
 
     fn create_upload_handle(&self, size: u64) -> Result<UploadHandle, Error> {
-        let API_ENDPOINT = "https://api.vimeo.com/me/videos";
+        let api_endpoint = "https://api.vimeo.com/me/videos";
         let json = json!({
             "upload" : {
                 "approach" : "tus",
@@ -55,7 +70,7 @@ impl VimeoClient {
 
         // Create our request object
         let client = reqwest::Client::new();
-        let text = client.post(API_ENDPOINT)
+        let text = client.post(api_endpoint)
             .body(json.to_string())
             .headers(headers)
             .send()?
@@ -82,5 +97,32 @@ impl Drop for UploadHandle {
         if !self.complete {
             // TODO(richo) Destroy the file handle upstream
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env;
+
+    #[test]
+    #[ignore]
+    fn test_creates_upload_handle() {
+        let client = VimeoClient::new(
+            env::var("ARCHIVER_TEST_VIMEO_KEY").expect("Didn't provide test key"),
+        );
+        let handle = client.create_upload_handle(1024).expect("Couldn't create upload handle");
+        assert!(handle.url.starts_with("https://files.tus.vimeo.com"), "Handle url not rooted at vimeo.com");
+        assert_eq!(handle.complete, false);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_uploads_file_to_vimeo() {
+        let client = VimeoClient::new(
+            env::var("ARCHIVER_TEST_VIMEO_KEY").expect("Didn't provide test key"),
+        );
+        let fh = File::open("/tmp/test.mp4").expect("Couldn't open video");
+        client.upload_file(fh).expect("Could not upload file");
     }
 }
