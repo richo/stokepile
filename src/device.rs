@@ -131,7 +131,7 @@ mod tests {
         let cfg = Config::from_file("test-data/archiver.toml").unwrap();
         let flysights: Vec<_> = locate_flysights(&cfg).unwrap().collect();
         assert_eq!(flysights.len(), 1);
-        if let Device::Flysight(ref desc, ref flysight) = flysights[0] {
+        if let Device::Flysight(ref _desc, ref flysight) = flysights[0] {
             assert_eq!(&flysight.name()[..], "data");
         } else {
             panic!("Unsure what we ended up with: {:?}", flysights);
