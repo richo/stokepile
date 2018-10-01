@@ -45,7 +45,7 @@ impl VimeoClient {
         // Then we create an upload handle
         let handle = self.create_upload_handle(size)?;
 
-        let headers = self.default_headers();
+        let headers = self.default_headers(size);
         let tusclient = tus::Client::new(&handle.url, headers);
         let sent = tusclient.upload(file)?;
 
@@ -62,7 +62,7 @@ impl VimeoClient {
         });
 
         // Setup our headers
-        let mut headers = self.default_headers();
+        let mut headers = self.default_headers(size);
         headers.insert(reqwest::header::CONTENT_TYPE, HeaderValue::from_static("application/json"));
         headers.insert(reqwest::header::ACCEPT, HeaderValue::from_static("application/vnd.vimeo.*+json;version=3.4"));
 
@@ -81,8 +81,8 @@ impl VimeoClient {
         })
     }
 
-    fn default_headers(&self) -> HeaderMap {
-        let mut headers = HeaderMap::new();
+    fn default_headers(&self, size: u64) -> HeaderMap {
+        let mut headers = tus::default_headers(size);
         let mut authorization = HeaderValue::from_str(&format!("bearer {}", &self.token)).unwrap();
         authorization.set_sensitive(true);
         headers.insert(reqwest::header::AUTHORIZATION, authorization);
