@@ -39,17 +39,15 @@ impl VimeoClient {
     }
 
     /// Upload a file from the local filesystem to vimeo.
-    pub fn upload_file(&self, mut file: File) -> Result<(), Error> {
+    pub fn upload_file(&self, file: File) -> Result<(), Error> {
         // First we find out how big the file is so we can create our video object upstream
         let size = file.metadata()?.len();
-        println!("Preparing to upload {} bytes", size);
         // Then we create an upload handle
-        let mut handle = self.create_upload_handle(size)?;
+        let handle = self.create_upload_handle(size)?;
 
-        let mut headers = HeaderMap::new();
+        let headers = self.default_headers();
         let tusclient = tus::Client::new(&handle.url, headers);
         let sent = tusclient.upload(file)?;
-        println!("Uploaded {} bytes", sent);
 
         Ok(())
     }
