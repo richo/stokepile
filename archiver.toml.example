@@ -8,8 +8,8 @@ storage_backend="dropbox"
 [dropbox]
 token="DROPBOX_TOKEN_GOES_HERE"
 
-# [vimeo]
-# token="TOKEN_GOES_HERE"
+[vimeo]
+token="VIMEO_TOKEN_GOES_HERE"
 
 # [youtube]
 # access_token = "TOKEN_GOES_HERE"

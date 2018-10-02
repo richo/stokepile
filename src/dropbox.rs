@@ -267,7 +267,7 @@ impl DropboxFilesClient {
 }
 
 impl StorageAdaptor for DropboxFilesClient {
-    type Input = File;
+    type Input = Read;
 
     fn already_uploaded(&self, manifest: &staging::UploadDescriptor) -> bool {
         match self.get_metadata(&manifest.remote_path()) {
@@ -338,7 +338,7 @@ mod tests {
         );
         let localfile =
             fs::File::open("/usr/share/dict/web2").expect("Couldn't open dummy dictionary");
-        if let Err(e) = client.upload(localfile, Path::new("/web2.txt")) {
+        if let Err(e) = client.upload(localfile, staging::UploadDescriptor::test_descriptor()) {
             panic!("{:?}", e);
         }
     }

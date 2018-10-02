@@ -232,6 +232,13 @@ mod tests {
                 recipient: "USER_TOKEN_GOES_HERE".into(),
             })
         );
+
+        assert_eq!(
+            config.vimeo,
+            Some(VimeoConfig {
+                token: "VIMEO_TOKEN_GOES_HERE".into(),
+            })
+        );
     }
 
     #[test]
@@ -246,6 +253,35 @@ token = "TOKEN"
 "#,
         ).unwrap();
         assert_eq!(cfg.archiver.staging, Some(PathBuf::from("test/dir")));
+    }
+
+    #[test]
+    fn test_single_backend() {
+        let cfg = Config::from_str(
+            r#"
+[archiver]
+
+[dropbox]
+token = "TOKEN"
+"#,
+        ).unwrap();
+        assert_eq!(cfg.backends().len(), 1);
+    }
+
+    #[test]
+    fn test_multiple_backends() {
+        let cfg = Config::from_str(
+            r#"
+[archiver]
+
+[dropbox]
+token = "TOKEN"
+
+[vimeo]
+token = "TOKEN"
+"#,
+        ).unwrap();
+        assert_eq!(cfg.backends().len(), 2);
     }
 
     #[test]

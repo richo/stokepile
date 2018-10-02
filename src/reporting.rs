@@ -95,24 +95,26 @@ mod tests {
     fn dummy_report() -> UploadReport {
         let mut report: UploadReport = Default::default();
         report.record_activity(
-            UploadStatus::Succeeded,
-            UploadDescriptor {
+            ReportEntry::new( UploadDescriptor {
                 capture_time: Local.ymd(2018, 8, 24).and_hms(9, 55, 30),
                 device_name: "test-device".to_string(),
                 extension: "mp4".to_string(),
                 content_hash: [66; 32],
                 size: 0,
             },
+            vec![("vimeo".into(), UploadStatus::Succeeded)],
+            )
         );
         report.record_activity(
-            UploadStatus::Errored(format_err!("Something bad happened")),
-            UploadDescriptor {
+            ReportEntry::new(UploadDescriptor {
                 capture_time: Local.ymd(2018, 8, 24).and_hms(12, 30, 30),
                 device_name: "test-device".to_string(),
                 extension: "mp4".to_string(),
                 content_hash: [66; 32],
                 size: 0,
             },
+            vec![("vimeo".into(), UploadStatus::Errored(format_err!("Something bad happened")))],
+            )
         );
         report
     }

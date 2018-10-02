@@ -97,6 +97,8 @@ impl StorageAdaptor for VimeoClient {
         let tusclient = tus::Client::new(&handle.url, headers);
         let sent = tusclient.upload(file)?;
 
+        // TODO(richo) look through sent and confirm it really sent
+
         Ok(StorageStatus::Success)
     }
 
@@ -136,6 +138,7 @@ mod tests {
             env::var("ARCHIVER_TEST_VIMEO_KEY").expect("Didn't provide test key"),
         );
         let fh = File::open("/tmp/test.mp4").expect("Couldn't open video");
-        client.upload_file(fh).expect("Could not upload file");
+        let desc = staging::UploadDescriptor::test_descriptor();
+        client.upload(fh, &desc).expect("Could not upload file");
     }
 }
