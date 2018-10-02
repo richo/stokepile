@@ -10,11 +10,12 @@ use vimeo;
 use failure::Error;
 use serde_json;
 
-pub struct StorageStatus {
-    success: bool,
+pub enum StorageStatus {
+    Success,
+    Failure,
 }
 
-pub trait StorageAdaptor {
+pub trait StorageAdaptor : Send {
     type Input: Read;
 
     fn upload(&self, reader: Self::Input, manifest: &staging::UploadDescriptor) -> Result<StorageStatus, Error>;
@@ -44,7 +45,7 @@ fn is_manifest(path: &Path) -> bool {
     path.to_str().unwrap().ends_with(".manifest")
 }
 
-pub fn upload_from_staged<T>(staged: T, adaptors: &[Box<dyn StorageAdaptor<Input = Read>>]) -> Result<UploadReport, Error>
+pub fn upload_from_staged<T>(staged: T, adaptors: &[Box<dyn StorageAdaptor<Input = File>>]) -> Result<UploadReport, Error>
 where
     T: AsRef<Path>,
 {

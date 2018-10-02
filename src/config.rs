@@ -160,7 +160,7 @@ impl Config {
         let mut out: Vec<Box<dyn StorageAdaptor<Input = File>>> = vec![
             Box::new(dropbox::DropboxFilesClient::new(self.dropbox.token.clone()))
         ];
-        if let Some(vimeo) = self.vimeo {
+        if let Some(ref vimeo) = self.vimeo {
             out.push(Box::new(VimeoClient::new(vimeo.token.clone())));
         }
         out

@@ -85,9 +85,7 @@ pub struct UploadMetadataResponse {
 
 impl From<UploadMetadataResponse> for StorageStatus {
     fn from(response: UploadMetadataResponse) -> Self {
-        StorageStatus {
-            success: true,
-        }
+        StorageStatus::Success
     }
 }
 

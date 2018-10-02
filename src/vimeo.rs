@@ -97,7 +97,7 @@ impl StorageAdaptor for VimeoClient {
         let tusclient = tus::Client::new(&handle.url, headers);
         let sent = tusclient.upload(file)?;
 
-        Ok(StorageStatus { success: true })
+        Ok(StorageStatus::Success)
     }
 
     fn name(&self) -> String {
