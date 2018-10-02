@@ -11,7 +11,7 @@ use flysight::Flysight;
 use mailer::SendgridMailer;
 use mass_storage::MassStorage;
 use pushover_notifier::PushoverNotifier;
-use storage::{StorageAdaptor, StorageResponse};
+use storage::{StorageAdaptor, StorageStatus};
 use vimeo::VimeoClient;
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
@@ -156,10 +156,12 @@ impl Config {
     }
 
     /// Returns a vec of all configured backends
-    pub fn backends(&self) -> Vec<Box<dyn StorageAdaptor<Response = StorageResponse>>> {
-        let mut out = vec![dropbox::DropboxFilesClient::new(self.dropbox.token.clone())];
+    pub fn backends(&self) -> Vec<Box<dyn StorageAdaptor<Input = File>>> {
+        let mut out: Vec<Box<dyn StorageAdaptor<Input = File>>> = vec![
+            Box::new(dropbox::DropboxFilesClient::new(self.dropbox.token.clone()))
+        ];
         if let Some(vimeo) = self.vimeo {
-            out.push(VimeoClient::new(vimeo.token.clone()));
+            out.push(Box::new(VimeoClient::new(vimeo.token.clone())));
         }
         out
     }

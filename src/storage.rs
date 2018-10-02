@@ -4,17 +4,20 @@ use std::path::{Path, PathBuf};
 
 use reporting::{UploadReport, UploadStatus, ReportEntry};
 use staging;
+use dropbox;
+use vimeo;
 
 use failure::Error;
 use serde_json;
 
-pub trait StorageResponse {
+pub struct StorageStatus {
+    success: bool,
 }
 
 pub trait StorageAdaptor {
-    type Response: StorageResponse;
-    fn upload<T>(&self, reader: T, manifest: &staging::UploadDescriptor) -> Result<Self::Response, Error>
-    where T: Read;
+    type Input: Read;
+
+    fn upload(&self, reader: Self::Input, manifest: &staging::UploadDescriptor) -> Result<StorageStatus, Error>;
 
     fn already_uploaded(&self, manifest: &staging::UploadDescriptor) -> bool;
 
@@ -41,7 +44,7 @@ fn is_manifest(path: &Path) -> bool {
     path.to_str().unwrap().ends_with(".manifest")
 }
 
-pub fn upload_from_staged<T>(staged: T, adaptors: &[impl StorageAdaptor]) -> Result<UploadReport, Error>
+pub fn upload_from_staged<T>(staged: T, adaptors: &[Box<dyn StorageAdaptor<Input = Read>>]) -> Result<UploadReport, Error>
 where
     T: AsRef<Path>,
 {

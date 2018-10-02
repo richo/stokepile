@@ -1,12 +1,13 @@
 use serde::{Deserialize, Deserializer};
 use std::io::Read;
+use std::fs::File;
 /// This is a really small dropbox shim
 ///
 /// If this library is useful, I'll consider fleshing it out into a whole thing
 use std::path::Path;
 
 use version;
-use storage::{StorageAdaptor, StorageResponse};
+use storage::{StorageAdaptor, StorageStatus};
 use staging;
 
 use failure::Error;
@@ -82,7 +83,13 @@ pub struct UploadMetadataResponse {
     content_hash: String,
 }
 
-impl StorageResponse for UploadMetadataResponse {}
+impl From<UploadMetadataResponse> for StorageStatus {
+    fn from(response: UploadMetadataResponse) -> Self {
+        StorageStatus {
+            success: true,
+        }
+    }
+}
 
 #[derive(Deserialize, Debug)]
 pub struct StartUploadSessionResponse {
@@ -262,7 +269,7 @@ impl DropboxFilesClient {
 }
 
 impl StorageAdaptor for DropboxFilesClient {
-    type Response = UploadMetadataResponse;
+    type Input = File;
 
     fn already_uploaded(&self, manifest: &staging::UploadDescriptor) -> bool {
         match self.get_metadata(&manifest.remote_path()) {
@@ -275,11 +282,7 @@ impl StorageAdaptor for DropboxFilesClient {
         }
     }
 
-    fn upload<T: Read>(
-        &self,
-        mut reader: T,
-        manifest: &staging::UploadDescriptor,
-    ) -> Result<UploadMetadataResponse, Error> {
+    fn upload(&self, mut reader: Self::Input, manifest: &staging::UploadDescriptor) -> Result<StorageStatus, Error> {
         let id = self.start_upload_session()?;
         let mut buffer = vec![0; DEFAULT_CHUNK_SIZE];
         let mut cursor = Cursor {
@@ -302,7 +305,7 @@ impl StorageAdaptor for DropboxFilesClient {
             path: &manifest.remote_path(),
             mode: "overwrite".to_string(),
         };
-        self.upload_session_finish(&[], cursor, commit)
+        self.upload_session_finish(&[], cursor, commit).map(|r| r.into())
     }
 
     fn name(&self) -> String {

@@ -7,13 +7,8 @@ use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use failure::Error;
 use serde_json;
 
-use storage::{StorageAdaptor, StorageResponse};
+use storage::{StorageAdaptor, StorageStatus};
 use staging;
-
-pub struct VimeoUploadResponse {
-}
-
-impl StorageResponse for VimeoUploadResponse {}
 
 /// A client for the vimeo API
 pub struct VimeoClient {
@@ -85,14 +80,14 @@ impl VimeoClient {
 }
 
 impl StorageAdaptor for VimeoClient {
-    type Response = VimeoUploadResponse;
+    type Input = File;
 
     fn already_uploaded(&self, manifest: &staging::UploadDescriptor) -> bool {
         false
     }
 
     /// Upload a file from the local filesystem to vimeo.
-    fn upload(&self, file: File, manifest: &staging::UploadDescriptor) -> Result<(), Error> {
+    fn upload(&self, file: Self::Input, manifest: &staging::UploadDescriptor) -> Result<StorageStatus, Error> {
         // First we find out how big the file is so we can create our video object upstream
         let size = file.metadata()?.len();
         // Then we create an upload handle
@@ -102,9 +97,12 @@ impl StorageAdaptor for VimeoClient {
         let tusclient = tus::Client::new(&handle.url, headers);
         let sent = tusclient.upload(file)?;
 
-        Ok(())
+        Ok(StorageStatus { success: true })
     }
 
+    fn name(&self) -> String {
+        "vimeo".to_string()
+    }
 }
 
 impl Drop for UploadHandle {
