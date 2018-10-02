@@ -15,15 +15,19 @@ extern crate rocket_contrib;
 extern crate archiver;
 
 use failure::Error;
+use rocket::http::RawStr;
 use rocket::http::{Cookie, Cookies, SameSite};
-use rocket::request::Form;
+use rocket::request::{FlashMessage, Form, FromFormValue};
 use rocket::response::{Flash, Redirect};
 use rocket::Rocket;
-use rocket_contrib::Json;
+use rocket_contrib::static_files::StaticFiles;
+use rocket_contrib::{Json, Template};
+
 use std::env;
 
 use archiver::config::Config;
 use archiver::web::auth::CurrentUser;
+use archiver::web::context::Context;
 use archiver::web::db::{init_pool, DbConn};
 use archiver::web::models::{NewSession, NewUser, User};
 
@@ -34,55 +38,79 @@ fn get_config(_user: CurrentUser) -> Result<Json<Config>, Error> {
     Ok(Json(config))
 }
 
-#[derive(FromForm)]
-struct SignUp {
-    email: String,
-    password: String,
+enum UserAction {
+    SignIn,
+    SignUp,
 }
 
-#[post("/signup", data = "<signup>")]
-fn signup(
-    conn: DbConn,
-    signup: Form<SignUp>,
-    mut cookies: Cookies,
-) -> Result<Redirect, Flash<Redirect>> {
-    match NewUser::new(&signup.email, &signup.password).create(&*conn) {
-        Ok(user) => {
-            let session = NewSession::new(&user).create(&*conn).unwrap();
-            cookies.add(Cookie::new("sid", session.id));
-            Ok(Redirect::to("/"))
+impl<'v> FromFormValue<'v> for UserAction {
+    type Error = String;
+
+    fn from_form_value(form_value: &'v RawStr) -> Result<UserAction, Self::Error> {
+        let decoded = form_value.url_decode();
+        match decoded {
+            Ok(ref action) if action == "signin" => Ok(UserAction::SignIn),
+            Ok(ref action) if action == "signup" => Ok(UserAction::SignUp),
+            _ => Err(format!("expected signin/signup not {}", form_value)),
         }
-        Err(_) => Err(Flash::error(Redirect::to("/signup"), "Unable to signup.")),
     }
 }
 
 #[derive(FromForm)]
-struct SignIn {
+struct SignInUpForm {
     email: String,
     password: String,
+    action: UserAction,
 }
 
+// TODO: CSRF.
 #[post("/signin", data = "<signin>")]
 fn signin(
     conn: DbConn,
-    signin: Form<SignIn>,
+    signin: Form<SignInUpForm>,
     mut cookies: Cookies,
 ) -> Result<Redirect, Flash<Redirect>> {
-    if let Some(user) = User::by_credentials(&*conn, &signin.email, &signin.password) {
-        let session = NewSession::new(&user).create(&*conn).unwrap();
-        cookies.add(
-            Cookie::build("sid", session.id)
-                .http_only(true)
-                .same_site(SameSite::Lax)
-                .finish(),
-        );
-        Ok(Redirect::to("/"))
-    } else {
-        Err(Flash::error(
-            Redirect::to("/signin"),
-            "Incorrect username or password.",
-        ))
+    let user: Result<User, &str> = match signin.action {
+        UserAction::SignIn => User::by_credentials(&*conn, &signin.email, &signin.password)
+            .ok_or("Incorrect username or password."),
+        UserAction::SignUp => NewUser::new(&signin.email, &signin.password)
+            .create(&*conn)
+            .map_err(|_| "Unable to signup"),
+    };
+
+    match user {
+        Ok(user) => {
+            let session = NewSession::new(&user).create(&*conn).unwrap();
+            cookies.add(
+                Cookie::build("sid", session.id)
+                    // TODO: make this cookie secure depending on env
+                    .http_only(true)
+                    .same_site(SameSite::Lax)
+                    .finish(),
+            );
+            Ok(Redirect::to("/"))
+        }
+        Err(message) => Err(Flash::error(Redirect::to("/signin"), message)),
     }
+}
+
+#[get("/signin")]
+fn get_signin<'r>(flash: Option<FlashMessage>) -> Template {
+    let context = Context::default().set_signin_error(flash.map(|msg| msg.msg().into()));
+    Template::render("signin", context)
+}
+
+#[post("/signout")]
+fn signout(mut cookies: Cookies) -> Redirect {
+    // TODO: Mark session as expired in DB.
+    cookies.remove(Cookie::named("sid"));
+    Redirect::to("/")
+}
+
+#[get("/")]
+fn index(user: Option<CurrentUser>) -> Template {
+    let context = Context::default().set_user(user);
+    Template::render("index", context)
 }
 
 fn init_logging() {
@@ -95,7 +123,9 @@ fn init_logging() {
 fn configure_rocket(test_transactions: bool) -> Rocket {
     rocket::ignite()
         .manage(init_pool(test_transactions))
-        .mount("/", routes![get_config, signup, signin])
+        .mount("/", routes![get_config, get_signin, signin, signout, index])
+        .mount("/static", StaticFiles::from("web/static"))
+        .attach(Template::fairing())
 }
 
 fn main() {
@@ -133,7 +163,10 @@ mod tests {
         let req = client
             .post("/signin")
             .header(ContentType::Form)
-            .body(format!("email={}&password={}", username, password));
+            .body(format!(
+                "email={}&password={}&action=signin",
+                username, password
+            ));
 
         let response = req.dispatch();
         return get_set_cookie(response, "sid");
@@ -154,7 +187,7 @@ mod tests {
         let req = client
             .post("/signin")
             .header(ContentType::Form)
-            .body(r"email=test%40email.com&password=p%4055w0rd");
+            .body(r"email=test%40email.com&password=p%4055w0rd&action=signin");
 
         let response = req.dispatch();
         assert_eq!(response.status(), Status::SeeOther);
@@ -166,9 +199,9 @@ mod tests {
     fn test_signup() {
         let client = client();
         let req = client
-            .post("/signup")
+            .post("/signin")
             .header(ContentType::Form)
-            .body(r"email=test%40email.com&password=p%4055w0rd");
+            .body(r"email=test%40email.com&password=p%4055w0rd&action=signup");
 
         let response = req.dispatch();
         assert_eq!(response.status(), Status::SeeOther);
@@ -182,7 +215,7 @@ mod tests {
         let req = client
             .post("/signin")
             .header(ContentType::Form)
-            .body(r"email=test%40email.com&password=p%4055w0rd");
+            .body(r"email=test%40email.com&password=p%4055w0rd&action=signin");
 
         let response = req.dispatch();
         assert_eq!(response.status(), Status::SeeOther);
@@ -215,5 +248,25 @@ mod tests {
 
         let response = req.dispatch();
         assert_eq!(response.status(), Status::Ok);
+    }
+
+    #[test]
+    fn test_signout() {
+        let client = client();
+
+        create_user(&client, "test@email.com", "p@55w0rd");
+        let session_cookie = signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
+
+        let req = client
+            .post("/signout")
+            .header(Header::new("Cookie", session_cookie));
+
+        let response = req.dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
+        assert!(
+            get_set_cookie(response, "sid")
+                .unwrap()
+                .starts_with("sid=;")
+        );
     }
 }
