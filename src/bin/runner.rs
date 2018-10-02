@@ -102,8 +102,8 @@ fn run() -> Result<(), Error> {
 
             // Run the uploader thread syncronously as a smoketest for the daemon mode
             let staging = ctx.staging.clone();
-            let backend = ctx.cfg.backend().clone();
-            let report = thread::spawn(move || storage::upload_from_staged(&staging, &backend))
+            let backends = ctx.cfg.backends();
+            let report = thread::spawn(move || storage::upload_from_staged(&staging, &backends))
                 .join()
                 .expect("Upload thread panicked")?;
             ctx.notifier.notify("Finished uploading media")?;

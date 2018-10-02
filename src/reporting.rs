@@ -36,17 +36,50 @@ impl Serialize for UploadStatus {
 }
 
 #[derive(Default, Serialize)]
+/// A report describing how a series of upload transactions went.
 pub struct UploadReport {
-    files: HashMap<String, Vec<(UploadStatus, UploadDescriptor)>>,
+    files: HashMap<String, Vec<ReportEntry>>,
 }
 
+#[derive(Serialize)]
+/// An entry in the report.
+///
+/// results is a Vec of service-name, status tuples.
+pub struct ReportEntry {
+    desc: UploadDescriptor,
+    results: Vec<(String, UploadStatus)>,
+}
+
+impl ReportEntry {
+    /// Bind an UploadDescriptor to this entry, returning the finalised ReportEntry.
+    pub fn new(desc: UploadDescriptor, results: Vec<(String, UploadStatus)>) -> ReportEntry {
+        ReportEntry {
+            desc,
+            results,
+        }
+    }
+}
+
+impl ReportEntry {
+    /// Was every attempt to upload in this transaction successful.
+    pub fn is_success(&self) -> bool {
+        self.results.iter().all(|r| match r.1 {
+            UploadStatus::AlreadyUploaded |
+                UploadStatus::Succeeded => true,
+            UploadStatus::Errored(_) => false,
+        })
+    }
+}
+
+
 impl UploadReport {
-    pub fn record_activity(&mut self, status: UploadStatus, desc: UploadDescriptor) {
+    /// Attach a ReportEntry to this report.
+    pub fn record_activity(&mut self, entry: ReportEntry) {
         let uploads = self
             .files
-            .entry(desc.device_name.clone())
+            .entry(entry.desc.device_name.clone())
             .or_insert_with(|| vec![]);
-        uploads.push((status, desc))
+        uploads.push(entry);
     }
 
     pub fn to_plaintext(&self) -> Result<String, TemplateRenderError> {

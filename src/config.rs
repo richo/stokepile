@@ -11,6 +11,7 @@ use flysight::Flysight;
 use mailer::SendgridMailer;
 use mass_storage::MassStorage;
 use pushover_notifier::PushoverNotifier;
+use storage::StorageAdaptor;
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct Config {
@@ -148,8 +149,10 @@ impl Config {
         None
     }
 
-    pub fn backend(&self) -> dropbox::DropboxFilesClient {
-        dropbox::DropboxFilesClient::new(self.dropbox.token.clone())
+    /// Returns a vec of all configured backends
+    pub fn backends(&self) -> Vec<impl StorageAdaptor> {
+        let out = vec![dropbox::DropboxFilesClient::new(self.dropbox.token.clone())];
+        out
     }
 
     /// Returns an owned reference to the staging directory, expanded to be absolute

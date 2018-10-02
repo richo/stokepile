@@ -5,7 +5,9 @@ use std::io::Read;
 /// If this library is useful, I'll consider fleshing it out into a whole thing
 use std::path::Path;
 
-use super::version;
+use version;
+use storage::StorageAdaptor;
+use staging;
 
 use failure::Error;
 use hex::FromHex;
@@ -202,36 +204,6 @@ impl DropboxFilesClient {
         })
     }
 
-    pub fn upload<T: Read>(
-        &self,
-        mut reader: T,
-        remote_path: &Path,
-    ) -> Result<UploadMetadataResponse, Error> {
-        let id = self.start_upload_session()?;
-        let mut buffer = vec![0; DEFAULT_CHUNK_SIZE];
-        let mut cursor = Cursor {
-            session_id: id.session_id,
-            offset: 0,
-        };
-
-        loop {
-            // There's more juggling than I would really like here but ok :(
-            let read_bytes = reader.read(&mut buffer)?;
-            if read_bytes == 0 {
-                // We're probably at EOF? Hopefully?
-                break;
-            }
-            self.upload_session_append(&buffer[..read_bytes], &cursor)?;
-            cursor.offset += read_bytes as u64;
-        }
-
-        let commit = Commit {
-            path: &remote_path,
-            mode: "overwrite".to_string(),
-        };
-        self.upload_session_finish(&[], cursor, commit)
-    }
-
     fn start_upload_session<'a>(&self) -> Result<StartUploadSessionResponse, Error> {
         use self::DropboxBody::*;
         let headers = HeaderMap::new();
@@ -284,6 +256,55 @@ impl DropboxFilesClient {
             Ok(meta) => Ok(meta),
             Err(_) => Err(format_err!("Dropbox error: {}", text))
         }
+    }
+}
+
+impl StorageAdaptor for DropboxFilesClient {
+    type Response = UploadMetadataResponse;
+
+    fn already_uploaded(&self, manifest: &staging::UploadDescriptor) -> bool {
+        match self.get_metadata(&manifest.remote_path()) {
+            Ok(ref metadata) if metadata.content_hash() == &manifest.content_hash => {
+                return true;
+            }
+            _ => {
+                return false
+            }
+        }
+    }
+
+    fn upload<T: Read>(
+        &self,
+        mut reader: T,
+        manifest: &staging::UploadDescriptor,
+    ) -> Result<UploadMetadataResponse, Error> {
+        let id = self.start_upload_session()?;
+        let mut buffer = vec![0; DEFAULT_CHUNK_SIZE];
+        let mut cursor = Cursor {
+            session_id: id.session_id,
+            offset: 0,
+        };
+
+        loop {
+            // There's more juggling than I would really like here but ok :(
+            let read_bytes = reader.read(&mut buffer)?;
+            if read_bytes == 0 {
+                // We're probably at EOF? Hopefully?
+                break;
+            }
+            self.upload_session_append(&buffer[..read_bytes], &cursor)?;
+            cursor.offset += read_bytes as u64;
+        }
+
+        let commit = Commit {
+            path: &manifest.remote_path(),
+            mode: "overwrite".to_string(),
+        };
+        self.upload_session_finish(&[], cursor, commit)
+    }
+
+    fn name(&self) -> String {
+        "dropbox".to_string()
     }
 }
 
