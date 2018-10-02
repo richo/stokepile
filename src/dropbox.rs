@@ -6,7 +6,7 @@ use std::io::Read;
 use std::path::Path;
 
 use version;
-use storage::StorageAdaptor;
+use storage::{StorageAdaptor, StorageResponse};
 use staging;
 
 use failure::Error;
@@ -81,6 +81,8 @@ pub struct UploadMetadataResponse {
     size: usize,
     content_hash: String,
 }
+
+impl StorageResponse for UploadMetadataResponse {}
 
 #[derive(Deserialize, Debug)]
 pub struct StartUploadSessionResponse {

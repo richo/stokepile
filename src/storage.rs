@@ -8,8 +8,11 @@ use staging;
 use failure::Error;
 use serde_json;
 
+pub trait StorageResponse {
+}
+
 pub trait StorageAdaptor {
-    type Response;
+    type Response: StorageResponse;
     fn upload<T>(&self, reader: T, manifest: &staging::UploadDescriptor) -> Result<Self::Response, Error>
     where T: Read;
 

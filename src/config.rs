@@ -11,13 +11,14 @@ use flysight::Flysight;
 use mailer::SendgridMailer;
 use mass_storage::MassStorage;
 use pushover_notifier::PushoverNotifier;
-use storage::StorageAdaptor;
+use storage::{StorageAdaptor, StorageResponse};
+use vimeo::VimeoClient;
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct Config {
     archiver: ArchiverConfig,
     dropbox: DropboxConfig,
-    // vimeo: Option<VimeoConfig>,
+    vimeo: Option<VimeoConfig>,
     // youtube: Option<YoutubeConfig>,
     flysight: Option<Vec<FlysightConfig>>,
     gopro: Option<Vec<GoproConfig>>,
@@ -40,6 +41,11 @@ pub struct ArchiverConfig {
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct DropboxConfig {
+    token: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+pub struct VimeoConfig {
     token: String,
 }
 
@@ -150,8 +156,11 @@ impl Config {
     }
 
     /// Returns a vec of all configured backends
-    pub fn backends(&self) -> Vec<impl StorageAdaptor> {
-        let out = vec![dropbox::DropboxFilesClient::new(self.dropbox.token.clone())];
+    pub fn backends(&self) -> Vec<Box<dyn StorageAdaptor<Response = StorageResponse>>> {
+        let mut out = vec![dropbox::DropboxFilesClient::new(self.dropbox.token.clone())];
+        if let Some(vimeo) = self.vimeo {
+            out.push(VimeoClient::new(vimeo.token.clone()));
+        }
         out
     }
 
