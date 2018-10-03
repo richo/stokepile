@@ -9,12 +9,13 @@ use super::version;
 
 use failure::Error;
 use hex::FromHex;
-use hyper::Headers;
 use reqwest;
-use reqwest::header;
+use reqwest::header::{self, HeaderMap, HeaderName, HeaderValue};
 use serde_json;
 
-header! { (DropboxAPIArg, "Dropbox-API-Arg") => [String] }
+lazy_static! {
+    static ref DROPBOX_API_ARG: HeaderName = HeaderName::from_static("dropbox-api-arg");
+}
 
 const DEFAULT_CHUNK_SIZE: usize = 4 * 1024 * 1024;
 
@@ -118,13 +119,13 @@ pub struct UploadSession<'a> {
 }
 
 impl<'a> UploadSession<'a> {
-    fn append(&mut self, data: &[u8]) -> Result<(), Error> {
+    pub fn append(&mut self, data: &[u8]) -> Result<(), Error> {
         self.client.upload_session_append(data, &self.cursor)?;
         self.cursor.offset += data.len() as u64;
         Ok(())
     }
 
-    fn finish(self, path: &Path) -> Result<UploadMetadataResponse, Error> {
+    pub fn finish(self, path: &Path) -> Result<UploadMetadataResponse, Error> {
         let commit = Commit {
             path: &path,
             mode: "overwrite".to_string(),
@@ -143,22 +144,26 @@ impl DropboxFilesClient {
         }
     }
 
+    fn bearer_token(&self) -> Result<HeaderValue, Error> {
+        let mut header = HeaderValue::from_str(&format!("Bearer {}", self.token.clone()))?;
+        header.set_sensitive(true);
+        Ok(header)
+    }
+
     fn request(
         &self,
         url: (&str, &str),
         body: DropboxBody,
-        mut headers: Headers,
+        mut headers: HeaderMap,
     ) -> Result<reqwest::Response, Error> {
         let url = format!("https://{}.dropboxapi.com/{}", url.0, url.1);
 
-        headers.set(header::Authorization(header::Bearer {
-            token: self.token.clone(),
-        }));
-        headers.set(header::UserAgent::new(self.user_agent.clone()));
-        headers.set(match &body {
-            DropboxBody::JSON(_) => header::ContentType::json(),
-            DropboxBody::Binary(_) => header::ContentType::octet_stream(),
-        });
+        headers.insert(header::AUTHORIZATION, self.bearer_token()?);
+        headers.insert(header::USER_AGENT, HeaderValue::from_str(&self.user_agent)?);
+        headers.insert(header::CONTENT_TYPE, HeaderValue::from_str(match &body {
+            DropboxBody::JSON(_) => "application/json",
+            DropboxBody::Binary(_) => "application/octet-stream",
+        })?);
 
         self.client
             .post(&url)
@@ -174,13 +179,14 @@ impl DropboxFilesClient {
         let req = serde_json::to_vec(&MetadataRequest {
             path: path.to_str().unwrap(),
         })?;
-        let headers = Headers::new();
+        let headers = HeaderMap::new();
         let mut res = self.request(("api", "2/files/get_metadata"), JSON(req), headers)?;
         // let meta: MetadataResponse = serde_json::from_str(&res.text()?)?;
         let text = res.text()?;
-        eprintln!("{:?}", text);
-        let meta: MetadataResponse = serde_json::from_str(&text)?;
-        Ok(meta)
+        match serde_json::from_str(&text) {
+            Ok(meta) => Ok(meta),
+            Err(_) => Err(format_err!("Dropbox error: {}", text))
+        }
     }
 
     pub fn new_session<'a>(&'a self) -> Result<UploadSession<'a>, Error> {
@@ -228,22 +234,24 @@ impl DropboxFilesClient {
 
     fn start_upload_session<'a>(&self) -> Result<StartUploadSessionResponse, Error> {
         use self::DropboxBody::*;
-        let headers = Headers::new();
+        let headers = HeaderMap::new();
         let mut res = self.request(
             ("content", "2/files/upload_session/start"),
             Binary(vec![]),
             headers,
         )?;
         let text = &res.text()?;
-        let resp: StartUploadSessionResponse = serde_json::from_str(text)?;
-        Ok(resp)
+        match serde_json::from_str(&text) {
+            Ok(meta) => Ok(meta),
+            Err(_) => Err(format_err!("Dropbox error: {}", text))
+        }
     }
 
     fn upload_session_append<'a>(&self, data: &[u8], cursor: &Cursor) -> Result<(), Error> {
         use self::DropboxBody::*;
         let req = serde_json::to_vec(&UploadSessionAppendRequest { cursor })?;
-        let mut headers = Headers::new();
-        headers.set(DropboxAPIArg(String::from_utf8(req)?));
+        let mut headers = HeaderMap::new();
+        headers.insert(DROPBOX_API_ARG.clone(), HeaderValue::from_str(&String::from_utf8(req)?)?);
         let mut res = self.request(
             ("content", "2/files/upload_session/append_v2"),
             Binary(data.to_vec()),
@@ -264,16 +272,18 @@ impl DropboxFilesClient {
             cursor: &cursor,
             commit: &commit,
         })?;
-        let mut headers = Headers::new();
-        headers.set(DropboxAPIArg(String::from_utf8(req)?));
+        let mut headers = HeaderMap::new();
+        headers.insert(DROPBOX_API_ARG.clone(), HeaderValue::from_str(&String::from_utf8(req)?)?);
         let mut res = self.request(
             ("content", "2/files/upload_session/finish"),
             Binary(data.to_vec()),
             headers,
         )?;
         let text = res.text()?;
-        let meta: UploadMetadataResponse = serde_json::from_str(&text)?;
-        Ok(meta)
+        match serde_json::from_str(&text) {
+            Ok(meta) => Ok(meta),
+            Err(_) => Err(format_err!("Dropbox error: {}", text))
+        }
     }
 }
 
