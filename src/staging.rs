@@ -120,7 +120,6 @@ mod tests {
     #[test]
     fn test_formats_correctly() {
         let datetime = Local.ymd(2017, 11, 22).and_hms(15, 36, 10);
-        let path = PathBuf::from("/path/to/whatever");
 
         let upload = UploadDescriptor {
             capture_time: datetime,
@@ -139,7 +138,6 @@ mod tests {
     #[test]
     fn test_pads_correctly() {
         let datetime = Local.ymd(2001, 1, 2).and_hms(3, 4, 5);
-        let path = PathBuf::from("/path/to/whatever");
 
         let upload = UploadDescriptor {
             capture_time: datetime,
