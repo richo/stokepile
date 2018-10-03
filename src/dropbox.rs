@@ -266,9 +266,7 @@ impl DropboxFilesClient {
     }
 }
 
-impl StorageAdaptor for DropboxFilesClient {
-    type Input = Read;
-
+impl<T> StorageAdaptor<T> for DropboxFilesClient where T : Read {
     fn already_uploaded(&self, manifest: &staging::UploadDescriptor) -> bool {
         match self.get_metadata(&manifest.remote_path()) {
             Ok(ref metadata) if metadata.content_hash() == &manifest.content_hash => {
@@ -280,7 +278,7 @@ impl StorageAdaptor for DropboxFilesClient {
         }
     }
 
-    fn upload(&self, mut reader: Self::Input, manifest: &staging::UploadDescriptor) -> Result<StorageStatus, Error> {
+    fn upload(&self, mut reader: T, manifest: &staging::UploadDescriptor) -> Result<StorageStatus, Error> {
         let id = self.start_upload_session()?;
         let mut buffer = vec![0; DEFAULT_CHUNK_SIZE];
         let mut cursor = Cursor {
@@ -338,7 +336,7 @@ mod tests {
         );
         let localfile =
             fs::File::open("/usr/share/dict/web2").expect("Couldn't open dummy dictionary");
-        if let Err(e) = client.upload(localfile, staging::UploadDescriptor::test_descriptor()) {
+        if let Err(e) = client.upload(localfile, &staging::UploadDescriptor::test_descriptor()) {
             panic!("{:?}", e);
         }
     }
@@ -353,7 +351,7 @@ mod tests {
         let hash = DropboxContentHasher::digest(&localfile[..]);
         eprintln!("hash!: {:?}", &hash);
         let path = Path::new("/archiver-test/hello.txt");
-        if let Err(e) = client.upload(&localfile[..], &path) {
+        if let Err(e) = client.upload(&localfile[..], &staging::UploadDescriptor::test_descriptor()) {
             panic!("{:?}", e);
         }
         let metadata = client.get_metadata(&path).unwrap();

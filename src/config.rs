@@ -156,8 +156,8 @@ impl Config {
     }
 
     /// Returns a vec of all configured backends
-    pub fn backends(&self) -> Vec<Box<dyn StorageAdaptor<Input = File>>> {
-        let mut out: Vec<Box<dyn StorageAdaptor<Input = File>>> = vec![
+    pub fn backends(&self) -> Vec<Box<dyn StorageAdaptor<File>>> {
+        let mut out: Vec<Box<dyn StorageAdaptor<File>>> = vec![
             Box::new(dropbox::DropboxFilesClient::new(self.dropbox.token.clone()))
         ];
         if let Some(ref vimeo) = self.vimeo {

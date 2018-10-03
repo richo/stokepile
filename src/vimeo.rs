@@ -1,4 +1,5 @@
 use std::fs::File;
+use std::io::Read;
 
 use tus;
 use reqwest;
@@ -79,15 +80,13 @@ impl VimeoClient {
     }
 }
 
-impl StorageAdaptor for VimeoClient {
-    type Input = File;
-
+impl StorageAdaptor<File> for VimeoClient {
     fn already_uploaded(&self, manifest: &staging::UploadDescriptor) -> bool {
         false
     }
 
     /// Upload a file from the local filesystem to vimeo.
-    fn upload(&self, file: Self::Input, manifest: &staging::UploadDescriptor) -> Result<StorageStatus, Error> {
+    fn upload(&self, file: File, manifest: &staging::UploadDescriptor) -> Result<StorageStatus, Error> {
         // First we find out how big the file is so we can create our video object upstream
         let size = file.metadata()?.len();
         // Then we create an upload handle

@@ -15,10 +15,8 @@ pub enum StorageStatus {
     Failure,
 }
 
-pub trait StorageAdaptor : Send {
-    type Input: Read;
-
-    fn upload(&self, reader: Self::Input, manifest: &staging::UploadDescriptor) -> Result<StorageStatus, Error>;
+pub trait StorageAdaptor<T> : Send {
+    fn upload(&self, reader: T, manifest: &staging::UploadDescriptor) -> Result<StorageStatus, Error>;
 
     fn already_uploaded(&self, manifest: &staging::UploadDescriptor) -> bool;
 
@@ -45,7 +43,7 @@ fn is_manifest(path: &Path) -> bool {
     path.to_str().unwrap().ends_with(".manifest")
 }
 
-pub fn upload_from_staged<T>(staged: T, adaptors: &[Box<dyn StorageAdaptor<Input = File>>]) -> Result<UploadReport, Error>
+pub fn upload_from_staged<T>(staged: T, adaptors: &[Box<dyn StorageAdaptor<File>>]) -> Result<UploadReport, Error>
 where
     T: AsRef<Path>,
 {
