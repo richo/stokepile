@@ -6,6 +6,7 @@ use bcrypt;
 use diesel::prelude::*;
 use rand;
 
+use web::schema::integrations;
 use web::schema::sessions;
 use web::schema::users;
 
@@ -105,5 +106,40 @@ impl NewSession {
         insert_into(sessions::table)
             .values(self)
             .get_result::<Session>(conn)
+    }
+}
+
+#[derive(Identifiable, Queryable, Associations, Debug)]
+#[belongs_to(User)]
+pub struct Integration {
+    pub id: i32,
+    pub user_id: i32,
+    pub provider: String,
+    pub access_token: String,
+}
+
+#[derive(Insertable, Debug)]
+#[table_name = "integrations"]
+pub struct NewIntegration<'a> {
+    pub user_id: i32,
+    pub provider: &'a str,
+    pub access_token: &'a str,
+}
+
+impl<'a> NewIntegration<'a> {
+    pub fn new(user: &User, provider: &'a str, access_token: &'a str) -> Self {
+        NewIntegration {
+            user_id: user.id,
+            provider: provider,
+            access_token: access_token,
+        }
+    }
+
+    pub fn create(&self, conn: &PgConnection) -> QueryResult<Integration> {
+        use diesel::insert_into;
+
+        insert_into(integrations::table)
+            .values(self)
+            .get_result::<Integration>(conn)
     }
 }
