@@ -3,6 +3,8 @@
 *.swp
 /staging
 
+cargo.lock
+
 archiver.toml
 
 env
