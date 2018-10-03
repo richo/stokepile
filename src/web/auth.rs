@@ -3,19 +3,22 @@ use rocket::request::{self, FromRequest, Request};
 use rocket::Outcome;
 
 use web::db::DbConn;
-use web::models::Session;
+use web::models::{Session, User};
 
+#[derive(Debug, Serialize)]
 pub struct CurrentUser {
+    #[serde(flatten)]
+    user: User,
+    #[serde(skip_serializing)]
     session: Session,
 }
 
 impl CurrentUser {
-    pub fn from_session(session: Session) -> Self {
-        CurrentUser { session: session }
-    }
-
-    pub fn session(&self) -> &Session {
-        &self.session
+    pub fn new(user: User, session: Session) -> Self {
+        CurrentUser {
+            user: user,
+            session: session,
+        }
     }
 }
 
@@ -28,7 +31,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for CurrentUser {
         let current_user = {
             if let Some(cookie) = request.cookies().get("sid") {
                 match Session::by_id(&*conn, cookie.value()) {
-                    Ok(session) => Some(CurrentUser::from_session(session)),
+                    Ok((session, user)) => Some(CurrentUser::new(user, session)),
                     Err(_) => None,
                 }
             } else {

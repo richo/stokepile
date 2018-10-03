@@ -9,10 +9,11 @@ use rand;
 use web::schema::sessions;
 use web::schema::users;
 
-#[derive(Queryable, Debug)]
+#[derive(Queryable, Debug, Serialize)]
 pub struct User {
     pub id: i32,
     pub email: String,
+    #[serde(skip_serializing)]
     pub password: String,
 }
 
@@ -67,12 +68,14 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn by_id(conn: &PgConnection, session_id: &str) -> QueryResult<Self> {
+    pub fn by_id(conn: &PgConnection, session_id: &str) -> QueryResult<(Self, User)> {
         use web::schema::sessions::dsl::*;
+        use web::schema::users;
 
         sessions
+            .inner_join(users::table)
             .filter(id.eq(session_id))
-            .get_result::<Session>(conn)
+            .get_result::<(Session, User)>(conn)
     }
 }
 
