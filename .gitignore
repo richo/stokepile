@@ -10,3 +10,4 @@ archiver.toml
 env
 
 docs
+*.orig
