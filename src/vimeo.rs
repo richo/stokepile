@@ -42,13 +42,14 @@ impl VimeoClient {
         }
     }
 
-    fn create_upload_handle(&self, size: u64) -> Result<UploadHandle, Error> {
+    fn create_upload_handle(&self, name: &str, size: u64) -> Result<UploadHandle, Error> {
         let api_endpoint = "https://api.vimeo.com/me/videos";
         let json = json!({
             "upload" : {
                 "approach" : "tus",
                 "size" : size,
-            }
+            },
+            "name" : name,
         });
 
         // Setup our headers
@@ -82,6 +83,7 @@ impl VimeoClient {
 
 impl StorageAdaptor<File> for VimeoClient {
     fn already_uploaded(&self, manifest: &staging::UploadDescriptor) -> bool {
+        // TODO(richo) Actually figure out how to check if we've already done this
         false
     }
 
@@ -90,7 +92,7 @@ impl StorageAdaptor<File> for VimeoClient {
         // First we find out how big the file is so we can create our video object upstream
         let size = file.metadata()?.len();
         // Then we create an upload handle
-        let handle = self.create_upload_handle(size)?;
+        let handle = self.create_upload_handle(&manifest.staging_name(), size)?;
 
         let headers = self.default_headers(size);
         let tusclient = tus::Client::new(&handle.url, headers);
@@ -125,7 +127,7 @@ mod tests {
         let client = VimeoClient::new(
             env::var("ARCHIVER_TEST_VIMEO_KEY").expect("Didn't provide test key"),
         );
-        let handle = client.create_upload_handle(1024).expect("Couldn't create upload handle");
+        let handle = client.create_upload_handle("test_video.mp4", 1024).expect("Couldn't create upload handle");
         assert!(handle.url.starts_with("https://files.tus.vimeo.com"), "Handle url not rooted at vimeo.com");
         assert_eq!(handle.complete, false);
     }
