@@ -65,7 +65,7 @@ impl VimeoClient {
             .send()?
             .text()?;
         let response: CreateVideoResponse = serde_json::from_str(&text)
-            .map_err(|e| format_err!("create_upload_handle: {}", text))?;
+            .map_err(|e| format_err!("create_upload_handle: {:?} {}", e, text))?;
         Ok(UploadHandle {
             url: response.upload.upload_link,
             complete: false,
