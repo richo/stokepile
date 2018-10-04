@@ -17,7 +17,7 @@ use vimeo::VimeoClient;
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct Config {
     archiver: ArchiverConfig,
-    dropbox: DropboxConfig,
+    dropbox: Option<DropboxConfig>,
     vimeo: Option<VimeoConfig>,
     // youtube: Option<YoutubeConfig>,
     flysight: Option<Vec<FlysightConfig>>,
@@ -98,6 +98,12 @@ pub struct GoproConfig {
     pub serial: String,
 }
 
+#[derive(Fail, Debug, Eq, PartialEq)]
+pub enum ConfigError {
+    #[fail(display = "Must have at least one of dropbox and vimeo configured")]
+    MissingBackend,
+}
+
 impl Config {
     pub fn from_file(path: &str) -> Result<Config, Error> {
         let mut fh = File::open(path)?;
@@ -109,9 +115,16 @@ impl Config {
 
     pub fn from_str(body: &str) -> Result<Config, Error> {
         match toml::from_str(body) {
-            Ok(config) => Ok(config),
+            Ok(config) => Self::check_config(config),
             Err(e) => Err(format_err!("Couldn't parse config: {}", e)),
         }
+    }
+
+    fn check_config(config: Config) -> Result<Config, Error> {
+        if config.dropbox.is_none() && config.vimeo.is_none() {
+            Err(ConfigError::MissingBackend)?;
+        }
+        Ok(config)
     }
 
     // Do we eventually want to make a camera/mass_storage distinction?
@@ -157,9 +170,10 @@ impl Config {
 
     /// Returns a vec of all configured backends
     pub fn backends(&self) -> Vec<Box<dyn StorageAdaptor<File>>> {
-        let mut out: Vec<Box<dyn StorageAdaptor<File>>> = vec![
-            Box::new(dropbox::DropboxFilesClient::new(self.dropbox.token.clone()))
-        ];
+        let mut out: Vec<Box<dyn StorageAdaptor<File>>> = vec![];
+        if let Some(ref dropbox) = self.dropbox {
+            out.push(Box::new(dropbox::DropboxFilesClient::new(dropbox.token.clone())));
+        }
         if let Some(ref vimeo) = self.vimeo {
             out.push(Box::new(VimeoClient::new(vimeo.token.clone())));
         }
@@ -193,9 +207,9 @@ mod tests {
 
         assert_eq!(
             config.dropbox,
-            DropboxConfig {
+            Some(DropboxConfig {
                 token: "DROPBOX_TOKEN_GOES_HERE".into()
-            }
+            })
         );
 
         assert_eq!(
@@ -303,13 +317,14 @@ recipient = "RECIPIENT_TOKEN"
     }
 
     #[test]
-    fn test_no_dropbox() {
+    fn test_no_backends() {
         let error = Config::from_str(
             r#"
 [archiver]
 "#,
         ).unwrap_err();
-        assert!(format!("{}", error).contains("missing field `dropbox`"))
+        let error = error.downcast::<ConfigError>().unwrap();
+        assert_eq!(error, ConfigError::MissingBackend);
     }
 
     #[test]

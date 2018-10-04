@@ -8,6 +8,8 @@ extern crate serde_json;
 #[macro_use]
 extern crate failure;
 #[macro_use]
+extern crate failure_derive;
+#[macro_use]
 extern crate handlebars;
 #[macro_use]
 extern crate lazy_static;

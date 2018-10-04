@@ -44,6 +44,7 @@ rocket_contrib = { git = "https://github.com/SergioBenitez/Rocket", optional = t
 diesel = { version = "1.3.3", features = ["postgres", "r2d2", "serde_json"], optional = true }
 bcrypt = { version = "0.2.0", optional = true }
 rand = { version = "0.5.5", optional = true }
+failure_derive = "0.1.2"
 
 [[bin]]
 name = "server"
