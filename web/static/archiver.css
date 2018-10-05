@@ -3,6 +3,10 @@ body {
   margin: 0 auto;
 }
 
+.content {
+  margin: 10px;
+}
+
 .signin-input {
   width: 100%;
 }
@@ -13,11 +17,24 @@ body {
   align-items: center;
 }
 
-.signin-error {
-  background-color: rgba(255, 0, 0, 0.5);
-  border-top: 1px solid rgb(255, 0, 0);
-  border-bottom: 1px solid rgb(255, 0, 0);
+.flash-message {
   padding: 5px;
+  border-top-width: 1px;
+  border-top-style: solid;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+}
+
+.flash-message-error {
+  background-color: rgba(255, 0, 0, 0.5);
+  border-top-color: rgb(255, 0, 0);
+  border-bottom-color: rgb(255, 0, 0);
+}
+
+.flash-message-success {
+  background-color: rgba(0, 255, 0, 0.5);
+  border-top-color: rgb(0, 255, 0);
+  border-bottom-color: rgb(0, 255, 0);
 }
 
 .header {
@@ -38,4 +55,30 @@ body {
 
 .button-small {
   font-size: 70%;
+}
+
+.button-big {
+  font-size: 115%;
+}
+
+.config-download {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.integration-list {
+  padding: 0;
+}
+
+.integration {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.integration-action {
+  display: flex;
+  justify-content: flex-end;
 }

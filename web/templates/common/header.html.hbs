@@ -7,18 +7,20 @@
   <meta name="description" content="Web interface to github.com/richo/archiver">
   <title>Archiver</title>
   <link rel="stylesheet" href="/static/pure.css">
+  <link rel="stylesheet" href="/static/grids-responsive-min.css">
   <link rel="stylesheet" href="/static/archiver.css">
 </head>
 
 <body>
-  <div class="header">
-    <h1>Archiver</h1>
-    <div class="header-actions">
-      {{#if user}}
-      <span class="header-email">{{user.email}}</span>
-      <form action="/signout" method="POST">
-        <button class="pure-button button-small">Sign Out</button>
-      </form>
-      {{/if}}
+  <div class="content">
+    <div class="header">
+      <h1>Archiver</h1>
+      <div class="header-actions">
+        {{#if user}}
+        <span class="header-email">{{user.email}}</span>
+        <form action="/signout" method="POST">
+          <button class="pure-button button-small">Sign Out</button>
+        </form>
+        {{/if}}
+      </div>
     </div>
-  </div>

@@ -32,6 +32,26 @@ impl User {
             None
         }
     }
+
+    pub fn integrations(&self, conn: &PgConnection) -> QueryResult<Vec<Integration>> {
+        use web::schema::integrations::dsl::*;
+
+        integrations
+            .filter(user_id.eq(self.id))
+            .load::<Integration>(conn)
+    }
+
+    pub fn integration_by_id(
+        &self,
+        integration_id: i32,
+        conn: &PgConnection,
+    ) -> QueryResult<Integration> {
+        use web::schema::integrations::dsl::*;
+
+        integrations
+            .filter(user_id.eq(self.id).and(id.eq(integration_id)))
+            .get_result(conn)
+    }
 }
 
 #[derive(Insertable, Debug)]
@@ -60,7 +80,7 @@ impl<'a> NewUser<'a> {
     }
 }
 
-#[derive(Identifiable, Queryable, Associations, Debug)]
+#[derive(Identifiable, Queryable, Associations, Debug, AsChangeset, PartialEq)]
 #[belongs_to(User)]
 pub struct Session {
     pub id: String,
@@ -77,6 +97,24 @@ impl Session {
             .inner_join(users::table)
             .filter(id.eq(session_id))
             .get_result::<(Session, User)>(conn)
+    }
+
+    pub fn insert(&mut self, key: String, value: serde_json::Value) -> Option<serde_json::Value> {
+        let data = self.data.as_object_mut()?;
+        data.insert(key, value)
+    }
+
+    pub fn save(&self, conn: &PgConnection) -> QueryResult<usize> {
+        use diesel::update;
+        use web::schema::sessions::dsl::*;
+
+        update(sessions).set(self).execute(conn)
+    }
+
+    pub fn delete(&self, conn: &PgConnection) -> QueryResult<usize> {
+        use diesel::delete;
+
+        delete(self).execute(conn)
     }
 }
 
@@ -116,6 +154,22 @@ pub struct Integration {
     pub user_id: i32,
     pub provider: String,
     pub access_token: String,
+}
+
+impl Integration {
+    pub fn by_id(&self, integration_id: i32, conn: &PgConnection) -> QueryResult<Integration> {
+        use web::schema::integrations::dsl::*;
+
+        integrations
+            .filter(id.eq(integration_id))
+            .get_result::<Integration>(conn)
+    }
+
+    pub fn delete(&self, conn: &PgConnection) -> QueryResult<usize> {
+        use diesel::delete;
+
+        delete(self).execute(conn)
+    }
 }
 
 #[derive(Insertable, Debug)]
