@@ -106,6 +106,7 @@ fn run() -> Result<(), Error> {
                 device.stage_files(&ctx.staging)?;
                 ctx.notifier.notify(&msg)?;
             }
+            ctx.notifier.notify("Finished staging media")?;
 
             // Run the uploader thread syncronously as a smoketest for the daemon mode
             let staging = ctx.staging.clone();
