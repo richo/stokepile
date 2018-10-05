@@ -11,3 +11,4 @@ env
 
 docs
 *.orig
+.env

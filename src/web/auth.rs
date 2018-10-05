@@ -8,9 +8,9 @@ use web::models::{Session, User};
 #[derive(Debug, Serialize)]
 pub struct CurrentUser {
     #[serde(flatten)]
-    user: User,
+    pub user: User,
     #[serde(skip_serializing)]
-    session: Session,
+    pub session: Session,
 }
 
 impl CurrentUser {
