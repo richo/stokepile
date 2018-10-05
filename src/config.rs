@@ -98,10 +98,12 @@ pub struct GoproConfig {
     pub serial: String,
 }
 
-#[derive(Fail, Debug, Eq, PartialEq)]
+#[derive(Fail, Debug)]
 pub enum ConfigError {
     #[fail(display = "Must have at least one of dropbox and vimeo configured")]
     MissingBackend,
+    #[fail(display = "Could not parse config: {}", _0)]
+    ParseError(#[cause] toml::de::Error),
 }
 
 impl Config {
@@ -116,7 +118,7 @@ impl Config {
     pub fn from_str(body: &str) -> Result<Config, Error> {
         match toml::from_str(body) {
             Ok(config) => Self::check_config(config),
-            Err(e) => Err(format_err!("Couldn't parse config: {}", e)),
+            Err(e) => Err(ConfigError::ParseError(e))?,
         }
     }
 
@@ -324,7 +326,10 @@ recipient = "RECIPIENT_TOKEN"
 "#,
         ).unwrap_err();
         let error = error.downcast::<ConfigError>().unwrap();
-        assert_eq!(error, ConfigError::MissingBackend);
+        assert!(match error {
+            ConfigError::MissingBackend => true,
+            _ => false,
+        });
     }
 
     #[test]
