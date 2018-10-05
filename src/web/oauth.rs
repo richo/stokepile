@@ -17,6 +17,10 @@ lazy_static! {
         info!("Initializing Youtube oauth config");
         Oauth2Config::youtube()
     };
+    static ref VIMEO_CONFIG: Oauth2Config = {
+        info!("Initializing Vimeo oauth config");
+        Oauth2Config::vimeo()
+    };
 }
 
 lazy_static! {
