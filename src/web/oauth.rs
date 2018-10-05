@@ -167,7 +167,7 @@ impl<'v> FromFormValue<'v> for Oauth2Provider {
         let decoded = form_value.url_decode();
         match decoded {
             Ok(ref provider) if provider == "dropbox" => Ok(Oauth2Provider::Dropbox),
-            Ok(ref provider) if provider == "youtube" => Ok(Oauth2Provider::Dropbox),
+            Ok(ref provider) if provider == "youtube" => Ok(Oauth2Provider::YouTube),
             _ => Err(format!("unknown provider {}", form_value)),
         }
     }
