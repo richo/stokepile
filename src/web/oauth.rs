@@ -17,6 +17,10 @@ lazy_static! {
         info!("Initializing Youtube oauth config");
         Oauth2Config::youtube()
     };
+    static ref VIMEO_CONFIG: Oauth2Config = {
+        info!("Initializing Vimeo oauth config");
+        Oauth2Config::vimeo()
+    };
 }
 
 lazy_static! {
@@ -102,6 +106,38 @@ impl Oauth2Config {
             redirect_url,
         }
     }
+    pub fn vimeo() -> Oauth2Config {
+        let client_id = ClientId::new(
+            env::var("ARCHIVER_VIMEO_APP_KEY")
+                .expect("Missing the ARCHIVER_VIMEO_APP_KEY environment variable."),
+        );
+        let client_secret = ClientSecret::new(
+            env::var("ARCHIVER_VIMEO_APP_SECRET")
+                .expect("Missing the ARCHIVER_VIMEO_APP_SECRET environment variable."),
+        );
+        let auth_url = AuthUrl::new(
+            Url::parse("https://api.vimeo.com/oauth/authorize")
+                .expect("Invalid authorization endpoint URL"),
+        );
+        let token_url = TokenUrl::new(
+            Url::parse("https://api.vimeo.com/oauth/access_token")
+                .expect("Invalid token endpoint URL"),
+        );
+        let redirect_url = RedirectUrl::new(
+            BASE_URL
+                .join("/integration/finish?provider=vimeo")
+                .expect("Invalid redirect URL"),
+        );
+        let scopes = &["public", "upload"];
+        Oauth2Config {
+            client_id,
+            client_secret,
+            auth_url,
+            token_url,
+            scopes,
+            redirect_url,
+        }
+    }
     pub fn client(&self) -> BasicClient {
         let Oauth2Config {
             client_id,
@@ -127,12 +163,13 @@ impl Oauth2Config {
 pub enum Oauth2Provider {
     Dropbox,
     YouTube,
+    Vimeo,
 }
 
 impl Oauth2Provider {
     pub fn providers() -> &'static [Oauth2Provider] {
         static VARIANTS: &'static [Oauth2Provider] =
-            &[Oauth2Provider::Dropbox, Oauth2Provider::YouTube];
+            &[Oauth2Provider::Dropbox, Oauth2Provider::YouTube, Oauth2Provider::Vimeo];
         VARIANTS
     }
 
@@ -140,6 +177,7 @@ impl Oauth2Provider {
         match self {
             Oauth2Provider::Dropbox => "dropbox",
             Oauth2Provider::YouTube => "youtube",
+            Oauth2Provider::Vimeo => "vimeo",
         }
     }
 
@@ -147,6 +185,7 @@ impl Oauth2Provider {
         match self {
             Oauth2Provider::Dropbox => "Dropbox",
             Oauth2Provider::YouTube => "YouTube",
+            Oauth2Provider::Vimeo => "Vimeo",
         }
     }
 
@@ -154,6 +193,7 @@ impl Oauth2Provider {
         let config: &Oauth2Config = match self {
             Oauth2Provider::Dropbox => &*DROPBOX_CONFIG,
             Oauth2Provider::YouTube => &*YOUTUBE_CONFIG,
+            Oauth2Provider::Vimeo => &*VIMEO_CONFIG,
         };
 
         config.client()
@@ -168,6 +208,7 @@ impl<'v> FromFormValue<'v> for Oauth2Provider {
         match decoded {
             Ok(ref provider) if provider == "dropbox" => Ok(Oauth2Provider::Dropbox),
             Ok(ref provider) if provider == "youtube" => Ok(Oauth2Provider::YouTube),
+            Ok(ref provider) if provider == "vimeo" => Ok(Oauth2Provider::Vimeo),
             _ => Err(format!("unknown provider {}", form_value)),
         }
     }
