@@ -48,9 +48,25 @@ lazy_static! {
 }
 
 #[get("/config")]
-fn get_config(_user: CurrentUser) -> Result<Json<Config>, Error> {
-    let config = Config::from_file("archiver.toml.example")?;
-    info!("Butts");
+fn get_config(user: CurrentUser, conn: DbConn) -> Result<Json<Config>, Error> {
+    let mut vimeo = None;
+    let mut dropbox = None;
+
+    let integrations = user.user.integrations(&*conn)?;
+    let mut integrations = integrations.iter();
+    for provider in Oauth2Provider::providers() {
+        let name = provider.name();
+
+        if let Some(integration) = integrations.find(|ref x| x.provider == name) {
+            let token = integration.access_token.to_string();
+            match name {
+                "dropbox" => { dropbox = Some(token); },
+                "vimeo" => { vimeo = Some(token); },
+                name => { warn!("Unknown integration: {}", name); },
+            }
+        }
+    }
+    let config = Config::from_db(dropbox, vimeo)?;
     Ok(Json(config))
 }
 

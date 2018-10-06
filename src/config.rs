@@ -14,7 +14,7 @@ use pushover_notifier::PushoverNotifier;
 use storage::{StorageAdaptor, StorageStatus};
 use vimeo::VimeoClient;
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
 pub struct Config {
     archiver: ArchiverConfig,
     dropbox: Option<DropboxConfig>,
@@ -34,7 +34,7 @@ lazy_static! {
     static ref EMPTY_GOPROS: Vec<GoproConfig> = vec![];
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+#[derive(Default, Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct ArchiverConfig {
     staging: Option<PathBuf>,
 }
@@ -120,6 +120,21 @@ impl Config {
             Ok(config) => Self::check_config(config),
             Err(e) => Err(ConfigError::ParseError(e))?,
         }
+    }
+
+    /// Build a Config from composite parts loaded from the database
+    ///
+    /// This will be replaced by a builder
+    pub fn from_db(dropbox_token: Option<String>,
+                   vimeo_token: Option<String>,) -> Result<Config, Error> {
+        let vimeo = vimeo_token.map(|v| VimeoConfig { token: v });
+        let dropbox = dropbox_token.map(|v| DropboxConfig { token: v });
+
+        Self::check_config(Config {
+            dropbox,
+            vimeo,
+            ..Default::default()
+        })
     }
 
     fn check_config(config: Config) -> Result<Config, Error> {
