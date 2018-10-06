@@ -41,7 +41,7 @@ use archiver::config::Config;
 use archiver::web::auth::CurrentUser;
 use archiver::web::context::{Context, PossibleIntegration};
 use archiver::web::db::{init_pool, DbConn};
-use archiver::web::models::{Integration, NewIntegration, NewSession, NewUser, User};
+use archiver::web::models::{Device, NewDevice, Integration, NewIntegration, NewSession, NewUser, User};
 use archiver::web::oauth::Oauth2Provider;
 
 lazy_static! {
@@ -245,6 +245,40 @@ fn finish_integration(
     };
 
     match integration {
+        Some(_) => Ok(Flash::success(
+            Redirect::to("/"),
+            format!(
+                "{} has been connected to your account.",
+                resp.provider.display_name()
+            ),
+        )),
+        None => Err(Flash::error(
+            Redirect::to("/"),
+            format!(
+                "There was a problem connecting {} to your account.",
+                resp.provider.display_name()
+            ),
+        )),
+    }
+}
+
+#[derive(FromForm, Debug)]
+pub struct CreateDeviceForm {
+    pub serial: String,
+    pub kind: String,
+}
+
+#[get("/device/create?<form>")]
+fn create_device(
+    user: CurrentUser,
+    form: CreateDeviceForm,
+    conn: DbConn,
+) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    let device: Option<Device> = NewDevice::new(&user.user, form.serial)
+            .create(&*conn)
+            .ok();
+
+    match device {
         Some(_) => Ok(Flash::success(
             Redirect::to("/"),
             format!(
