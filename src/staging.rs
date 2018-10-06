@@ -65,8 +65,7 @@ pub trait Staging: Sized {
                 serde_json::to_writer(&mut staged, &desc)?;
             }
 
-            // Once I'm more confident that I haven't fucked up staging
-            // file.delete()
+            file.delete()
         }
 
         Ok(())
