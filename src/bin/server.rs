@@ -48,11 +48,13 @@ lazy_static! {
 }
 
 #[get("/config")]
-fn get_config(user: CurrentUser, conn: DbConn) -> Result<Json<Config>, Error> {
+fn get_config(user: CurrentUser, conn: DbConn) -> Result<Json<Config>, Flash<Redirect>> {
     let mut vimeo = None;
     let mut dropbox = None;
 
-    let integrations = user.user.integrations(&*conn)?;
+    let integrations = user.user.integrations(&*conn).map_err(|e| Flash::error(
+            Redirect::to("/"),
+            format!("Error connecting to the DB: {}", e)))?;
     let mut integrations = integrations.iter();
     for provider in Oauth2Provider::providers() {
         let name = provider.name();
@@ -66,8 +68,16 @@ fn get_config(user: CurrentUser, conn: DbConn) -> Result<Json<Config>, Error> {
             }
         }
     }
-    let config = Config::from_db(dropbox, vimeo)?;
-    Ok(Json(config))
+    match Config::from_db(dropbox, vimeo) {
+        Ok(config) => Ok(Json(config)),
+        Err(error) => Err(Flash::error(
+            Redirect::to("/"),
+            format!(
+                "There was a problem generating configuration for you: {}",
+                error
+            ),
+        ))
+    }
 }
 
 enum UserAction {
