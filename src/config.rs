@@ -137,6 +137,11 @@ impl Config {
         })
     }
 
+    /// Serializes this config option into TOML
+    pub fn to_toml(&self) -> String {
+        toml::to_string(self).unwrap()
+    }
+
     fn check_config(config: Config) -> Result<Config, Error> {
         if config.dropbox.is_none() && config.vimeo.is_none() {
             Err(ConfigError::MissingBackend)?;

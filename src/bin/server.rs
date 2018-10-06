@@ -21,15 +21,16 @@ extern crate oauth2;
 
 extern crate archiver;
 
-use failure::Error;
 use rocket::config::Environment;
+use rocket::response::content::Content;
+use rocket::http::ContentType;
 use rocket::http::RawStr;
 use rocket::http::{Cookie, Cookies, SameSite};
 use rocket::request::{FlashMessage, Form, FromFormValue};
 use rocket::response::{Flash, Redirect};
 use rocket::Rocket;
 use rocket_contrib::static_files::StaticFiles;
-use rocket_contrib::{Json, Template};
+use rocket_contrib::Template;
 
 use std::env;
 
@@ -48,7 +49,7 @@ lazy_static! {
 }
 
 #[get("/config")]
-fn get_config(user: CurrentUser, conn: DbConn) -> Result<Json<Config>, Flash<Redirect>> {
+fn get_config(user: CurrentUser, conn: DbConn) -> Result<Content<String>, Flash<Redirect>> {
     let mut vimeo = None;
     let mut dropbox = None;
 
@@ -69,7 +70,7 @@ fn get_config(user: CurrentUser, conn: DbConn) -> Result<Json<Config>, Flash<Red
         }
     }
     match Config::from_db(dropbox, vimeo) {
-        Ok(config) => Ok(Json(config)),
+        Ok(config) => Ok(Content(ContentType::new("application", "toml"), config.to_toml())),
         Err(error) => Err(Flash::error(
             Redirect::to("/"),
             format!(
@@ -330,6 +331,8 @@ mod tests {
     use rocket::http::{ContentType, Header, Status};
     use rocket::local::{Client, LocalResponse};
 
+    use archiver::config::Config;
+
     use archiver::web::db::DbConn;
     use archiver::web::models::NewIntegration;
     use archiver::web::models::NewUser;
@@ -448,7 +451,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_config() {
+    fn test_get_config_with_no_integrations() {
         let client = client();
 
         create_user(&client, "test@email.com", "p@55w0rd");
@@ -459,7 +462,34 @@ mod tests {
             .header(Header::new("Cookie", session_cookie));
 
         let response = req.dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
+    }
+
+    #[test]
+    fn test_get_config() {
+        let client = client();
+
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+        let session_cookie = signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
+
+        let integration_id = {
+            let conn = db_conn(&client);
+
+            NewIntegration::new(&user, "dropbox", "test_oauth_token")
+                .create(&*conn)
+                .unwrap()
+                .id
+        };
+
+        let req = client
+            .get("/config")
+            .header(Header::new("Cookie", session_cookie));
+
+        let mut response = req.dispatch();
         assert_eq!(response.status(), Status::Ok);
+        let config = Config::from_str(&response.body_string().expect("Didn't recieve a body"));
+        println!("{:?}", config);
+        assert!(config.is_ok());
     }
 
     #[test]
