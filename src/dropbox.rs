@@ -1,11 +1,14 @@
 use serde::{Deserialize, Deserializer};
 use std::io::Read;
+use std::fs::File;
 /// This is a really small dropbox shim
 ///
 /// If this library is useful, I'll consider fleshing it out into a whole thing
 use std::path::Path;
 
-use super::version;
+use version;
+use storage::{StorageAdaptor, StorageStatus};
+use staging;
 
 use failure::Error;
 use hex::FromHex;
@@ -78,6 +81,12 @@ pub struct UploadMetadataResponse {
     rev: String,
     size: usize,
     content_hash: String,
+}
+
+impl From<UploadMetadataResponse> for StorageStatus {
+    fn from(response: UploadMetadataResponse) -> Self {
+        StorageStatus::Success
+    }
 }
 
 #[derive(Deserialize, Debug)]
@@ -202,36 +211,6 @@ impl DropboxFilesClient {
         })
     }
 
-    pub fn upload<T: Read>(
-        &self,
-        mut reader: T,
-        remote_path: &Path,
-    ) -> Result<UploadMetadataResponse, Error> {
-        let id = self.start_upload_session()?;
-        let mut buffer = vec![0; DEFAULT_CHUNK_SIZE];
-        let mut cursor = Cursor {
-            session_id: id.session_id,
-            offset: 0,
-        };
-
-        loop {
-            // There's more juggling than I would really like here but ok :(
-            let read_bytes = reader.read(&mut buffer)?;
-            if read_bytes == 0 {
-                // We're probably at EOF? Hopefully?
-                break;
-            }
-            self.upload_session_append(&buffer[..read_bytes], &cursor)?;
-            cursor.offset += read_bytes as u64;
-        }
-
-        let commit = Commit {
-            path: &remote_path,
-            mode: "overwrite".to_string(),
-        };
-        self.upload_session_finish(&[], cursor, commit)
-    }
-
     fn start_upload_session<'a>(&self) -> Result<StartUploadSessionResponse, Error> {
         use self::DropboxBody::*;
         let headers = HeaderMap::new();
@@ -287,6 +266,49 @@ impl DropboxFilesClient {
     }
 }
 
+impl<T> StorageAdaptor<T> for DropboxFilesClient where T : Read {
+    fn already_uploaded(&self, manifest: &staging::UploadDescriptor) -> bool {
+        match self.get_metadata(&manifest.remote_path()) {
+            Ok(ref metadata) if metadata.content_hash() == &manifest.content_hash => {
+                return true;
+            }
+            _ => {
+                return false
+            }
+        }
+    }
+
+    fn upload(&self, mut reader: T, manifest: &staging::UploadDescriptor) -> Result<StorageStatus, Error> {
+        let id = self.start_upload_session()?;
+        let mut buffer = vec![0; DEFAULT_CHUNK_SIZE];
+        let mut cursor = Cursor {
+            session_id: id.session_id,
+            offset: 0,
+        };
+
+        loop {
+            // There's more juggling than I would really like here but ok :(
+            let read_bytes = reader.read(&mut buffer)?;
+            if read_bytes == 0 {
+                // We're probably at EOF? Hopefully?
+                break;
+            }
+            self.upload_session_append(&buffer[..read_bytes], &cursor)?;
+            cursor.offset += read_bytes as u64;
+        }
+
+        let commit = Commit {
+            path: &manifest.remote_path(),
+            mode: "overwrite".to_string(),
+        };
+        self.upload_session_finish(&[], cursor, commit).map(|r| r.into())
+    }
+
+    fn name(&self) -> String {
+        "dropbox".to_string()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::dropbox_content_hasher::DropboxContentHasher;
@@ -314,7 +336,7 @@ mod tests {
         );
         let localfile =
             fs::File::open("/usr/share/dict/web2").expect("Couldn't open dummy dictionary");
-        if let Err(e) = client.upload(localfile, Path::new("/web2.txt")) {
+        if let Err(e) = client.upload(localfile, &staging::UploadDescriptor::test_descriptor()) {
             panic!("{:?}", e);
         }
     }
@@ -329,7 +351,7 @@ mod tests {
         let hash = DropboxContentHasher::digest(&localfile[..]);
         eprintln!("hash!: {:?}", &hash);
         let path = Path::new("/archiver-test/hello.txt");
-        if let Err(e) = client.upload(&localfile[..], &path) {
+        if let Err(e) = client.upload(&localfile[..], &staging::UploadDescriptor::test_descriptor()) {
             panic!("{:?}", e);
         }
         let metadata = client.get_metadata(&path).unwrap();

@@ -11,12 +11,14 @@ use flysight::Flysight;
 use mailer::SendgridMailer;
 use mass_storage::MassStorage;
 use pushover_notifier::PushoverNotifier;
+use storage::{StorageAdaptor, StorageStatus};
+use vimeo::VimeoClient;
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct Config {
     archiver: ArchiverConfig,
-    dropbox: DropboxConfig,
-    // vimeo: Option<VimeoConfig>,
+    dropbox: Option<DropboxConfig>,
+    vimeo: Option<VimeoConfig>,
     // youtube: Option<YoutubeConfig>,
     flysight: Option<Vec<FlysightConfig>>,
     gopro: Option<Vec<GoproConfig>>,
@@ -39,6 +41,11 @@ pub struct ArchiverConfig {
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct DropboxConfig {
+    token: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+pub struct VimeoConfig {
     token: String,
 }
 
@@ -91,6 +98,14 @@ pub struct GoproConfig {
     pub serial: String,
 }
 
+#[derive(Fail, Debug)]
+pub enum ConfigError {
+    #[fail(display = "Must have at least one of dropbox and vimeo configured")]
+    MissingBackend,
+    #[fail(display = "Could not parse config: {}", _0)]
+    ParseError(#[cause] toml::de::Error),
+}
+
 impl Config {
     pub fn from_file(path: &str) -> Result<Config, Error> {
         let mut fh = File::open(path)?;
@@ -102,9 +117,16 @@ impl Config {
 
     pub fn from_str(body: &str) -> Result<Config, Error> {
         match toml::from_str(body) {
-            Ok(config) => Ok(config),
-            Err(e) => Err(format_err!("Couldn't parse config: {}", e)),
+            Ok(config) => Self::check_config(config),
+            Err(e) => Err(ConfigError::ParseError(e))?,
         }
+    }
+
+    fn check_config(config: Config) -> Result<Config, Error> {
+        if config.dropbox.is_none() && config.vimeo.is_none() {
+            Err(ConfigError::MissingBackend)?;
+        }
+        Ok(config)
     }
 
     // Do we eventually want to make a camera/mass_storage distinction?
@@ -148,8 +170,16 @@ impl Config {
         None
     }
 
-    pub fn backend(&self) -> dropbox::DropboxFilesClient {
-        dropbox::DropboxFilesClient::new(self.dropbox.token.clone())
+    /// Returns a vec of all configured backends
+    pub fn backends(&self) -> Vec<Box<dyn StorageAdaptor<File>>> {
+        let mut out: Vec<Box<dyn StorageAdaptor<File>>> = vec![];
+        if let Some(ref dropbox) = self.dropbox {
+            out.push(Box::new(dropbox::DropboxFilesClient::new(dropbox.token.clone())));
+        }
+        if let Some(ref vimeo) = self.vimeo {
+            out.push(Box::new(VimeoClient::new(vimeo.token.clone())));
+        }
+        out
     }
 
     /// Returns an owned reference to the staging directory, expanded to be absolute
@@ -179,9 +209,9 @@ mod tests {
 
         assert_eq!(
             config.dropbox,
-            DropboxConfig {
+            Some(DropboxConfig {
                 token: "DROPBOX_TOKEN_GOES_HERE".into()
-            }
+            })
         );
 
         assert_eq!(
@@ -218,6 +248,13 @@ mod tests {
                 recipient: "USER_TOKEN_GOES_HERE".into(),
             })
         );
+
+        assert_eq!(
+            config.vimeo,
+            Some(VimeoConfig {
+                token: "VIMEO_TOKEN_GOES_HERE".into(),
+            })
+        );
     }
 
     #[test]
@@ -232,6 +269,35 @@ token = "TOKEN"
 "#,
         ).unwrap();
         assert_eq!(cfg.archiver.staging, Some(PathBuf::from("test/dir")));
+    }
+
+    #[test]
+    fn test_single_backend() {
+        let cfg = Config::from_str(
+            r#"
+[archiver]
+
+[dropbox]
+token = "TOKEN"
+"#,
+        ).unwrap();
+        assert_eq!(cfg.backends().len(), 1);
+    }
+
+    #[test]
+    fn test_multiple_backends() {
+        let cfg = Config::from_str(
+            r#"
+[archiver]
+
+[dropbox]
+token = "TOKEN"
+
+[vimeo]
+token = "TOKEN"
+"#,
+        ).unwrap();
+        assert_eq!(cfg.backends().len(), 2);
     }
 
     #[test]
@@ -253,13 +319,17 @@ recipient = "RECIPIENT_TOKEN"
     }
 
     #[test]
-    fn test_no_dropbox() {
+    fn test_no_backends() {
         let error = Config::from_str(
             r#"
 [archiver]
 "#,
         ).unwrap_err();
-        assert!(format!("{}", error).contains("missing field `dropbox`"))
+        let error = error.downcast::<ConfigError>().unwrap();
+        assert!(match error {
+            ConfigError::MissingBackend => true,
+            _ => false,
+        });
     }
 
     #[test]

@@ -39,6 +39,8 @@ digest = "0.7.6"
 sha2 = "0.7.1"
 handlebars = "1.0.4"
 sendgrid = { git = "https://github.com/gsquire/sendgrid-rs" }
+tus = "0.2.0"
+failure_derive = "0.1.2"
 
 rocket = { git = "https://github.com/SergioBenitez/Rocket", optional = true }
 rocket_codegen = { git = "https://github.com/SergioBenitez/Rocket", optional = true }

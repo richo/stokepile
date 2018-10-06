@@ -111,6 +111,17 @@ impl UploadDescriptor {
     fn time_component(&self) -> String {
         self.capture_time.format("%H-%M-%S").to_string()
     }
+
+    #[cfg(test)]
+    pub fn test_descriptor() -> Self {
+        UploadDescriptor {
+            capture_time: Local::now(),
+            device_name: "test-device".into(),
+            extension: "mp4".into(),
+            content_hash: Default::default(),
+            size: 1024,
+        }
+    }
 }
 
 #[cfg(test)]

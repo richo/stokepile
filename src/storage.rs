@@ -1,12 +1,27 @@
 use std::fs::{self, File};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
-use dropbox::DropboxFilesClient;
-use reporting::{UploadReport, UploadStatus};
+use reporting::{UploadReport, UploadStatus, ReportEntry};
 use staging;
+use dropbox;
+use vimeo;
 
 use failure::Error;
 use serde_json;
+
+pub enum StorageStatus {
+    Success,
+    Failure,
+}
+
+pub trait StorageAdaptor<T> : Send {
+    fn upload(&self, reader: T, manifest: &staging::UploadDescriptor) -> Result<StorageStatus, Error>;
+
+    fn already_uploaded(&self, manifest: &staging::UploadDescriptor) -> bool;
+
+    fn name(&self) -> String;
+}
 
 /// Converts a manifest path back into the filename to set
 fn content_path_from_manifest(manifest: &Path) -> PathBuf {
@@ -28,7 +43,7 @@ fn is_manifest(path: &Path) -> bool {
     path.to_str().unwrap().ends_with(".manifest")
 }
 
-pub fn upload_from_staged<T>(staged: T, adaptor: &DropboxFilesClient) -> Result<UploadReport, Error>
+pub fn upload_from_staged<T>(staged: T, adaptors: &[Box<dyn StorageAdaptor<File>>]) -> Result<UploadReport, Error>
 where
     T: AsRef<Path>,
 {
@@ -45,41 +60,42 @@ where
         let content_path = content_path_from_manifest(&manifest_path);
 
         let manifest = File::open(&manifest_path)?;
-        let content = File::open(&content_path)?;
 
         let manifest: staging::UploadDescriptor = serde_json::from_reader(manifest)?;
 
-        info!("Checking if file already exists");
-        match adaptor.get_metadata(&manifest.remote_path()) {
-            Ok(ref metadata) if metadata.content_hash() == &manifest.content_hash => {
-                info!("File already exists with correct hash - skipping");
-                report.record_activity(UploadStatus::AlreadyUploaded, manifest);
+        let results: Vec<_> = adaptors.iter().map(|ad| {
+            info!("Starting {} adaptor", ad.name());
+            info!("Checking if file already exists");
+            if ad.already_uploaded(&manifest) {
+                info!("File was already uploaded - skipping");
+                return (ad.name(), UploadStatus::AlreadyUploaded);
             }
-            _ => {
-                info!(
-                    "Uploading {:?} to {:?}",
-                    &content_path,
-                    &manifest.remote_path()
-                );
-                match adaptor.upload(content, &manifest.remote_path()) {
-                    Ok(_resp) => {
-                        report.record_activity(UploadStatus::Succeeded, manifest);
-                    }
-                    Err(error) => {
-                        error!(
-                            "Upload of {:?} failed: {:?}, continuing with next file",
-                            &content_path, &error
-                        );
-                        report.record_activity(UploadStatus::Errored(error), manifest);
-                        continue;
-                    }
+
+            // TODO(richo) This is super ugly, but it makes the logic a bit more straightforward.
+            //
+            // This is actually a realistic failure case though :(
+            let content = File::open(&content_path).expect("Couldn't open content file");
+            match ad.upload(content, &manifest) {
+                Ok(_resp) => {
+                    return (ad.name(), UploadStatus::Succeeded);
+                }
+                Err(error) => {
+                    error!(
+                        "Upload of {:?} failed: {:?}, continuing with next file",
+                        &content_path, &error
+                    );
+                    return (ad.name(), UploadStatus::Errored(error));
                 }
             }
-        }
+        }).collect();
 
-        info!("removing {:?}", content_path);
-        fs::remove_file(&manifest_path)?;
-        fs::remove_file(&content_path)?;
+        let entry = ReportEntry::new(manifest, results);
+        if entry.is_success() {
+            info!("removing {:?}", content_path);
+            fs::remove_file(&manifest_path)?;
+            fs::remove_file(&content_path)?;
+        }
+        report.record_activity(entry);
     }
     Ok(report)
 }

@@ -36,17 +36,50 @@ impl Serialize for UploadStatus {
 }
 
 #[derive(Default, Serialize)]
+/// A report describing how a series of upload transactions went.
 pub struct UploadReport {
-    files: HashMap<String, Vec<(UploadStatus, UploadDescriptor)>>,
+    files: HashMap<String, Vec<ReportEntry>>,
 }
 
+#[derive(Serialize)]
+/// An entry in the report.
+///
+/// results is a Vec of service-name, status tuples.
+pub struct ReportEntry {
+    desc: UploadDescriptor,
+    results: Vec<(String, UploadStatus)>,
+}
+
+impl ReportEntry {
+    /// Bind an UploadDescriptor to this entry, returning the finalised ReportEntry.
+    pub fn new(desc: UploadDescriptor, results: Vec<(String, UploadStatus)>) -> ReportEntry {
+        ReportEntry {
+            desc,
+            results,
+        }
+    }
+}
+
+impl ReportEntry {
+    /// Was every attempt to upload in this transaction successful.
+    pub fn is_success(&self) -> bool {
+        self.results.iter().all(|r| match r.1 {
+            UploadStatus::AlreadyUploaded |
+                UploadStatus::Succeeded => true,
+            UploadStatus::Errored(_) => false,
+        })
+    }
+}
+
+
 impl UploadReport {
-    pub fn record_activity(&mut self, status: UploadStatus, desc: UploadDescriptor) {
+    /// Attach a ReportEntry to this report.
+    pub fn record_activity(&mut self, entry: ReportEntry) {
         let uploads = self
             .files
-            .entry(desc.device_name.clone())
+            .entry(entry.desc.device_name.clone())
             .or_insert_with(|| vec![]);
-        uploads.push((status, desc))
+        uploads.push(entry);
     }
 
     pub fn to_plaintext(&self) -> Result<String, TemplateRenderError> {
@@ -62,24 +95,32 @@ mod tests {
     fn dummy_report() -> UploadReport {
         let mut report: UploadReport = Default::default();
         report.record_activity(
-            UploadStatus::Succeeded,
-            UploadDescriptor {
+            ReportEntry::new( UploadDescriptor {
                 capture_time: Local.ymd(2018, 8, 24).and_hms(9, 55, 30),
                 device_name: "test-device".to_string(),
                 extension: "mp4".to_string(),
                 content_hash: [66; 32],
                 size: 0,
             },
+            vec![
+                ("vimeo".into(), UploadStatus::Succeeded),
+                ("youtube".into(), UploadStatus::Succeeded),
+            ],
+            )
         );
         report.record_activity(
-            UploadStatus::Errored(format_err!("Something bad happened")),
-            UploadDescriptor {
+            ReportEntry::new(UploadDescriptor {
                 capture_time: Local.ymd(2018, 8, 24).and_hms(12, 30, 30),
                 device_name: "test-device".to_string(),
                 extension: "mp4".to_string(),
                 content_hash: [66; 32],
                 size: 0,
             },
+            vec![
+                ("vimeo".into(), UploadStatus::Succeeded),
+                ("youtube".into(), UploadStatus::Errored(format_err!("Something bad happened")))
+                ],
+            )
         );
         report
     }
@@ -99,11 +140,13 @@ ARCHIVER UPLOAD REPORT
 test-device
 ===========
 
-    # Succeeded
-2018-08-24T09:55:30{offset}.mp4 (0b)
+    2018-08-24T09:55:30{offset}.mp4 (0b)
+    # vimeo: Succeeded
+    # youtube: Succeeded
 
-    # Upload failed: ErrorMessage {{ msg: &quot;Something bad happened&quot; }}
-2018-08-24T12:30:30{offset}.mp4 (0b)
+    2018-08-24T12:30:30{offset}.mp4 (0b)
+    # vimeo: Succeeded
+    # youtube: Upload failed: ErrorMessage {{ msg: &quot;Something bad happened&quot; }}
 ", offset = offset);
         assert_eq!(
             report.to_plaintext().unwrap(),
@@ -117,7 +160,8 @@ static UPLOAD_REPORT_TEMPLATE: &'static str = "\
 
 {{#each files}}{{header @key}}
 {{#each this}}
-    # {{this.[0]}}
-{{this.[1].capture_time}}.{{this.[1].extension}} ({{this.[1].size}}b)
+    {{this.desc.capture_time}}.{{this.desc.extension}} ({{this.desc.size}}b)
+{{#each this.results}}    # {{this.[0]}}: {{this.[1]}}
+{{/each}}\
 {{/each}}{{/each}}\
 ";

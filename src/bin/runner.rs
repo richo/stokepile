@@ -87,11 +87,18 @@ fn run() -> Result<(), Error> {
         }
         ("run", Some(_subm)) => {
             let devices = device::attached_devices(&ctx)?;
-            println!("Attached devices:");
+            info!("Attached devices:");
             for device in &devices {
-                println!("  {:?}", device);
+                info!("  {:?}", device);
             }
-            println!("");
+            info!("");
+
+            let backends = ctx.cfg.backends();
+            info!("Configured backends:");
+            for backend in &backends {
+                info!("  {}", backend.name());
+            }
+            info!("");
 
             // Let the cameras populate the plan
             for device in devices {
@@ -99,11 +106,11 @@ fn run() -> Result<(), Error> {
                 device.stage_files(&ctx.staging)?;
                 ctx.notifier.notify(&msg)?;
             }
+            ctx.notifier.notify("Finished staging media")?;
 
             // Run the uploader thread syncronously as a smoketest for the daemon mode
             let staging = ctx.staging.clone();
-            let backend = ctx.cfg.backend().clone();
-            let report = thread::spawn(move || storage::upload_from_staged(&staging, &backend))
+            let report = thread::spawn(move || storage::upload_from_staged(&staging, &backends))
                 .join()
                 .expect("Upload thread panicked")?;
             ctx.notifier.notify("Finished uploading media")?;
