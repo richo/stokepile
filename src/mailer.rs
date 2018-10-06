@@ -1,6 +1,5 @@
 use failure::Error;
-use sendgrid::SGClient;
-use sendgrid::{Destination, Mail};
+use sendgrid::{SGClient, Destination, Mail};
 
 // Urgh, I guess we're rewriting the sendgrid bindings too. So much allocating :<
 
@@ -37,7 +36,7 @@ impl MailReport for SendgridMailer {
             .add_text(report);
         self.mailer
             .send(msg)
-            .map_err(|e| format_err!("Sendgrid failed: {:?}", e))
+            .map_err(|e| e.into())
     }
 }
 
