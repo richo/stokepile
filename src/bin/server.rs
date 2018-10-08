@@ -621,9 +621,6 @@ mod tests {
         let session1 = session_from_cookie(&client1, s1.clone()).unwrap();
         let session2 = session_from_cookie(&client2, s2.clone()).unwrap();
 
-        println!("Session 1: {:?}", session1);
-        println!("Session 2: {:?}", session2);
-
         assert!(
             session1.user_id != session2.user_id,
             "User IDs have been tampered with"
@@ -645,13 +642,8 @@ mod tests {
                 .starts_with(Oauth2Config::dropbox().auth_url.as_str())
         );
 
-        println!("{:?}, {:?}", s1, s2);
-
         let session1 = session_from_cookie(&client1, s1.clone()).unwrap();
         let session2 = session_from_cookie(&client2, s2.clone()).unwrap();
-
-        println!("Session 1: {:?}", &session1.data);
-        println!("Session 2: {:?}", &session2.data);
 
         assert!(session1.data.get("dropbox").unwrap().is_string());
         assert!(
