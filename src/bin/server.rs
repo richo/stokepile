@@ -646,6 +646,7 @@ mod tests {
         let session2 = session_from_cookie(&client2, s2.clone()).unwrap();
 
         assert!(session1.data.get("dropbox").unwrap().is_string());
+        assert!(session2.data.get("dropbox").is_none());
         assert!(
             session1.user_id != session2.user_id,
             "User IDs have been tampered with"
