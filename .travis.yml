@@ -17,6 +17,7 @@ before_install:
 
 env:
   - DATABASE_URL=postgres://archiver:archiver@localhost/archiver_web
+  - RUST_BACKTRACE=1
 
 before_script:
   - psql -c "CREATE USER archiver PASSWORD 'archiver';" -U postgres
