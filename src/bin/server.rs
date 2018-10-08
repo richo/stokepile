@@ -455,11 +455,9 @@ mod tests {
         let client = client();
 
         create_user(&client, "test@email.com", "p@55w0rd");
-        let session_cookie = signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
+        signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
 
-        let req = client
-            .get("/config")
-            .header(Header::new("Cookie", session_cookie));
+        let req = client.get("/config");
 
         let response = req.dispatch();
         assert_eq!(response.status(), Status::SeeOther);
@@ -470,7 +468,7 @@ mod tests {
         let client = client();
 
         let user = create_user(&client, "test@email.com", "p@55w0rd");
-        let session_cookie = signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
+        signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
 
         let integration_id = {
             let conn = db_conn(&client);
@@ -481,9 +479,7 @@ mod tests {
                 .id
         };
 
-        let req = client
-            .get("/config")
-            .header(Header::new("Cookie", session_cookie));
+        let req = client.get("/config");
 
         let mut response = req.dispatch();
         assert_eq!(response.status(), Status::Ok);
@@ -499,9 +495,7 @@ mod tests {
         create_user(&client, "test@email.com", "p@55w0rd");
         let session_cookie = signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
 
-        let req = client
-            .post("/signout")
-            .header(Header::new("Cookie", session_cookie.clone()));
+        let req = client.post("/signout");
 
         let response = req.dispatch();
         assert_eq!(response.status(), Status::SeeOther);
@@ -524,7 +518,6 @@ mod tests {
 
         let req = client
             .post("/integration")
-            .header(Header::new("Cookie", session_cookie.clone()))
             .header(ContentType::Form)
             .body(r"provider=dropbox");
 
@@ -549,7 +542,7 @@ mod tests {
 
         let client = client();
         let user = create_user(&client, "test@email.com", "p@55w0rd");
-        let session_cookie = signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
+        signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
 
         let integration_id = {
             let conn = db_conn(&client);
@@ -562,7 +555,6 @@ mod tests {
 
         let req = client
             .post("/integration/disconnect")
-            .header(Header::new("Cookie", session_cookie.clone()))
             .header(ContentType::Form)
             .body(format!(
                 "provider=dropbox&integration_id={}",
@@ -613,4 +605,59 @@ mod tests {
             "test_oauth_token"
         );
     }
+
+    #[test]
+    fn test_connect_integration_doesnt_stomp_on_sessions() {
+        init_env();
+
+        let client1 = client();
+        let client2 = client();
+        let _u1 = create_user(&client1, "test1@email.com", "p@55w0rd");
+        let _u2 = create_user(&client2, "test2@email.com", "p@55w0rd");
+
+        let s1 = signin(&client1, "test1%40email.com", "p%4055w0rd").unwrap();
+        let s2 = signin(&client2, "test2%40email.com", "p%4055w0rd").unwrap();
+
+        let session1 = session_from_cookie(&client1, s1.clone()).unwrap();
+        let session2 = session_from_cookie(&client2, s2.clone()).unwrap();
+
+        println!("Session 1: {:?}", session1);
+        println!("Session 2: {:?}", session2);
+
+        assert!(
+            session1.user_id != session2.user_id,
+            "User IDs have been tampered with"
+        );
+
+        let req = client1
+            .post("/integration")
+            .header(ContentType::Form)
+            .body(r"provider=dropbox");
+
+        let response = req.dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
+
+        assert!(
+            response
+                .headers()
+                .get_one("Location")
+                .unwrap()
+                .starts_with(Oauth2Config::dropbox().auth_url.as_str())
+        );
+
+        println!("{:?}, {:?}", s1, s2);
+
+        let session1 = session_from_cookie(&client1, s1.clone()).unwrap();
+        let session2 = session_from_cookie(&client2, s2.clone()).unwrap();
+
+        println!("Session 1: {:?}", &session1.data);
+        println!("Session 2: {:?}", &session2.data);
+
+        assert!(session1.data.get("dropbox").unwrap().is_string());
+        assert!(
+            session1.user_id != session2.user_id,
+            "User IDs have been tampered with"
+        );
+    }
+
 }

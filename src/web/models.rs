@@ -108,7 +108,7 @@ impl Session {
         use diesel::update;
         use web::schema::sessions::dsl::*;
 
-        update(sessions).set(self).execute(conn)
+        update(self).set(data.eq(&self.data)).execute(conn)
     }
 
     pub fn delete(&self, conn: &PgConnection) -> QueryResult<usize> {
