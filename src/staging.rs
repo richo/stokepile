@@ -21,7 +21,10 @@ pub trait UploadableFile {
 pub trait Staging: Sized {
     type FileType: UploadableFile;
 
+    /// List all stageable files on this device.
     fn files(&self) -> Result<Vec<Self::FileType>, Error>;
+
+    /// Stage all available files on this device, erasing the device copies as they are staged.
     fn stage_files<T>(self, name: &str, destination: T) -> Result<(), Error>
     where
         T: AsRef<Path>,
