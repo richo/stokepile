@@ -245,7 +245,7 @@ impl<'a> Gopro<'a> {
                 serde_json::to_writer(&mut staged, &desc)?;
             }
 
-            file.delete()
+            file.delete(&mut conn)?;
         }
 
         Ok(())

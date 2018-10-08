@@ -15,6 +15,7 @@ pub trait UploadableFile {
     fn extension(&self) -> &str;
     fn capture_datetime(&self) -> Result<DateTime<Local>, chrono::ParseError>;
     fn reader(&mut self) -> &mut Self::Reader;
+    fn delete(&mut self) -> Result<(), Error>;
 }
 
 pub trait Staging: Sized {
@@ -65,7 +66,7 @@ pub trait Staging: Sized {
                 serde_json::to_writer(&mut staged, &desc)?;
             }
 
-            file.delete()
+            file.delete()?;
         }
 
         Ok(())

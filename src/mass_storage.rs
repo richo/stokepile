@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use std::fs::File;
+use std::fs::{self, File};
 use std::path::PathBuf;
 
 use super::peripheral::MountablePeripheral;
@@ -22,6 +22,7 @@ pub struct MassStorageFile {
     capturedatetime: DateTime<Local>,
     file: File,
     extension: String,
+    source_path: PathBuf,
 }
 
 impl UploadableFile for MassStorageFile {
@@ -37,6 +38,12 @@ impl UploadableFile for MassStorageFile {
 
     fn reader(&mut self) -> &mut File {
         &mut self.file
+    }
+
+    fn delete(&mut self) -> Result<(), Error> {
+        fs::remove_file(&self.source_path)?;
+        Ok(())
+
     }
 }
 
@@ -61,6 +68,7 @@ impl Staging for MassStorage {
                 out.push(MassStorageFile {
                     capturedatetime: path.metadata()?.modified()?.into(),
                     file: File::open(path)?,
+                    source_path: path.to_path_buf(),
                     extension,
                 });
             }

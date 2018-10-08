@@ -21,6 +21,7 @@ pub struct FlysightFile {
     capturedate: String,
     capturetime: String,
     file: File,
+    source_path: PathBuf,
 }
 
 impl Ord for FlysightFile {
@@ -66,6 +67,11 @@ impl UploadableFile for FlysightFile {
 
     fn reader(&mut self) -> &mut File {
         &mut self.file
+    }
+
+    fn delete(&mut self) -> Result<(), Error> {
+        fs::remove_file(&self.source_path)?;
+        Ok(())
     }
 }
 
@@ -116,6 +122,7 @@ impl Staging for Flysight {
                             capturedate: entry.file_name().into_string().unwrap(),
                             capturetime: filename,
                             file: File::open(file.path())?,
+                            source_path: file.path().to_path_buf(),
                         });
                     }
                 }
