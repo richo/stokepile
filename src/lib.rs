@@ -104,6 +104,10 @@ mod version;
 /// What version of archiver do you have :)
 pub use version::VERSION;
 
+#[cfg(test)]
+/// Helpers for use in tests
+mod test_helpers;
+
 #[cfg(feature = "web")]
 pub mod web;
 #[cfg(feature = "web")]

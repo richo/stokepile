@@ -136,8 +136,7 @@ impl Staging for Flysight {
 #[cfg(test)]
 mod tests {
     use super::*;
-    extern crate tempfile;
-    extern crate walkdir;
+    use test_helpers;
 
     #[test]
     fn test_flysight_loads_files() {
@@ -174,21 +173,8 @@ mod tests {
 
     #[test]
     fn test_staging_works() {
-        let dest = tempfile::tempdir().unwrap();
-        let source = tempfile::tempdir().unwrap();
-
-        for entry in walkdir::WalkDir::new("test-data/flysight") {
-            let entry = entry.unwrap();
-            let target = source.path().join(entry
-                                          .path()
-                                          .strip_prefix("test-data/flysight")
-                                          .unwrap());
-            if entry.file_type().is_dir() {
-                let _ = fs::create_dir(&target);
-            } else {
-                fs::copy(entry.path(), &target).unwrap();
-            }
-        }
+        let dest = test_helpers::tempdir();
+        let source = test_helpers::test_data("flysight");
 
         let flysight = Flysight {
             name: "data".into(),
@@ -198,6 +184,7 @@ mod tests {
         // TODO(richo) test harder
         let iter = fs::read_dir(&dest.path()).unwrap();
         let files: Vec<_> = iter.collect();
+        println!("{:?}", &files);
 
         assert_eq!(files.len(), 6);
     }
