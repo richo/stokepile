@@ -86,6 +86,7 @@ impl MountablePeripheral for MassStorage {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use test_helpers;
 
     fn extensions() -> HashSet<String> {
         let mut set = HashSet::new();
@@ -106,5 +107,25 @@ mod tests {
         for file in files {
             assert_eq!(&file.extension, "mp4");
         }
+    }
+
+    #[test]
+    fn test_staging_works() {
+        let dest = test_helpers::tempdir();
+        let source = test_helpers::test_data("mass_storage");
+
+        let mass_storage = MassStorage {
+            name: "data".into(),
+            path: source.path().to_path_buf(),
+            extensions: extensions(),
+        };
+
+        mass_storage.stage_files("data", &dest.path()).unwrap();
+        // TODO(richo) test harder
+        let iter = fs::read_dir(&dest.path()).unwrap();
+        let files: Vec<_> = iter.collect();
+
+        // Two files for the two mp4 files, two files for the manifests
+        assert_eq!(files.len(), 4);
     }
 }

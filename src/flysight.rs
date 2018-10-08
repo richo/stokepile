@@ -184,7 +184,6 @@ mod tests {
         // TODO(richo) test harder
         let iter = fs::read_dir(&dest.path()).unwrap();
         let files: Vec<_> = iter.collect();
-        println!("{:?}", &files);
 
         assert_eq!(files.len(), 6);
     }
