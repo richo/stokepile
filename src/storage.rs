@@ -1,11 +1,8 @@
 use std::fs::{self, File};
-use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use reporting::{UploadReport, UploadStatus, ReportEntry};
 use staging;
-use dropbox;
-use vimeo;
 
 use failure::Error;
 use serde_json;

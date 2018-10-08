@@ -1,10 +1,8 @@
 use std::fs::File;
-use std::io::Read;
 
 use tus;
 use reqwest;
-use reqwest::StatusCode;
-use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
+use reqwest::header::{HeaderMap, HeaderValue};
 use failure::Error;
 use serde_json;
 
@@ -22,14 +20,14 @@ struct UploadHandle {
     complete: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct CreateVideoResponse {
     uri: String,
     resource_key: String,
     upload: InnerUploadCreateVideoResponse,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct InnerUploadCreateVideoResponse {
     upload_link: String,
 }
@@ -82,7 +80,7 @@ impl VimeoClient {
 }
 
 impl StorageAdaptor<File> for VimeoClient {
-    fn already_uploaded(&self, manifest: &staging::UploadDescriptor) -> bool {
+    fn already_uploaded(&self, _: &staging::UploadDescriptor) -> bool {
         // TODO(richo) Actually figure out how to check if we've already done this
         false
     }
@@ -96,7 +94,7 @@ impl StorageAdaptor<File> for VimeoClient {
 
         let headers = self.default_headers(size);
         let tusclient = tus::Client::new(&handle.url, headers);
-        let sent = tusclient.upload(file)?;
+        let _sent = tusclient.upload(file)?;
 
         // TODO(richo) look through sent and confirm it really sent
 

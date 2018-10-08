@@ -2,7 +2,6 @@ use std::fmt;
 use std::io::{self, Read};
 use std::rc::Rc;
 use std::sync::Mutex;
-use std::marker::PhantomData;
 
 use super::ctx;
 use super::staging::{UploadableFile, Staging};
@@ -19,7 +18,6 @@ fn parse_gopro_date(date: &str) -> Result<DateTime<Local>, chrono::ParseError> {
 
 pub struct GoproFile<'c> {
     pub capturedate: String,
-    filename: String,
     // TODO(richo) I think this handle gets invalidated when we close the session down
     handle: u32,
     offset: u32,
@@ -146,7 +144,6 @@ impl<'c> Staging for GoproConnection<'c> where {
             );
             out.push(GoproFile {
                 capturedate: object.CaptureDate,
-                filename: object.Filename,
                 handle: filehandle,
                 offset: 0,
                 size: object.ObjectCompressedSize,

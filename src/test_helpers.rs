@@ -2,7 +2,7 @@ extern crate tempfile;
 extern crate walkdir;
 
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /// Copy data from the test-data directory to a tempdir, then return the owned TestDir object to
 /// the caller for use in tests that will modify the filesystem.

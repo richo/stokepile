@@ -1,6 +1,5 @@
 use serde::{Deserialize, Deserializer};
 use std::io::Read;
-use std::fs::File;
 /// This is a really small dropbox shim
 ///
 /// If this library is useful, I'll consider fleshing it out into a whole thing
@@ -84,7 +83,7 @@ pub struct UploadMetadataResponse {
 }
 
 impl From<UploadMetadataResponse> for StorageStatus {
-    fn from(response: UploadMetadataResponse) -> Self {
+    fn from(_: UploadMetadataResponse) -> Self {
         StorageStatus::Success
     }
 }

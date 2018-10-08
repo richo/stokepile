@@ -11,7 +11,7 @@ use flysight::Flysight;
 use mailer::SendgridMailer;
 use mass_storage::MassStorage;
 use pushover_notifier::PushoverNotifier;
-use storage::{StorageAdaptor, StorageStatus};
+use storage::StorageAdaptor;
 use vimeo::VimeoClient;
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
