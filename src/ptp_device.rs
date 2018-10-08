@@ -1,58 +1,57 @@
 use std::fmt;
-use std::fs;
 use std::io::{self, Read};
-use std::path::Path;
+use std::rc::Rc;
+use std::sync::Mutex;
+use std::marker::PhantomData;
 
 use super::ctx;
-use super::staging::UploadDescriptor;
+use super::staging::{UploadableFile, Staging};
 
 use chrono;
 use chrono::prelude::*;
-use dropbox_content_hasher::DropboxContentHasher;
 use failure::Error;
-use hashing_copy;
 use libusb;
 use ptp;
-use serde_json;
 
 fn parse_gopro_date(date: &str) -> Result<DateTime<Local>, chrono::ParseError> {
     Local.datetime_from_str(date, "%Y%m%dT%H%M%S")
 }
 
-#[derive(Debug)]
-pub struct GoproFile {
+pub struct GoproFile<'c> {
     pub capturedate: String,
-    pub filename: String,
+    filename: String,
     // TODO(richo) I think this handle gets invalidated when we close the session down
     handle: u32,
+    offset: u32,
     size: u32,
+    camera: Rc<Mutex<ptp::PtpCamera<'c>>>,
 }
 
-impl GoproFile {
-    pub fn reader<'a, 'b>(&'a self, conn: &'a mut GoproConnection<'b>) -> GoproFileReader<'a, 'b> {
-        GoproFileReader {
-            conn: conn,
-            handle: self.handle,
-            offset: 0,
-            size: self.size,
-        }
+impl<'c> UploadableFile for GoproFile<'c> {
+    type Reader = GoproFile<'c>;
+
+    fn extension(&self) -> &str {
+        "mp4"
     }
 
-    pub fn delete<'a, 'b>(self, conn: &'a mut GoproConnection<'b>) -> Result<(), Error> {
+    fn capture_datetime(&self) -> Result<DateTime<Local>, chrono::ParseError> {
+        parse_gopro_date(&self.capturedate)
+    }
+
+    fn reader(&mut self) -> &mut GoproFile<'c> {
+        self
+    }
+
+    fn delete(&mut self) -> Result<(), Error> {
         // lol how even does into
-        let ret = conn.camera.delete_object(self.handle, None)?;
+        let ret = self
+            .camera.lock().unwrap()
+            .delete_object(self.handle, None)?;
         Ok(ret)
     }
 }
 
-pub struct GoproFileReader<'a, 'b: 'a> {
-    conn: &'a mut GoproConnection<'b>,
-    handle: u32,
-    offset: u32,
-    size: u32,
-}
-
-impl<'a, 'b> Read for GoproFileReader<'a, 'b> {
+impl<'b> Read for GoproFile<'b> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         // Tragically, ptp really wants to allocate it's own memory :(
         // If I have luck with my other patches, we can try to upstream something
@@ -61,8 +60,7 @@ impl<'a, 'b> Read for GoproFileReader<'a, 'b> {
             size = (self.size - self.offset) as usize;
         }
         let vec = self
-            .conn
-            .camera
+            .camera.lock().unwrap()
             .get_partialobject(self.handle, self.offset, size as u32, None)
             .expect("FIXME couldn't read from buf");
         &buf[..vec.len()].copy_from_slice(&vec[..]);
@@ -114,32 +112,34 @@ impl GoproKind {
 }
 
 // Specialising to PTP devices later might be neat, but for now this is fine
-pub struct Gopro<'a> {
+pub struct Gopro<'d> {
     // TODO(richo) having a name in here would simplify the Staging impl
     pub kind: GoproKind,
     pub serial: String,
-    device: libusb::Device<'a>,
+    device: libusb::Device<'d>,
 }
 
-pub struct GoproConnection<'a> {
-    gopro: Gopro<'a>,
-    camera: ptp::PtpCamera<'a>,
+pub struct GoproConnection<'c> {
+    gopro: Gopro<'c>,
+    camera: Rc<Mutex<ptp::PtpCamera<'c>>>,
 }
 
-impl<'a> GoproConnection<'a> {
-    pub fn files(&mut self) -> Result<Vec<GoproFile>, Error> {
+impl<'c> Staging for GoproConnection<'c> where {
+    type FileType = GoproFile<'c>;
+
+    fn files(&self) -> Result<Vec<GoproFile<'c>>, Error> {
         let mut out = vec![];
         let timeout = None;
 
         // TODO(richo) Encapsulate this into some object that actually lets you poke around in the
         // libusb::Device and won't let you not close your session, etc.
-        let filehandles = self.camera.get_objecthandles_all(
+        let filehandles = self.camera.lock().unwrap().get_objecthandles_all(
             0xFFFFFFFF,
             Some(GoproObjectFormat::Video as u32),
             timeout,
         )?;
         for filehandle in filehandles {
-            let object = self.camera.get_objectinfo(filehandle, timeout)?;
+            let object = self.camera.lock().unwrap().get_objectinfo(filehandle, timeout)?;
             assert_eq!(
                 GoproObjectFormat::from_u16(object.ObjectFormat),
                 Some(GoproObjectFormat::Video)
@@ -148,22 +148,26 @@ impl<'a> GoproConnection<'a> {
                 capturedate: object.CaptureDate,
                 filename: object.Filename,
                 handle: filehandle,
+                offset: 0,
                 size: object.ObjectCompressedSize,
+                camera: Rc::clone(&self.camera),
             })
         }
 
         Ok(out)
     }
+}
 
+impl<'c> GoproConnection<'c> {
     pub fn power_down(&mut self) -> Result<(), ptp::Error> {
-        self.camera.power_down(None)
+        self.camera.lock().unwrap().power_down(None)
     }
 }
 
-impl<'a> Drop for GoproConnection<'a> {
+impl<'c> Drop for GoproConnection<'c> {
     fn drop(&mut self) {
         // If this fails.. who cares I guess
-        let _ = self.camera.close_session(None);
+        let _ = self.camera.lock().unwrap().close_session(None);
     }
 }
 
@@ -182,73 +186,8 @@ impl<'a> Gopro<'a> {
 
         Ok(GoproConnection {
             gopro: self,
-            camera: camera,
+            camera: Rc::new(Mutex::new(camera)),
         })
-    }
-}
-
-impl<'a> Gopro<'a> {
-    // Consumes self, purely because connect does
-    pub fn stage_files<T>(self, name: &str, destination: T) -> Result<(), Error>
-    where
-        T: AsRef<Path>,
-    {
-        let mut plan = Vec::new();
-        let mut conn = self.connect()?;
-
-        // We build a vector first because we need to use the connection again to read them, and
-        // the connection is borrowed by the files iterator
-        for file in conn.files()? {
-            let capture_time = parse_gopro_date(&file.capturedate)?;
-            let size = file.size as u64;
-            plan.push((
-                file,
-                UploadDescriptor {
-                    capture_time,
-                    device_name: name.to_string(),
-                    // TODO(richo) is this always true?
-                    extension: "mp4".to_string(),
-                    content_hash: [0; 32],
-                    size,
-                },
-            ));
-        }
-
-        for (file, mut desc) in plan {
-            let staging_name = desc.staging_name();
-            let manifest_name = desc.manifest_name();
-
-            let mut options = fs::OpenOptions::new();
-            let options = options.write(true).create_new(true);
-
-            let staging_path = destination.as_ref().join(&staging_name);
-            let manifest_path = destination.as_ref().join(&manifest_name);
-
-            info!("Staging {}", &staging_name);
-            trace!(" To {:?}", staging_path);
-            {
-                let mut staged = options.open(&staging_path)?;
-                let (size, hash) = hashing_copy::copy_and_hash::<_, _, DropboxContentHasher>(
-                    &mut file.reader(&mut conn),
-                    &mut staged,
-                )?;
-                assert_eq!(size, desc.size);
-                info!("Shasum: {:x}", hash);
-                info!("size: {:x}", size);
-                desc.content_hash.copy_from_slice(&hash);
-            } // Ensure that we've closed our staging file
-
-            {
-                info!("Manifesting {}", &manifest_name);
-                trace!(" To {:?}", manifest_path);
-                let mut staged = options.open(&manifest_path)?;
-                serde_json::to_writer(&mut staged, &desc)?;
-            }
-
-            file.delete(&mut conn)?;
-        }
-
-        Ok(())
     }
 }
 
@@ -262,7 +201,7 @@ impl<'a> fmt::Debug for Gopro<'a> {
     }
 }
 
-impl<'a> fmt::Debug for GoproConnection<'a> {
+impl<'c> fmt::Debug for GoproConnection<'c> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         self.gopro.fmt(fmt)
     }

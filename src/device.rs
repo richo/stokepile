@@ -29,7 +29,7 @@ impl<'a> Device<'a> {
         T: AsRef<Path>,
     {
         match self {
-            Device::Gopro(desc, gopro) => gopro.stage_files(&desc.name, destination),
+            Device::Gopro(desc, gopro) => gopro.connect()?.stage_files(&desc.name, destination),
             Device::MassStorage(desc, mass_storage) => {
                 mass_storage.stage_files(&desc.name, destination)
             }
