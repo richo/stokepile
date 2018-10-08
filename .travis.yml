@@ -16,8 +16,9 @@ before_install:
   - sudo apt-get install libusb-1.0-0 libusb-1.0-0-dev
 
 env:
-  - DATABASE_URL=postgres://archiver:archiver@localhost/archiver_web
-  - RUST_BACKTRACE=1
+  global:
+    - DATABASE_URL=postgres://archiver:archiver@localhost/archiver_web
+    - RUST_BACKTRACE=1
 
 before_script:
   - psql -c "CREATE USER archiver PASSWORD 'archiver';" -U postgres
