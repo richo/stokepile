@@ -51,6 +51,7 @@ handlebars = "1.0.4"
 sendgrid = { git = "https://github.com/gsquire/sendgrid-rs" }
 tus = "0.2.0"
 failure_derive = "0.1.2"
+filetime = "0.2.1"
 
 [[bin]]
 name = "server"

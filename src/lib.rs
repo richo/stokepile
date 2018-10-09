@@ -108,6 +108,9 @@ pub use version::VERSION;
 /// Helpers for use in tests
 mod test_helpers;
 
+#[cfg(test)]
+extern crate filetime;
+
 #[cfg(feature = "web")]
 pub mod web;
 #[cfg(feature = "web")]

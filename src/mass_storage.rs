@@ -87,11 +87,35 @@ impl MountablePeripheral for MassStorage {
 mod tests {
     use super::*;
     use test_helpers;
+    use filetime::{self, FileTime};
+    use walkdir;
+
+    use std::path::Path;
 
     fn extensions() -> HashSet<String> {
         let mut set = HashSet::new();
         set.insert("mp4".into());
         set
+    }
+
+    /// Git checkouts will have mtimes super close together, which will break our algorithm.
+    ///
+    /// We probably want at some point to remove this test (And introduce the opposite- proving
+    /// that we're durable to this) but for now we'll just skew them a bit.
+    fn fix_filetimes(root: &Path) -> Result<(), Error> {
+        for (i, entry) in walkdir::WalkDir::new(root).into_iter().enumerate() {
+            let entry = entry.unwrap();
+            if ! entry.file_type().is_file() {
+                continue
+            }
+            let metadata = fs::metadata(entry.path())?;
+            let mtime = FileTime::from_last_modification_time(&metadata);
+            let unix_seconds = mtime.unix_seconds();
+
+            let new = FileTime::from_unix_time(unix_seconds + (i as i64 * 10), 0);
+            filetime::set_file_times(entry.path(), new, new)?;
+        }
+        Ok(())
     }
 
     #[test]
@@ -113,6 +137,7 @@ mod tests {
     fn test_staging_works() {
         let dest = test_helpers::tempdir();
         let source = test_helpers::test_data("mass_storage");
+        fix_filetimes(&source.path()).unwrap();
 
         let mass_storage = MassStorage {
             name: "data".into(),
