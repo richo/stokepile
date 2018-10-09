@@ -61,6 +61,18 @@ impl User {
             .filter(user_id.eq(self.id).and(id.eq(integration_id)))
             .get_result(conn)
     }
+
+    pub fn device_by_id(
+        &self,
+        device_id: i32,
+        conn: &PgConnection,
+    ) -> QueryResult<Device> {
+        use web::schema::devices::dsl::*;
+
+        devices
+            .filter(user_id.eq(self.id).and(id.eq(device_id)))
+            .get_result(conn)
+    }
 }
 
 #[derive(Insertable, Debug)]

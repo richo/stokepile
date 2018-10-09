@@ -53,7 +53,13 @@
           <tr>
             <td>{{this.kind}}</td>
             <td>{{this.identifier}}</td>
-            <td>delete link</td>
+            <td>
+          <form action="/device/delete" method="POST">
+            <input type="hidden" name="device_id" value="{{this.id}}" />
+            <input type="hidden" name="kind" value="{{this.kind}}" />
+            <button class="pure-button pure-button-secondary">Delete</button>
+          </form>
+            </td>
           </tr>
           {{/each}}
         </tbody>

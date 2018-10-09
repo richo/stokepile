@@ -361,6 +361,41 @@ fn create_device(
     }
 }
 
+#[derive(Debug, FromForm)]
+struct DeleteDeviceForm {
+    device_id: i32,
+    kind: DeviceKind,
+}
+
+#[post("/device/delete", data = "<device>")]
+fn delete_device(
+    mut user: CurrentUser,
+    conn: DbConn,
+    device: Form<DeleteDeviceForm>,
+) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    user.user
+        .device_by_id(device.device_id, &*conn)
+        .map(|i| i.delete(&*conn))
+        .map(|_| {
+            Flash::success(
+                Redirect::to("/"),
+                format!(
+                    "{} has been removed from your account.",
+                    device.kind.name()
+                ),
+            )
+        }).map_err(|e| {
+            warn!("{}", e);
+            Flash::error(
+                Redirect::to("/"),
+                format!(
+                    "{} could not be removed from your account.",
+                    device.kind.name()
+                ),
+            )
+        })
+}
+
 #[get("/")]
 fn index(user: Option<CurrentUser>, conn: DbConn, flash: Option<FlashMessage>) -> Template {
     let mut possible_integrations = vec![];
@@ -416,7 +451,8 @@ fn configure_rocket(test_transactions: bool) -> Rocket {
                 connect_integration,
                 disconnect_integration,
                 finish_integration,
-                create_device
+                create_device,
+                delete_device
             ],
         ).mount("/static", StaticFiles::from("web/static"))
         .attach(Template::fairing())
@@ -850,5 +886,44 @@ mod tests {
         };
 
         add_device("nonexistant", "gopro5");
+    }
+
+    #[test]
+    fn test_delete_devices() {
+        init_env();
+
+        let client = client();
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+        signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
+
+        let device_id = {
+            let conn = db_conn(&client);
+
+            NewDevice::new(&user, "ptp", "test_gopro")
+                .create(&*conn)
+                .unwrap()
+                .id
+        };
+
+        {
+            let conn = db_conn(&client);
+
+            assert_eq!(user.devices(&*conn).unwrap().len(), 1);
+        }
+
+        let req = client
+            .post("/device/delete")
+            .header(ContentType::Form)
+            .body(format!(
+                "kind=ptp&device_id={}",
+                device_id
+            ));
+
+        let response = req.dispatch();
+
+        assert_eq!(response.status(), Status::SeeOther);
+
+        let conn = db_conn(&client);
+        assert_eq!(user.devices(&*conn).unwrap().len(), 0);
     }
 }
