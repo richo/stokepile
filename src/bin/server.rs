@@ -1,5 +1,4 @@
-#![feature(plugin, custom_derive, decl_macro, proc_macro_non_items)]
-#![plugin(rocket_codegen)]
+#![feature(plugin, custom_derive, decl_macro, proc_macro_hygiene)]
 
 #[macro_use]
 extern crate log;
@@ -29,8 +28,8 @@ use rocket::http::{Cookie, Cookies, SameSite};
 use rocket::request::{FlashMessage, Form, FromFormValue};
 use rocket::response::{Flash, Redirect};
 use rocket::Rocket;
-use rocket_contrib::static_files::StaticFiles;
-use rocket_contrib::Template;
+use rocket_contrib::serve::StaticFiles;
+use rocket_contrib::templates::Template;
 
 use std::env;
 
@@ -255,10 +254,10 @@ pub struct Oauth2Response {
     pub scope: Option<String>,
 }
 
-#[get("/integration/finish?<resp>")]
+#[get("/integration/finish?<resp..>")]
 fn finish_integration(
     user: CurrentUser,
-    resp: Oauth2Response,
+    resp: Form<Oauth2Response>,
     conn: DbConn,
 ) -> Result<Flash<Redirect>, Flash<Redirect>> {
     let integration: Option<Integration> = if user

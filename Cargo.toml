@@ -6,7 +6,6 @@ authors = ["Richo Healey <richo@psych0tik.net>"]
 [features]
 "web" = [
   "rocket",
-  "rocket_codegen",
   "rocket_contrib",
   "diesel",
   "bcrypt",
@@ -18,8 +17,7 @@ authors = ["Richo Healey <richo@psych0tik.net>"]
 
 [dependencies]
 rocket = { git = "https://github.com/SergioBenitez/Rocket", optional = true }
-rocket_codegen = { git = "https://github.com/SergioBenitez/Rocket", optional = true }
-rocket_contrib = { git = "https://github.com/SergioBenitez/Rocket", optional = true, default_features = false, features = ["handlebars_templates", "json", "static_files"] }
+rocket_contrib = { git = "https://github.com/SergioBenitez/Rocket", optional = true, default_features = false, features = ["handlebars_templates", "json", "serve"] }
 diesel = { version = "1.3.3", features = ["postgres", "r2d2", "serde_json"], optional = true}
 bcrypt = { version = "0.2", optional = true }
 rand = { version = "0.5.5", optional = true }
