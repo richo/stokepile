@@ -153,7 +153,7 @@ impl Oauth2Config {
             auth_url.clone(),
             Some(token_url.clone()),
         ).set_redirect_url(redirect_url.clone());
-        self.scopes.iter().fold(client, |client, scope| {
+        scopes.iter().fold(client, |client, scope| {
             client.add_scope(Scope::new(scope.to_string()))
         })
     }

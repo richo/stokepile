@@ -41,7 +41,7 @@ use archiver::config::{Config, FlysightConfig, GoproConfig, MassStorageConfig};
 use archiver::web::auth::CurrentUser;
 use archiver::web::context::{Context, PossibleIntegration};
 use archiver::web::db::{init_pool, DbConn};
-use archiver::web::models::{Device, NewDevice, Integration, NewIntegration, NewSession, NewUser, User};
+use archiver::web::models::{NewDevice, Integration, NewIntegration, NewSession, NewUser, User};
 use archiver::web::oauth::Oauth2Provider;
 
 lazy_static! {
@@ -336,7 +336,7 @@ struct DeviceForm {
 
 #[post("/device", data = "<device>")]
 fn create_device(
-    mut user: CurrentUser,
+    user: CurrentUser,
     conn: DbConn,
     device: Form<DeviceForm>,
 ) -> Result<Flash<Redirect>, Flash<Redirect>> {
@@ -369,7 +369,7 @@ struct DeleteDeviceForm {
 
 #[post("/device/delete", data = "<device>")]
 fn delete_device(
-    mut user: CurrentUser,
+    user: CurrentUser,
     conn: DbConn,
     device: Form<DeleteDeviceForm>,
 ) -> Result<Flash<Redirect>, Flash<Redirect>> {
@@ -611,14 +611,13 @@ mod tests {
         let user = create_user(&client, "test@email.com", "p@55w0rd");
         signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
 
-        let integration_id = {
+        {
             let conn = db_conn(&client);
 
             NewIntegration::new(&user, "dropbox", "test_oauth_token")
                 .create(&*conn)
-                .unwrap()
-                .id
-        };
+                .unwrap();
+        }
 
         let req = client.get("/config");
 
@@ -636,14 +635,13 @@ mod tests {
         let user = create_user(&client, "test@email.com", "p@55w0rd");
         signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
 
-        let integration_id = {
+        {
             let conn = db_conn(&client);
 
             NewIntegration::new(&user, "dropbox", "test_oauth_token")
                 .create(&*conn)
-                .unwrap()
-                .id
-        };
+                .unwrap();
+        }
 
         {
             let conn = db_conn(&client);
