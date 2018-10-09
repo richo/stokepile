@@ -41,7 +41,7 @@ use archiver::config::Config;
 use archiver::web::auth::CurrentUser;
 use archiver::web::context::{Context, PossibleIntegration};
 use archiver::web::db::{init_pool, DbConn};
-use archiver::web::models::{Integration, NewIntegration, NewSession, NewUser, User};
+use archiver::web::models::{Device, NewDevice, Integration, NewIntegration, NewSession, NewUser, User};
 use archiver::web::oauth::Oauth2Provider;
 
 lazy_static! {
@@ -262,6 +262,70 @@ fn finish_integration(
     }
 }
 
+#[derive(Debug)]
+enum DeviceKind {
+    Ptp,
+    Flysight,
+    MassStorage,
+}
+
+impl<'v> FromFormValue<'v> for DeviceKind {
+    type Error = String;
+
+    fn from_form_value(form_value: &'v RawStr) -> Result<DeviceKind, Self::Error> {
+        let decoded = form_value.url_decode();
+        match decoded {
+            Ok(ref kind) if kind == "ptp" => Ok(DeviceKind::Ptp),
+            Ok(ref kind) if kind == "flysight" => Ok(DeviceKind::Flysight),
+            Ok(ref kind) if kind == "mass_storage" => Ok(DeviceKind::MassStorage),
+            _ => Err(format!("unknown provider {}", form_value)),
+        }
+    }
+}
+
+impl DeviceKind {
+    pub fn name(&self) -> &'static str {
+        match self {
+            DeviceKind::Ptp => "ptp",
+            DeviceKind::Flysight => "flysight",
+            DeviceKind::MassStorage => "mass_storage",
+        }
+    }
+}
+
+#[derive(Debug, FromForm)]
+struct DeviceForm {
+    kind: DeviceKind,
+    identifier: String,
+}
+
+#[post("/device", data = "<device>")]
+fn create_device(
+    mut user: CurrentUser,
+    conn: DbConn,
+    device: Form<DeviceForm>,
+) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    let row = NewDevice::new(&user.user, device.kind.name(), &device.identifier)
+        .create(&*conn)
+        .ok();
+    match row {
+        Some(_) => Ok(Flash::success(
+            Redirect::to("/"),
+            format!(
+                "{} was added to your configuration.",
+                device.kind.name()
+            ),
+        )),
+        None => Err(Flash::error(
+            Redirect::to("/"),
+            format!(
+                "There was a problem adding {} to your configuration.",
+                device.kind.name()
+            ),
+        )),
+    }
+}
+
 #[get("/")]
 fn index(user: Option<CurrentUser>, conn: DbConn, flash: Option<FlashMessage>) -> Template {
     let mut possible_integrations = vec![];
@@ -312,7 +376,8 @@ fn configure_rocket(test_transactions: bool) -> Rocket {
                 index,
                 connect_integration,
                 disconnect_integration,
-                finish_integration
+                finish_integration,
+                create_device
             ],
         ).mount("/static", StaticFiles::from("web/static"))
         .attach(Template::fairing())
@@ -653,4 +718,52 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_create_devices() {
+        init_env();
+
+        let client = client();
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+        signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
+
+        for (kind, name) in &[("ptp", "gopro5"), ("flysight", "richosflysight"), ("mass_storage", "memorycard")] {
+            println!("{}, {}", &kind, &name);
+            let req = client
+                .post("/device")
+                .header(ContentType::Form)
+                .body(format!("kind={}&identifier={}", kind, name));
+
+            let response = req.dispatch();
+
+            assert_eq!(response.status(), Status::SeeOther);
+            assert_eq!(response.headers().get_one("Location"), Some("/"));
+        };
+
+        let conn = db_conn(&client);
+
+        let devices = user.devices(&*conn).unwrap();
+        assert_eq!(devices.len(), 3);
+    }
+
+    #[test]
+    fn test_invalid_device_type() {
+        init_env();
+
+        let client = client();
+        create_user(&client, "test@email.com", "p@55w0rd");
+        signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
+
+        let add_device = |kind, name| {
+            let req = client
+                .post("/device")
+                .header(ContentType::Form)
+                .body(format!("kind={}&identifier={}", &kind, &name));
+
+            let response = req.dispatch();
+
+            assert_eq!(response.status(), Status::UnprocessableEntity);
+        };
+
+        add_device("nonexistant", "gopro5");
+    }
 }

@@ -6,6 +6,7 @@ use bcrypt;
 use diesel::prelude::*;
 use rand;
 
+use web::schema::devices;
 use web::schema::integrations;
 use web::schema::sessions;
 use web::schema::users;
@@ -39,6 +40,14 @@ impl User {
         integrations
             .filter(user_id.eq(self.id))
             .load::<Integration>(conn)
+    }
+
+    pub fn devices(&self, conn: &PgConnection) -> QueryResult<Vec<Device>> {
+        use web::schema::devices::dsl::*;
+
+        devices
+            .filter(user_id.eq(self.id))
+            .load::<Device>(conn)
     }
 
     pub fn integration_by_id(
@@ -195,5 +204,56 @@ impl<'a> NewIntegration<'a> {
         insert_into(integrations::table)
             .values(self)
             .get_result::<Integration>(conn)
+    }
+}
+
+#[derive(Identifiable, Queryable, Associations, Debug)]
+#[belongs_to(User)]
+pub struct Device {
+    pub id: i32,
+    pub user_id: i32,
+    pub kind: String,
+    pub identifier: String,
+}
+
+impl Device {
+    pub fn by_id(&self, device_id: i32, conn: &PgConnection) -> QueryResult<Device> {
+        use web::schema::devices::dsl::*;
+
+        devices
+            .filter(id.eq(device_id))
+            .get_result::<Device>(conn)
+    }
+
+    pub fn delete(&self, conn: &PgConnection) -> QueryResult<usize> {
+        use diesel::delete;
+
+        delete(self).execute(conn)
+    }
+}
+
+#[derive(Insertable, Debug)]
+#[table_name = "devices"]
+pub struct NewDevice<'a> {
+    pub user_id: i32,
+    pub kind: &'a str,
+    pub identifier: &'a str,
+}
+
+impl<'a> NewDevice<'a> {
+    pub fn new(user: &User, kind: &'a str, identifier: &'a str) -> Self {
+        NewDevice {
+            user_id: user.id,
+            kind,
+            identifier,
+        }
+    }
+
+    pub fn create(&self, conn: &PgConnection) -> QueryResult<Device> {
+        use diesel::insert_into;
+
+        insert_into(devices::table)
+            .values(self)
+            .get_result::<Device>(conn)
     }
 }
