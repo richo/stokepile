@@ -82,3 +82,8 @@ body {
   display: flex;
   justify-content: flex-end;
 }
+
+.device-list {
+  padding: 0;
+  width: 100%;
+}

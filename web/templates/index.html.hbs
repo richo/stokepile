@@ -35,6 +35,32 @@
 <div class="config-download">
   <a href="/config" target="_blank" rel="noopener" class="button-big pure-button pure-button-primary">Download Config</a>
 </div>
+<div class="pure-g">
+  <div class="pure-u-1">
+    <h2>Configured Devices</h2>
+
+    <div>
+      <table class="pure-table pure-table-horizontal device-list">
+        <thead>
+          <tr>
+            <th>Kind</th>
+            <th>Identifier</th>
+            <th>Delete</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each devices}}
+          <tr>
+            <td>{{this.kind}}</td>
+            <td>{{this.identifier}}</td>
+            <td>delete link</td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
 {{else}}
 {{> common/signin }}
 {{/if}}

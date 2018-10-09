@@ -1,4 +1,5 @@
 use web::auth::CurrentUser;
+use web::models::Device;
 
 #[derive(Serialize, Debug)]
 pub struct PossibleIntegration {
@@ -13,6 +14,7 @@ pub struct Context {
     pub user: Option<CurrentUser>,
     pub signin_error: Option<String>,
     pub integrations: Vec<PossibleIntegration>,
+    pub devices: Vec<Device>,
     pub integration_message: Option<(String, String)>,
 }
 
@@ -29,6 +31,11 @@ impl Context {
 
     pub fn set_integrations(mut self, integrations: Vec<PossibleIntegration>) -> Self {
         self.integrations = integrations;
+        self
+    }
+
+    pub fn set_devices(mut self, devices: Vec<Device>) -> Self {
+        self.devices = devices;
         self
     }
 

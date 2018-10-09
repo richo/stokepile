@@ -364,6 +364,7 @@ fn create_device(
 #[get("/")]
 fn index(user: Option<CurrentUser>, conn: DbConn, flash: Option<FlashMessage>) -> Template {
     let mut possible_integrations = vec![];
+    let mut devices = vec![];
 
     if let Some(user) = &user {
         if let Ok(integrations) = user.user.integrations(&*conn) {
@@ -382,11 +383,14 @@ fn index(user: Option<CurrentUser>, conn: DbConn, flash: Option<FlashMessage>) -
                 });
             }
         }
+        devices = user.user.devices(&*conn).unwrap();
     }
+
 
     let context = Context::default()
         .set_user(user)
         .set_integrations(possible_integrations)
+        .set_devices(devices)
         .set_integration_message(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
     Template::render("index", context)
 }

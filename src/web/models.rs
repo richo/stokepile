@@ -207,7 +207,7 @@ impl<'a> NewIntegration<'a> {
     }
 }
 
-#[derive(Identifiable, Queryable, Associations, Debug)]
+#[derive(Identifiable, Queryable, Associations, Debug, Serialize)]
 #[belongs_to(User)]
 pub struct Device {
     pub id: i32,
