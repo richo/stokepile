@@ -43,6 +43,7 @@
       <table class="pure-table pure-table-horizontal device-list pure-table-striped">
         <thead>
           <tr>
+            <th>Name</th>
             <th>Kind</th>
             <th>Identifier</th>
             <th>Delete</th>
@@ -51,6 +52,7 @@
         <tbody>
           {{#each devices}}
           <tr>
+            <td>{{this.name}}</td>
             <td>{{this.kind}}</td>
             <td>{{this.identifier}}</td>
             <td>
@@ -67,6 +69,7 @@
 
       <form class="pure-form" action="/device" method="POST">
         <fieldset>
+          <input name="name" type="text" placeholder="Device Name">
         <select name="kind">
             <option>ptp</option>
             <option>mass_storage</option>

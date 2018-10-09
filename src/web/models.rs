@@ -224,6 +224,7 @@ impl<'a> NewIntegration<'a> {
 pub struct Device {
     pub id: i32,
     pub user_id: i32,
+    pub name: String,
     pub kind: String,
     pub identifier: String,
 }
@@ -248,15 +249,17 @@ impl Device {
 #[table_name = "devices"]
 pub struct NewDevice<'a> {
     pub user_id: i32,
+    pub name: &'a str,
     pub kind: &'a str,
     pub identifier: &'a str,
 }
 
 impl<'a> NewDevice<'a> {
-    pub fn new(user: &User, kind: &'a str, identifier: &'a str) -> Self {
+    pub fn new(user: &User, name: &'a str, kind: &'a str, identifier: &'a str) -> Self {
         NewDevice {
             user_id: user.id,
             kind,
+            name,
             identifier,
         }
     }

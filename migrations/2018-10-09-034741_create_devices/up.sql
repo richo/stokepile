@@ -1,6 +1,7 @@
 CREATE TABLE devices (
   id SERIAL NOT NULL PRIMARY KEY,
   user_id integer NOT NULL REFERENCES users(id),
+  name VARCHAR NOT NULL,
   kind VARCHAR NOT NULL,
   identifier VARCHAR NOT NULL
 );

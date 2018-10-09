@@ -80,14 +80,14 @@ fn get_config(user: CurrentUser, conn: DbConn) -> Result<Content<String>, Flash<
             "ptp" => {
                 // TODO(richo) I did not put enough fields on the device table :(
                 gopros.push(GoproConfig {
-                    name: "XXX FIXME".into(),
+                    name: device.name,
                     serial: device.identifier
                 });
             },
             "mass_storage" => {
                 // TODO(richo) I did not put enough fields on the device table :(
                 mass_storages.push(MassStorageConfig {
-                    name: "XXX FIXME".into(),
+                    name: device.name,
                     extensions: vec!["mp4".into()],
                     mountpoint: device.identifier
                 });
@@ -95,11 +95,11 @@ fn get_config(user: CurrentUser, conn: DbConn) -> Result<Content<String>, Flash<
             "flysight" => {
                 flysights.push(FlysightConfig {
                 // TODO(richo) I did not put enough fields on the device table :(
-                    name: "XXX FIXME".into(),
+                    name: device.name,
                     mountpoint: device.identifier
                 });
             },
-            name => { warn!("Unknown integration: {}", name); },
+            name => { warn!("Unknown device type: {}", name); },
         }
     }
 
@@ -329,6 +329,7 @@ impl DeviceKind {
 
 #[derive(Debug, FromForm)]
 struct DeviceForm {
+    name: String,
     kind: DeviceKind,
     identifier: String,
 }
@@ -339,7 +340,7 @@ fn create_device(
     conn: DbConn,
     device: Form<DeviceForm>,
 ) -> Result<Flash<Redirect>, Flash<Redirect>> {
-    let row = NewDevice::new(&user.user, device.kind.name(), &device.identifier)
+    let row = NewDevice::new(&user.user, &device.name, device.kind.name(), &device.identifier)
         .create(&*conn)
         .ok();
     match row {
@@ -645,13 +646,13 @@ mod tests {
         {
             let conn = db_conn(&client);
 
-            NewDevice::new(&user, "ptp", "serial")
+            NewDevice::new(&user, "gopro", "ptp", "serial")
                 .create(&*conn)
                 .unwrap();
-            NewDevice::new(&user, "bogus", "serial")
+            NewDevice::new(&user, "fake", "bogus", "serial")
                 .create(&*conn)
                 .unwrap();
-            NewDevice::new(&user, "mass_storage", "serial")
+            NewDevice::new(&user, "sd card", "mass_storage", "serial")
                 .create(&*conn)
                 .unwrap();
         }
@@ -844,12 +845,11 @@ mod tests {
         let user = create_user(&client, "test@email.com", "p@55w0rd");
         signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
 
-        for (kind, name) in &[("ptp", "gopro5"), ("flysight", "richosflysight"), ("mass_storage", "memorycard")] {
-            println!("{}, {}", &kind, &name);
+        for (name, kind, identifier) in &[("gopro5", "ptp", "C123456"), ("comp", "flysight", "/mnt/flysight"), ("sdcard", "mass_storage", "/media/sdcard")] {
             let req = client
                 .post("/device")
                 .header(ContentType::Form)
-                .body(format!("kind={}&identifier={}", kind, name));
+                .body(format!("name={}&kind={}&identifier={}", name, kind, identifier));
 
             let response = req.dispatch();
 
@@ -896,7 +896,7 @@ mod tests {
         let device_id = {
             let conn = db_conn(&client);
 
-            NewDevice::new(&user, "ptp", "test_gopro")
+            NewDevice::new(&user, "gopro", "ptp", "test_gopro")
                 .create(&*conn)
                 .unwrap()
                 .id
