@@ -37,7 +37,7 @@ use std::env;
 use oauth2::prelude::*;
 use oauth2::CsrfToken;
 
-use archiver::config::Config;
+use archiver::config::{Config, FlysightConfig, GoproConfig, MassStorageConfig};
 use archiver::web::auth::CurrentUser;
 use archiver::web::context::{Context, PossibleIntegration};
 use archiver::web::db::{init_pool, DbConn};
@@ -52,6 +52,9 @@ lazy_static! {
 fn get_config(user: CurrentUser, conn: DbConn) -> Result<Content<String>, Flash<Redirect>> {
     let mut vimeo = None;
     let mut dropbox = None;
+    let mut flysights = vec![];
+    let mut mass_storages = vec![];
+    let mut gopros = vec![];
 
     let integrations = user.user.integrations(&*conn).map_err(|e| Flash::error(
             Redirect::to("/"),
@@ -69,7 +72,39 @@ fn get_config(user: CurrentUser, conn: DbConn) -> Result<Content<String>, Flash<
             }
         }
     }
-    match Config::from_db(dropbox, vimeo) {
+
+    let devices = user.user.devices(&*conn).map_err(|e| Flash::error(
+            Redirect::to("/"),
+            format!("Error connecting to the DB: {}", e)))?;
+    for device in devices {
+        match &device.kind[..] {
+            "ptp" => {
+                // TODO(richo) I did not put enough fields on the device table :(
+                gopros.push(GoproConfig {
+                    name: "XXX FIXME".into(),
+                    serial: device.identifier
+                });
+            },
+            "mass_storage" => {
+                // TODO(richo) I did not put enough fields on the device table :(
+                mass_storages.push(MassStorageConfig {
+                    name: "XXX FIXME".into(),
+                    extensions: vec!["mp4".into()],
+                    mountpoint: device.identifier
+                });
+            },
+            "flysight" => {
+                flysights.push(FlysightConfig {
+                // TODO(richo) I did not put enough fields on the device table :(
+                    name: "XXX FIXME".into(),
+                    mountpoint: device.identifier
+                });
+            },
+            name => { warn!("Unknown integration: {}", name); },
+        }
+    }
+
+    match Config::from_db(dropbox, vimeo, flysights, mass_storages, gopros) {
         Ok(config) => Ok(Content(ContentType::new("application", "toml"), config.to_toml())),
         Err(error) => Err(Flash::error(
             Redirect::to("/"),

@@ -126,13 +126,23 @@ impl Config {
     ///
     /// This will be replaced by a builder
     pub fn from_db(dropbox_token: Option<String>,
-                   vimeo_token: Option<String>,) -> Result<Config, Error> {
+                   vimeo_token: Option<String>,
+                   flysights: Vec<FlysightConfig>,
+                   mass_storages: Vec<MassStorageConfig>,
+                   gopros: Vec<GoproConfig>) -> Result<Config, Error> {
         let vimeo = vimeo_token.map(|v| VimeoConfig { token: v });
         let dropbox = dropbox_token.map(|v| DropboxConfig { token: v });
+
+        let flysight = if flysights.len() > 0 { Some(flysights) } else { None };
+        let mass_storage = if mass_storages.len() > 0 { Some(mass_storages) } else { None };
+        let gopro = if gopros.len() > 0 { Some(gopros) } else { None };
 
         Self::check_config(Config {
             dropbox,
             vimeo,
+            flysight,
+            mass_storage,
+            gopro,
             ..Default::default()
         })
     }
