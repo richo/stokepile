@@ -40,7 +40,7 @@
     <h2>Configured Devices</h2>
 
     <div>
-      <table class="pure-table pure-table-horizontal device-list">
+      <table class="pure-table pure-table-horizontal device-list pure-table-striped">
         <thead>
           <tr>
             <th>Kind</th>
@@ -64,6 +64,18 @@
           {{/each}}
         </tbody>
       </table>
+
+      <form class="pure-form" action="/device" method="POST">
+        <fieldset>
+        <select name="kind">
+            <option>ptp</option>
+            <option>mass_storage</option>
+            <option>flysight</option>
+          </select>
+          <input name="identifier" type="text" placeholder="Serial/Mountpoint">
+          <button type="submit" class="pure-button pure-button-primary">Create</button>
+        </fieldset>
+      </form>
     </div>
   </div>
 </div>
