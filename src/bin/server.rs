@@ -435,11 +435,12 @@ mod tests {
     use rocket::http::{ContentType, Header, Status};
     use rocket::local::{Client, LocalResponse};
 
-    use archiver::config::Config;
+    use archiver::config::{Config, FlysightConfig};
 
     use archiver::web::db::DbConn;
     use archiver::web::models::NewIntegration;
     use archiver::web::models::NewUser;
+    use archiver::web::models::NewDevice;
     use archiver::web::models::Session;
     use archiver::web::models::User;
 
@@ -590,6 +591,51 @@ mod tests {
         let config = Config::from_str(&response.body_string().expect("Didn't recieve a body")).unwrap();
         let backend_names: Vec<_> = config.backends().iter().map(|b| b.name()).collect();
         assert_eq!(&backend_names, &["dropbox"]);
+    }
+
+    #[test]
+    fn test_get_config_with_devices() {
+        let client = client();
+
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+        signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
+
+        let integration_id = {
+            let conn = db_conn(&client);
+
+            NewIntegration::new(&user, "dropbox", "test_oauth_token")
+                .create(&*conn)
+                .unwrap()
+                .id
+        };
+
+        {
+            let conn = db_conn(&client);
+
+            NewDevice::new(&user, "ptp", "serial")
+                .create(&*conn)
+                .unwrap();
+            NewDevice::new(&user, "bogus", "serial")
+                .create(&*conn)
+                .unwrap();
+            NewDevice::new(&user, "mass_storage", "serial")
+                .create(&*conn)
+                .unwrap();
+        }
+
+
+        let req = client.get("/config");
+
+        let mut response = req.dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        let config = Config::from_str(&response.body_string().expect("Didn't recieve a body")).unwrap();
+        let backend_names: Vec<_> = config.backends().iter().map(|b| b.name()).collect();
+        assert_eq!(&backend_names, &["dropbox"]);
+
+        let empty_flysights: Vec<FlysightConfig> = vec![];
+        assert_eq!(config.flysights(), &empty_flysights);
+        assert_eq!(config.mass_storages().len(), 1);
+        assert_eq!(config.gopros().len(), 1);
     }
 
     #[test]
