@@ -28,6 +28,20 @@ pub struct Config {
     pushover: Option<PushoverConfig>,
 }
 
+#[derive(Debug, Default)]
+pub struct ConfigBuilder {
+    archiver: ArchiverConfig,
+    dropbox: Option<DropboxConfig>,
+    vimeo: Option<VimeoConfig>,
+    // youtube: Option<YoutubeConfig>,
+    flysight: Option<Vec<FlysightConfig>>,
+    gopro: Option<Vec<GoproConfig>>,
+    mass_storage: Option<Vec<MassStorageConfig>>,
+    // gswoop: Option<GswoopConfig>,
+    sendgrid: Option<SendgridConfig>,
+    pushover: Option<PushoverConfig>,
+}
+
 lazy_static! {
     static ref EMPTY_MASS_STORAGES: Vec<MassStorageConfig> = vec![];
     static ref EMPTY_FLYSIGHTS: Vec<FlysightConfig> = vec![];
@@ -122,29 +136,9 @@ impl Config {
         }
     }
 
-    /// Build a Config from composite parts loaded from the database
-    ///
-    /// This will be replaced by a builder
-    pub fn from_db(dropbox_token: Option<String>,
-                   vimeo_token: Option<String>,
-                   flysights: Vec<FlysightConfig>,
-                   mass_storages: Vec<MassStorageConfig>,
-                   gopros: Vec<GoproConfig>) -> Result<Config, Error> {
-        let vimeo = vimeo_token.map(|v| VimeoConfig { token: v });
-        let dropbox = dropbox_token.map(|v| DropboxConfig { token: v });
-
-        let flysight = if flysights.len() > 0 { Some(flysights) } else { None };
-        let mass_storage = if mass_storages.len() > 0 { Some(mass_storages) } else { None };
-        let gopro = if gopros.len() > 0 { Some(gopros) } else { None };
-
-        Self::check_config(Config {
-            dropbox,
-            vimeo,
-            flysight,
-            mass_storage,
-            gopro,
-            ..Default::default()
-        })
+    /// Get a ConfigBuilder with which you can construct a Config object
+    pub fn build() -> ConfigBuilder {
+        Default::default()
     }
 
     /// Serializes this config option into TOML
@@ -226,6 +220,97 @@ impl Config {
             }
             None => Ok(None),
         }
+    }
+}
+
+impl ConfigBuilder {
+    /// Set the staging directory for this config object
+    pub fn staging(mut self, staging: PathBuf) -> Self {
+        self.archiver.staging = Some(staging);
+        self
+    }
+
+    /// Set the dropbox API key for this object. This enables dropbox support.
+    pub fn dropbox(mut self, token: String) -> Self {
+        self.dropbox = Some(DropboxConfig { token });
+        self
+    }
+
+    /// Set the vimeo API key for this object. This enables vimeo support.
+    pub fn vimeo(mut self, token: String) -> Self {
+        self.vimeo = Some(VimeoConfig { token });
+        self
+    }
+
+    /// Add this flysight to the config object
+    pub fn flysight(mut self, flysight: FlysightConfig) -> Self {
+        let mut flysights = self.flysight.unwrap_or(vec![]);
+        flysights.push(flysight);
+        self.flysight = Some(flysights);
+        self
+    }
+
+    /// Add multiple flysights to this config
+    pub fn flysights(self, flysights: Vec<FlysightConfig>) -> Self {
+        flysights.into_iter().fold(self, |cfg, flysight| {
+            cfg.flysight(flysight)
+        })
+    }
+
+    /// Add this mass_storage to the config object
+    pub fn mass_storage(mut self, mass_storage: MassStorageConfig) -> Self {
+        let mut mass_storages = self.mass_storage.unwrap_or(vec![]);
+        mass_storages.push(mass_storage);
+        self.mass_storage = Some(mass_storages);
+        self
+    }
+
+    /// Add multiple mass_storages to this config
+    pub fn mass_storages(self, mass_storages: Vec<MassStorageConfig>) -> Self {
+        mass_storages.into_iter().fold(self, |cfg, mass_storage| {
+            cfg.mass_storage(mass_storage)
+        })
+    }
+
+    /// Add this gopro to the config object
+    pub fn gopro(mut self, gopro: GoproConfig) -> Self {
+        let mut gopros = self.gopro.unwrap_or(vec![]);
+        gopros.push(gopro);
+        self.gopro = Some(gopros);
+        self
+    }
+
+    /// Add multiple gopros to this config
+    pub fn gopros(self, gopros: Vec<GoproConfig>) -> Self {
+        gopros.into_iter().fold(self, |cfg, gopro| {
+            cfg.gopro(gopro)
+        })
+    }
+
+    /// Configure and enable pushover for this config
+    pub fn pushover(mut self, pushover: PushoverConfig) -> Self {
+        self.pushover = Some(pushover);
+        self
+    }
+
+    /// Configure and enable sendgrid for this config
+    pub fn sendgrid(mut self, sendgrid: SendgridConfig) -> Self {
+        self.sendgrid = Some(sendgrid);
+        self
+    }
+
+    /// Finalise this config object
+    pub fn finish(self) -> Result<Config, Error> {
+        Config::check_config(Config {
+            archiver: self.archiver,
+            dropbox: self.dropbox,
+            vimeo: self.vimeo,
+            flysight: self.flysight,
+            gopro: self.gopro,
+            mass_storage: self.mass_storage,
+            sendgrid: self.sendgrid,
+            pushover: self.pushover,
+        })
     }
 }
 

@@ -49,11 +49,7 @@ lazy_static! {
 
 #[get("/config")]
 fn get_config(user: CurrentUser, conn: DbConn) -> Result<Content<String>, Flash<Redirect>> {
-    let mut vimeo = None;
-    let mut dropbox = None;
-    let mut flysights = vec![];
-    let mut mass_storages = vec![];
-    let mut gopros = vec![];
+    let mut config = Config::build();
 
     let integrations = user.user.integrations(&*conn).map_err(|e| Flash::error(
             Redirect::to("/"),
@@ -65,8 +61,8 @@ fn get_config(user: CurrentUser, conn: DbConn) -> Result<Content<String>, Flash<
         if let Some(integration) = integrations.find(|ref x| x.provider == name) {
             let token = integration.access_token.to_string();
             match name {
-                "dropbox" => { dropbox = Some(token); },
-                "vimeo" => { vimeo = Some(token); },
+                "dropbox" => { config = config.dropbox(token) },
+                "vimeo" => { config = config.vimeo(token) },
                 name => { warn!("Unknown integration: {}", name); },
             }
         }
@@ -78,22 +74,21 @@ fn get_config(user: CurrentUser, conn: DbConn) -> Result<Content<String>, Flash<
     for device in devices {
         match &device.kind[..] {
             "ptp" => {
-                // TODO(richo) I did not put enough fields on the device table :(
-                gopros.push(GoproConfig {
+                config = config.gopro(GoproConfig {
                     name: device.name,
                     serial: device.identifier
                 });
             },
             "mass_storage" => {
                 // TODO(richo) I did not put enough fields on the device table :(
-                mass_storages.push(MassStorageConfig {
+                config = config.mass_storage(MassStorageConfig {
                     name: device.name,
                     extensions: vec!["mp4".into()],
                     mountpoint: device.identifier
                 });
             },
             "flysight" => {
-                flysights.push(FlysightConfig {
+                config = config.flysight(FlysightConfig {
                 // TODO(richo) I did not put enough fields on the device table :(
                     name: device.name,
                     mountpoint: device.identifier
@@ -103,7 +98,7 @@ fn get_config(user: CurrentUser, conn: DbConn) -> Result<Content<String>, Flash<
         }
     }
 
-    match Config::from_db(dropbox, vimeo, flysights, mass_storages, gopros) {
+    match config.finish() {
         Ok(config) => Ok(Content(ContentType::new("application", "toml"), config.to_toml())),
         Err(error) => Err(Flash::error(
             Redirect::to("/"),
