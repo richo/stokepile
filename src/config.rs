@@ -14,6 +14,14 @@ use pushover_notifier::PushoverNotifier;
 use storage::StorageAdaptor;
 use vimeo::VimeoClient;
 
+#[derive(Debug, Eq, PartialEq)]
+pub enum DeviceConfig {
+    Gopro(GoproConfig),
+    MassStorage(MassStorageConfig),
+    Flysight(FlysightConfig),
+    UnknownDevice(String),
+}
+
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
 pub struct Config {
     archiver: ArchiverConfig,

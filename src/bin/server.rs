@@ -36,7 +36,7 @@ use std::env;
 use oauth2::prelude::*;
 use oauth2::CsrfToken;
 
-use archiver::config::{Config, FlysightConfig, GoproConfig, MassStorageConfig};
+use archiver::config::{Config, DeviceConfig};
 use archiver::web::auth::CurrentUser;
 use archiver::web::context::{Context, PossibleIntegration};
 use archiver::web::db::{init_pool, DbConn};
@@ -72,29 +72,11 @@ fn get_config(user: CurrentUser, conn: DbConn) -> Result<Content<String>, Flash<
             Redirect::to("/"),
             format!("Error connecting to the DB: {}", e)))?;
     for device in devices {
-        match &device.kind[..] {
-            "ptp" => {
-                config = config.gopro(GoproConfig {
-                    name: device.name,
-                    serial: device.identifier
-                });
-            },
-            "mass_storage" => {
-                // TODO(richo) I did not put enough fields on the device table :(
-                config = config.mass_storage(MassStorageConfig {
-                    name: device.name,
-                    extensions: vec!["mp4".into()],
-                    mountpoint: device.identifier
-                });
-            },
-            "flysight" => {
-                config = config.flysight(FlysightConfig {
-                // TODO(richo) I did not put enough fields on the device table :(
-                    name: device.name,
-                    mountpoint: device.identifier
-                });
-            },
-            name => { warn!("Unknown device type: {}", name); },
+        match device.into() {
+            DeviceConfig::Gopro(gopro) => config = config.gopro(gopro),
+            DeviceConfig::Flysight(flysight) => config = config.flysight(flysight),
+            DeviceConfig::MassStorage(mass_storage) => config = config.mass_storage(mass_storage),
+            DeviceConfig::UnknownDevice(kind) => warn!("Unknown device kind: {}", kind),
         }
     }
 

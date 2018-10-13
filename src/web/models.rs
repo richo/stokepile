@@ -11,6 +11,9 @@ use web::schema::integrations;
 use web::schema::sessions;
 use web::schema::users;
 
+use config;
+use config::{GoproConfig, FlysightConfig, MassStorageConfig};
+
 #[derive(Queryable, Debug, Serialize)]
 pub struct User {
     pub id: i32,
@@ -226,7 +229,41 @@ pub struct Device {
     pub user_id: i32,
     pub name: String,
     pub kind: String,
+    /// This represents the unique identifier of this device. Eg, a single discriminant through
+    /// with combined with the type, you can concretely say whether or not a candidate device is
+    /// this one.
     pub identifier: String,
+}
+
+impl From<Device> for config::DeviceConfig {
+    fn from(device: Device) -> Self {
+        match &device.kind[..] {
+            "ptp" => {
+                config::DeviceConfig::Gopro(GoproConfig {
+                    name: device.name,
+                    serial: device.identifier
+                })
+            },
+            "mass_storage" => {
+                config::DeviceConfig::MassStorage(MassStorageConfig {
+                    name: device.name,
+                    // TODO(richo) add a metadata field and store this there
+                    extensions: vec!["mp4".into()],
+                    mountpoint: device.identifier
+                })
+            },
+            "flysight" => {
+                config::DeviceConfig::Flysight(FlysightConfig {
+                    name: device.name,
+                    mountpoint: device.identifier
+                })
+            },
+            kind => {
+                // This feels sound with the overlapping borrows, revisit?
+                config::DeviceConfig::UnknownDevice(kind.to_string())
+            },
+        }
+    }
 }
 
 impl Device {
