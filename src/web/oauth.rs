@@ -7,6 +7,7 @@ use rocket::request::FromFormValue;
 
 use std::env;
 use url::Url;
+use std::fmt;
 
 lazy_static! {
     static ref DROPBOX_CONFIG: Oauth2Config = {
@@ -38,6 +39,19 @@ pub struct Oauth2Config {
     pub token_url: TokenUrl,
     pub scopes: &'static [&'static str],
     pub redirect_url: RedirectUrl,
+}
+
+impl fmt::Debug for Oauth2Config {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("Oauth2Config")
+            .field("client_id", &self.client_id)
+            .field("client_secret", &"...")
+            .field("auth_url", &self.auth_url)
+            .field("token_url", &self.token_url)
+            .field("scopes", &self.scopes)
+            .field("redirect_url", &self.redirect_url)
+            .finish()
+    }
 }
 
 impl Oauth2Config {

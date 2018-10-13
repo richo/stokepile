@@ -1,4 +1,4 @@
-#![deny(unused_must_use)]
+#![deny(unused_must_use, missing_debug_implementations)]
 
 extern crate serde;
 #[macro_use]
@@ -29,6 +29,19 @@ extern crate sha2;
 extern crate toml;
 extern crate tus;
 extern crate walkdir;
+
+macro_rules! sensitive_fmt {
+    ($struct:ident) => {
+        use std::fmt;
+        impl fmt::Debug for $struct {
+            fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+                fmt.debug_struct(stringify!($struct))
+                    .field("token", &"...")
+                    .finish()
+            }
+        }
+    };
+}
 
 /// Currently, we have vendored Dropbox's implementation of their content hashing algorithm.
 /// There's an outstanding pull request open to upstream the changes I made, at which point this

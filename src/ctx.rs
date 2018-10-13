@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::fs;
 use std::io;
+use std::fmt;
 
 use libusb;
 use failure::Error;
@@ -23,6 +24,18 @@ pub struct Ctx {
     pub notifier: Option<pushover_notifier::PushoverNotifier>,
     /// An optional mailer that will be used to send reports when uploads finish or fail.
     pub mailer: Option<mailer::SendgridMailer>,
+}
+
+impl fmt::Debug for Ctx {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("Ctx")
+            .field("usb_ctx", &"libusb::Context { ... }")
+            .field("cfg", &self.cfg)
+            .field("staging", &self.staging)
+            .field("notifier", &self.notifier)
+            .field("mailer", &self.mailer)
+            .finish()
+    }
 }
 
 impl Ctx {

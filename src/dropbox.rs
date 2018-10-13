@@ -1,8 +1,10 @@
-use serde::{Deserialize, Deserializer};
-use std::io::Read;
 /// This is a really small dropbox shim
 ///
 /// If this library is useful, I'll consider fleshing it out into a whole thing
+
+use serde::{Deserialize, Deserializer};
+use std::io::Read;
+use std::fmt;
 use std::path::Path;
 
 use version;
@@ -26,6 +28,16 @@ pub struct DropboxFilesClient {
     token: String,
     user_agent: String,
     client: reqwest::Client,
+}
+
+impl fmt::Debug for DropboxFilesClient {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("DropboxFilesClient")
+            .field("token", &"...")
+            .field("user_agent", &self.client)
+            .field("client", &self.client)
+            .finish()
+    }
 }
 
 #[derive(Serialize)]
@@ -121,6 +133,7 @@ struct Commit<'a> {
     mode: String,
 }
 
+#[derive(Debug)]
 pub struct UploadSession<'a> {
     client: &'a DropboxFilesClient,
     cursor: Cursor,

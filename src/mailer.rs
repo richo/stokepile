@@ -1,3 +1,4 @@
+use std::fmt;
 use failure::Error;
 use sendgrid::{SGClient, Destination, Mail};
 
@@ -8,6 +9,17 @@ pub struct SendgridMailer {
     to: String,
     from: String,
     subject: String, // TODO(richo) should this be a closure or something?
+}
+
+impl fmt::Debug for SendgridMailer {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct(stringify!($struct))
+            .field("mailer", &"SGClient { ... }")
+            .field("to", &self.to)
+            .field("from", &self.from)
+            .field("subject", &self.subject)
+            .finish()
+    }
 }
 
 impl SendgridMailer {

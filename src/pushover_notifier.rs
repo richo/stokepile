@@ -1,3 +1,4 @@
+use std::fmt;
 use failure::Error;
 
 use pushover::Pushover;
@@ -5,6 +6,15 @@ use pushover::Pushover;
 pub struct PushoverNotifier {
     token: String,
     recipient: String,
+}
+
+impl fmt::Debug for PushoverNotifier {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("PushoverNotifier")
+            .field("token", &"...")
+            .field("recipient", &self.recipient)
+            .finish()
+    }
 }
 
 pub trait Notify {

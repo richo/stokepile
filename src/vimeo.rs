@@ -13,7 +13,9 @@ use staging;
 pub struct VimeoClient {
     token: String,
 }
+sensitive_fmt!(VimeoClient);
 
+#[derive(Debug)]
 struct UploadHandle {
     // TODO(richo) native URL type
     url: String,

@@ -1,5 +1,6 @@
 use std::env;
 use std::ops::Deref;
+use std::fmt;
 
 use diesel::pg::PgConnection;
 use diesel::r2d2::{ConnectionManager, CustomizeConnection, Error, Pool, PooledConnection};
@@ -32,6 +33,14 @@ pub fn init_pool(test_transactions: bool) -> PgPool {
 }
 
 pub struct DbConn(pub PooledConnection<ConnectionManager<PgConnection>>);
+
+impl fmt::Debug for DbConn {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_tuple("DbConn")
+            .field(&"PooledConnection<ConnectionManager<...>>")
+            .finish()
+    }
+}
 
 impl DbConn {
     pub fn maybe_from_rocket(rocket: &Rocket) -> Option<DbConn> {

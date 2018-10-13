@@ -25,6 +25,17 @@ pub struct GoproFile<'c> {
     camera: Rc<Mutex<ptp::PtpCamera<'c>>>,
 }
 
+impl<'c> fmt::Debug for GoproFile<'c> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("GoproFile")
+            .field("handle", &self.handle)
+            .field("offset", &self.offset)
+            .field("size", &self.size)
+            .field("camera", &"Rc<Mutex<ptp::PtpCamera<'c> { ... }>>")
+            .finish()
+    }
+}
+
 impl<'c> UploadableFile for GoproFile<'c> {
     type Reader = GoproFile<'c>;
 

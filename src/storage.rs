@@ -7,6 +7,7 @@ use staging;
 use failure::Error;
 use serde_json;
 
+#[derive(Debug)]
 pub enum StorageStatus {
     Success,
     Failure,

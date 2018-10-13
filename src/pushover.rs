@@ -78,6 +78,7 @@ impl<'a> PushoverRequest<'a> {
 pub struct Pushover {
     token: String,
 }
+sensitive_fmt!(Pushover);
 
 impl Pushover {
     pub fn new(token: String) -> Pushover {

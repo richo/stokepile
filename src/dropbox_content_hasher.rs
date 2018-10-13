@@ -37,7 +37,7 @@ pub const BLOCK_SIZE: usize = 4 * 1024 * 1024;
 /// println!("{}", hex_hash);
 /// ```
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DropboxContentHasher {
     overall_hasher: Sha256,
     block_hasher: Sha256,

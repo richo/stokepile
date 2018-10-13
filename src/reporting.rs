@@ -15,6 +15,7 @@ fn handlebars() -> Handlebars {
     handlebars
 }
 
+#[derive(Debug)]
 pub enum UploadStatus {
     AlreadyUploaded,
     Succeeded,
@@ -35,16 +36,16 @@ impl Serialize for UploadStatus {
     }
 }
 
-#[derive(Default, Serialize)]
 /// A report describing how a series of upload transactions went.
+#[derive(Debug, Default, Serialize)]
 pub struct UploadReport {
     files: HashMap<String, Vec<ReportEntry>>,
 }
 
-#[derive(Serialize)]
 /// An entry in the report.
 ///
 /// results is a Vec of service-name, status tuples.
+#[derive(Debug, Serialize)]
 pub struct ReportEntry {
     desc: UploadDescriptor,
     results: Vec<(String, UploadStatus)>,
