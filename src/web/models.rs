@@ -247,8 +247,7 @@ impl From<Device> for config::DeviceConfig {
             "mass_storage" => {
                 config::DeviceConfig::MassStorage(MassStorageConfig {
                     name: device.name,
-                    // TODO(richo) add a metadata field and store this there
-                    extensions: vec!["mp4".into()],
+                    extensions: device.metadata.get("extensions"),
                     mountpoint: device.identifier
                 })
             },
