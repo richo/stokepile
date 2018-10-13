@@ -7,6 +7,7 @@ table! {
         name -> Varchar,
         kind -> Varchar,
         identifier -> Varchar,
+        metadata -> Jsonb,
     }
 }
 
