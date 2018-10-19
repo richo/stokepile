@@ -164,6 +164,8 @@ impl<'c> Staging for GoproConnection<'c> where {
             out.push(file)
         }
 
+        info!("Loaded {} files from {:?} serial {}", out.len(), &self.gopro.kind, &self.gopro.serial);
+
         Ok(out)
     }
 }
