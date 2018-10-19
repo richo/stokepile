@@ -153,13 +153,15 @@ impl<'c> Staging for GoproConnection<'c> where {
                 GoproObjectFormat::from_u16(object.ObjectFormat),
                 Some(GoproObjectFormat::Video)
             );
-            out.push(GoproFile {
+            let file = GoproFile {
                 capturedate: object.CaptureDate,
                 handle: filehandle,
                 offset: 0,
                 size: object.ObjectCompressedSize,
                 camera: Rc::clone(&self.camera),
-            })
+            };
+            trace!("Adding {:?} to the plan", &file);
+            out.push(file)
         }
 
         Ok(out)
