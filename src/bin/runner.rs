@@ -1,9 +1,10 @@
 #[macro_use]
 extern crate log;
+#[macro_use]
+extern crate failure;
 
 extern crate clap;
 extern crate pretty_env_logger;
-extern crate failure;
 
 extern crate archiver;
 
@@ -12,6 +13,8 @@ use failure::Error;
 use std::env;
 use std::process;
 use std::thread;
+use std::sync::mpsc::{channel, RecvTimeoutError};
+use std::time::Duration;
 
 use archiver::config;
 use archiver::ctx::Ctx;
@@ -100,18 +103,51 @@ fn run() -> Result<(), Error> {
             }
             info!("");
 
+            // Create a channel to notify the upload thread when we have finished staging
+            let (done, rx) = channel();
+
+            // Create a channel to notify the upload thread when we have finished staging
+            let (finished, reports) = channel::<Result<String, String>>();
+
+            // Launch the uploader thread. We try uploading from staging, and then if we're not
+            // done we slee
+            info!("Starting upload thread");
+            let staging = ctx.staging.clone();
+            let report_thread = thread::spawn(move || {
+                let mut done = false;
+                loop {
+                    if done {
+                        return storage::upload_from_staged(&staging, &backends);
+                    }
+                    // See if we've finished yet, or sleep for 10 seconds
+                    match rx.recv_timeout(Duration::new(10, 0)) {
+                        Ok(_) => {
+                            info!("Staging finished. Triggering a last upload run and exiting");
+                            done = true;
+                        },
+                        Err(RecvTimeoutError::Disconnected) => {
+                            info!("Parent thread crashed. Exiting to avoid inconsistent state");
+                            return Err(format_err!("Parent thread crashed"));
+                        },
+                        Err(RecvTimeoutError::Timeout) => {
+                            debug!("Didn't get a response from upstream in 10s");
+                        },
+                    }
+                }
+
+            });
+
             // Let the cameras populate the plan
+            info!("Starting staging");
             for device in devices {
                 let msg = format!("Finished staging: {}", device.name());
                 device.stage_files(&ctx.staging)?;
                 ctx.notifier.notify(&msg)?;
             }
             ctx.notifier.notify("Finished staging media")?;
+            done.send(());
 
-            // Run the uploader thread syncronously as a smoketest for the daemon mode
-            let staging = ctx.staging.clone();
-            let report = thread::spawn(move || storage::upload_from_staged(&staging, &backends))
-                .join()
+            let report = report_thread.join()
                 .expect("Upload thread panicked")?;
             ctx.notifier.notify("Finished uploading media")?;
             let plaintext = report.to_plaintext()?;
