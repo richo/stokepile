@@ -62,7 +62,7 @@ where
         let manifest: staging::UploadDescriptor = serde_json::from_reader(manifest)?;
 
         let results: Vec<_> = adaptors.iter().map(|ad| {
-            info!("Starting {} adaptor", ad.name());
+            info!("Starting {} adaptor for {:?}", ad.name(), &content_path);
             info!("Checking if file already exists");
             if ad.already_uploaded(&manifest) {
                 info!("File was already uploaded - skipping");
@@ -94,6 +94,8 @@ where
             info!("removing {:?}", content_path);
             fs::remove_file(&manifest_path)?;
             fs::remove_file(&content_path)?;
+        } else {
+            info!("one or more adaptors failed, preserving {:?}", content_path);
         }
         report.record_activity(entry);
     }
