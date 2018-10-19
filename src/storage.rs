@@ -72,9 +72,11 @@ where
             // TODO(richo) This is super ugly, but it makes the logic a bit more straightforward.
             //
             // This is actually a realistic failure case though :(
+            info!("File not present upstream - beginning upload");
             let content = File::open(&content_path).expect("Couldn't open content file");
             match ad.upload(content, &manifest) {
                 Ok(_resp) => {
+                    info!("Upload succeeded");
                     return (ad.name(), UploadStatus::Succeeded);
                 }
                 Err(error) => {
