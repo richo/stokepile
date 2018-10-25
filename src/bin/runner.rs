@@ -6,10 +6,12 @@ extern crate pretty_env_logger;
 extern crate failure;
 
 extern crate archiver;
+extern crate rpassword;
 
 use clap::{App, Arg, SubCommand};
 use failure::Error;
 use std::env;
+use std::io::{self, Write};
 use std::process;
 use std::thread;
 
@@ -42,6 +44,17 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
                 .version(VERSION)
                 .author("richö butts")
                 .about("Scan for attached devices"),
+        ).subcommand(
+            SubCommand::with_name("fetch")
+                .version(VERSION)
+                .author("richö butts")
+                .about("Fetch config from archiver-web")
+                .arg(
+                    Arg::with_name("force")
+                        .long("force")
+                        .short("f")
+                        .help("Force overwriting of local config"),
+                ),
         ).subcommand(
             SubCommand::with_name("run")
                 .about("Runs archiver in persistent mode")
@@ -123,6 +136,16 @@ fn run() -> Result<(), Error> {
             for gopro in ptp_device::locate_gopros(&ctx)?.iter() {
                 println!("  {:?} : {}", gopro.kind, gopro.serial);
             }
+        }
+        ("fetch", Some(_subm)) => {
+            let mut email = String::new();
+            let mut stdin = io::stdin();
+            let password;
+            println!("Fetching config from upstream.");
+            print!("email: ");
+            io::stdout().flush()?;
+            stdin.read_line(&mut email)?;
+            password = rpassword::prompt_password_stdout("password: ")?;
         }
         _ => {
             error!("No subcommand provided");
