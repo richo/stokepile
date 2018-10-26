@@ -107,7 +107,7 @@ pub enum GoproKind {
     Hero4Silver,
     Hero2018,
     Hero5Black,
-    UnknownGopro,
+    UnknownGopro(u16),
 }
 
 impl GoproKind {
@@ -117,7 +117,7 @@ impl GoproKind {
             0x000d => Some(Hero4Silver),
             0x002d => Some(Hero2018),
             0x0027 => Some(Hero5Black),
-            _ => Some(UnknownGopro),
+            _ => Some(UnknownGopro(ty)),
         }
     }
 }
