@@ -29,6 +29,7 @@ extern crate sha2;
 extern crate toml;
 extern crate tus;
 extern crate walkdir;
+extern crate url;
 
 macro_rules! sensitive_fmt {
     ($struct:ident) => {
@@ -140,5 +141,3 @@ extern crate oauth2;
 extern crate rand;
 #[cfg(feature = "web")]
 extern crate rocket;
-#[cfg(feature = "web")]
-extern crate url;
