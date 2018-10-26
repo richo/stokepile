@@ -16,6 +16,8 @@ extern crate lazy_static;
 extern crate rocket;
 extern crate rocket_contrib;
 
+extern crate serde_json;
+
 extern crate oauth2;
 
 extern crate archiver;
@@ -473,7 +475,10 @@ mod tests {
     use rocket::http::{ContentType, Header, Status};
     use rocket::local::{Client, LocalResponse};
 
+    use serde_json;
+
     use archiver::config::{Config, FlysightConfig};
+    use archiver::messages;
 
     use archiver::web::db::DbConn;
     use archiver::web::models::NewIntegration;
@@ -924,5 +929,41 @@ mod tests {
 
         let conn = db_conn(&client);
         assert_eq!(user.devices(&*conn).unwrap().len(), 0);
+    }
+
+    #[test]
+    fn test_json_signin() {
+        let client = client();
+
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+
+        let req = client
+            .post("/json/signin")
+            .header(ContentType::JSON)
+            .body("{\"email\": \"test@email.com\", \"password\": \"p@55w0rd\"}");
+
+        let mut response = req.dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        let message = serde_json::from_str::<messages::JsonSignInResp>(&response.body_string().unwrap()).unwrap();
+        assert!(message.token.is_some());
+        assert!(message.error.is_none());
+    }
+
+    #[test]
+    fn test_json_signin_invalid_credentials() {
+        let client = client();
+
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+
+        let req = client
+            .post("/json/signin")
+            .header(ContentType::JSON)
+            .body("{\"email\": \"test@email.com\", \"password\": \"buttsbutts\"}");
+
+        let mut response = req.dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        let message = serde_json::from_str::<messages::JsonSignInResp>(&response.body_string().unwrap()).unwrap();
+        assert!(message.token.is_none());
+        assert!(message.error.is_some());
     }
 }
