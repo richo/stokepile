@@ -1,8 +1,12 @@
 use url::Url;
 use failure::Error;
 
+use serde_json;
+
 use reqwest;
 use reqwest::header::{HeaderMap, HeaderValue};
+
+use messages;
 
 /// A client to the web interface
 
@@ -38,18 +42,28 @@ impl ArchiverClient {
 
     pub fn login(&self, email: &str, password: &str) -> Result<SessionToken, Error> {
         let mut endpoint = self.base.clone();
-        endpoint.set_path("/signin");
+        endpoint.set_path("/json/signin");
 
         let mut headers = HeaderMap::new();
-        headers.insert(reqwest::header::CONTENT_TYPE, HeaderValue::from_static("application/x-www-form-urlencoded"));
+        headers.insert(reqwest::header::CONTENT_TYPE, HeaderValue::from_static("application/json"));
 
-        let resp = self.client.post(endpoint)
+        let payload = messages::JsonSignIn {
+            email: email.into(),
+            password: password.into(),
+        };
+
+        let mut resp = self.client.post(endpoint)
             // TODO(richo) we can actually reuse the web stuff for this
-            .body(format!(
-                "email={}&password={}",
-                email, password))
+            .body(serde_json::to_string(&payload)?)
             .headers(headers)
             .send()?;
-        unimplemented!();
+        let resp: messages::JsonSignInResp = resp.json()?;
+        if let Some(token) = resp.token {
+            return Ok(token);
+        }
+        if let Some(_error) = resp.error {
+            Err(ClientError::InvalidLogin)?;
+        }
+        unreachable!();
     }
 }
