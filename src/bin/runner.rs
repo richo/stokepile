@@ -140,7 +140,7 @@ fn run() -> Result<(), Error> {
         }
         // Login to upstream, adding the token to your local config file
         ("login", Some(_subm)) => {
-            let client = client::ArchiverClient::new(&ctx.cfg.api);
+            let client = client::ArchiverClient::new(&ctx.cfg.api_base())?;
             let mut email = String::new();
             let mut stdin = io::stdin();
             let password;
@@ -149,7 +149,7 @@ fn run() -> Result<(), Error> {
             io::stdout().flush()?;
             stdin.read_line(&mut email)?;
             password = rpassword::prompt_password_stdout("password: ")?;
-            let token = client::login(&email, &password)?;
+            let token = client.login(&email, &password);
         }
         _ => {
             error!("No subcommand provided");
