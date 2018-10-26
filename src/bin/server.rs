@@ -27,7 +27,7 @@ use rocket::http::RawStr;
 use rocket::http::{Cookie, Cookies, SameSite};
 use rocket::request::{FlashMessage, Form, FromFormValue};
 use rocket::response::{Flash, Redirect};
-use rocket::response::content::Json;
+use rocket_contrib::json::Json;
 use rocket::Rocket;
 use rocket_contrib::serve::StaticFiles;
 use rocket_contrib::templates::Template;
@@ -119,24 +119,24 @@ struct SignInUpForm {
     action: UserAction,
 }
 
-#[post("/signin", data = "<signin>")]
+#[post("/json/signin", format = "json", data = "<signin>")]
 fn signin_json(
     conn: DbConn,
     signin: Json<messages::JsonSignIn>,
 ) -> Json<messages::JsonSignInResp> {
-    match User::by_credentials(&*conn, &signin.email, &signin.password) {
-        Ok(user) => {
+    match User::by_credentials(&*conn, &signin.0.email, &signin.0.password) {
+        Some(user) => {
             let session = NewSession::new(&user).create(&*conn).unwrap();
-            messages::JsonSignInResp {
+            Json(messages::JsonSignInResp {
                 token: Some(session.id),
                 error: None,
-            }
+            })
         },
-        Err(_) => {
-            messages::JsonSignInResp {
+        None => {
+            Json(messages::JsonSignInResp {
                 token: None,
-                error: Some("Incorrect username or password."),
-            }
+                error: Some("Incorrect username or password.".to_string()),
+            })
         },
     }
 }
@@ -447,6 +447,7 @@ fn configure_rocket(test_transactions: bool) -> Rocket {
                 get_config,
                 get_signin,
                 signin,
+                signin_json,
                 signout,
                 index,
                 connect_integration,
