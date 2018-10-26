@@ -50,8 +50,6 @@ impl ArchiverClient {
                 email, password))
             .headers(headers)
             .send()?;
-
-
-
+        unimplemented!();
     }
 }

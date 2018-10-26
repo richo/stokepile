@@ -27,6 +27,7 @@ use rocket::http::RawStr;
 use rocket::http::{Cookie, Cookies, SameSite};
 use rocket::request::{FlashMessage, Form, FromFormValue};
 use rocket::response::{Flash, Redirect};
+use rocket::response::content::Json;
 use rocket::Rocket;
 use rocket_contrib::serve::StaticFiles;
 use rocket_contrib::templates::Template;
@@ -37,6 +38,7 @@ use oauth2::prelude::*;
 use oauth2::CsrfToken;
 
 use archiver::config::{Config, DeviceConfig};
+use archiver::messages;
 use archiver::web::auth::CurrentUser;
 use archiver::web::context::{Context, PossibleIntegration};
 use archiver::web::db::{init_pool, DbConn};
@@ -115,6 +117,28 @@ struct SignInUpForm {
     email: String,
     password: String,
     action: UserAction,
+}
+
+#[post("/signin", data = "<signin>")]
+fn signin_json(
+    conn: DbConn,
+    signin: Json<messages::JsonSignIn>,
+) -> Json<messages::JsonSignInResp> {
+    match User::by_credentials(&*conn, &signin.email, &signin.password) {
+        Ok(user) => {
+            let session = NewSession::new(&user).create(&*conn).unwrap();
+            messages::JsonSignInResp {
+                token: Some(session.id),
+                error: None,
+            }
+        },
+        Err(_) => {
+            messages::JsonSignInResp {
+                token: None,
+                error: Some("Incorrect username or password."),
+            }
+        },
+    }
 }
 
 // TODO: CSRF.
