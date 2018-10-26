@@ -15,6 +15,7 @@ use std::io::{self, Write};
 use std::process;
 use std::thread;
 
+use archiver::client;
 use archiver::config;
 use archiver::ctx::Ctx;
 use archiver::device;
@@ -137,7 +138,9 @@ fn run() -> Result<(), Error> {
                 println!("  {:?} : {}", gopro.kind, gopro.serial);
             }
         }
-        ("fetch", Some(_subm)) => {
+        // Login to upstream, adding the token to your local config file
+        ("login", Some(_subm)) => {
+            let client = client::ArchiverClient::new(&ctx.cfg.api);
             let mut email = String::new();
             let mut stdin = io::stdin();
             let password;
@@ -146,6 +149,7 @@ fn run() -> Result<(), Error> {
             io::stdout().flush()?;
             stdin.read_line(&mut email)?;
             password = rpassword::prompt_password_stdout("password: ")?;
+            let token = client::login(&email, &password)?;
         }
         _ => {
             error!("No subcommand provided");
