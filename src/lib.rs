@@ -50,7 +50,7 @@ macro_rules! sensitive_fmt {
 pub mod dropbox_content_hasher;
 
 /// A client to the web interface.
-pub mod config;
+pub mod client;
 
 /// Details pertaining to parsing the configuration file, as well as constructing the internal
 /// objects specified by the configuration.
