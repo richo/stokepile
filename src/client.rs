@@ -62,6 +62,7 @@ impl ArchiverClient {
             return Ok(token);
         }
         if let Some(_error) = resp.error {
+            warn!("{:?}", &_error);
             Err(ClientError::InvalidLogin)?;
         }
         unreachable!();

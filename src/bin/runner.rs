@@ -46,16 +46,10 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
                 .author("richö butts")
                 .about("Scan for attached devices"),
         ).subcommand(
-            SubCommand::with_name("fetch")
+            SubCommand::with_name("login")
                 .version(VERSION)
                 .author("richö butts")
-                .about("Fetch config from archiver-web")
-                .arg(
-                    Arg::with_name("force")
-                        .long("force")
-                        .short("f")
-                        .help("Force overwriting of local config"),
-                ),
+                .about("Login to archiver web for config fetching"),
         ).subcommand(
             SubCommand::with_name("run")
                 .about("Runs archiver in persistent mode")
@@ -149,7 +143,7 @@ fn run() -> Result<(), Error> {
             io::stdout().flush()?;
             stdin.read_line(&mut email)?;
             password = rpassword::prompt_password_stdout("password: ")?;
-            let token = client.login(&email, &password);
+            let token = client.login(email.trim_right(), &password);
         }
         _ => {
             error!("No subcommand provided");
