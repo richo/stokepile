@@ -7,7 +7,7 @@ pub struct JsonSignIn {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct JsonSignInResp {
-    pub token: Option<String>,
-    pub error: Option<String>,
+pub enum JsonSignInResp {
+    Token(String),
+    Error(String),
 }

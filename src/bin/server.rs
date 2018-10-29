@@ -129,16 +129,10 @@ fn signin_json(
     match User::by_credentials(&*conn, &signin.0.email, &signin.0.password) {
         Some(user) => {
             let session = NewSession::new(&user).create(&*conn).unwrap();
-            Json(messages::JsonSignInResp {
-                token: Some(session.id),
-                error: None,
-            })
+            Json(messages::JsonSignInResp::Token(session.id))
         },
         None => {
-            Json(messages::JsonSignInResp {
-                token: None,
-                error: Some("Incorrect username or password.".to_string()),
-            })
+            Json(messages::JsonSignInResp::Error("Incorrect username or password.".to_string()))
         },
     }
 }
@@ -945,8 +939,10 @@ mod tests {
         let mut response = req.dispatch();
         assert_eq!(response.status(), Status::Ok);
         let message = serde_json::from_str::<messages::JsonSignInResp>(&response.body_string().unwrap()).unwrap();
-        assert!(message.token.is_some());
-        assert!(message.error.is_none());
+        assert!(match message {
+            messages::JsonSignInResp::Token(_) => true,
+            messages::JsonSignInResp::Error(_) => false,
+        }, "Didn't get a token");
     }
 
     #[test]
@@ -963,7 +959,9 @@ mod tests {
         let mut response = req.dispatch();
         assert_eq!(response.status(), Status::Ok);
         let message = serde_json::from_str::<messages::JsonSignInResp>(&response.body_string().unwrap()).unwrap();
-        assert!(message.token.is_none());
-        assert!(message.error.is_some());
+        assert!(match message {
+            messages::JsonSignInResp::Token(_) => false,
+            messages::JsonSignInResp::Error(_) => true,
+        }, "Didn't get an error");
     }
 }

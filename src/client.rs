@@ -58,13 +58,12 @@ impl ArchiverClient {
             .headers(headers)
             .send()?;
         let resp: messages::JsonSignInResp = resp.json()?;
-        if let Some(token) = resp.token {
-            return Ok(token);
+        match resp {
+            messages::JsonSignInResp::Token(s) => Ok(s),
+            messages::JsonSignInResp::Error(error) => {
+                warn!("{:?}", &error);
+                Err(ClientError::InvalidLogin)?
+            }
         }
-        if let Some(_error) = resp.error {
-            warn!("{:?}", &_error);
-            Err(ClientError::InvalidLogin)?;
-        }
-        unreachable!();
     }
 }
