@@ -121,8 +121,12 @@ pub mod storage;
 pub mod vimeo;
 
 mod version;
+
 /// What version of archiver do you have :)
 pub use version::VERSION;
+
+/// Who wrote this mess
+pub use version::AUTHOR;
 
 #[cfg(test)]
 /// Helpers for use in tests
