@@ -23,13 +23,13 @@ use archiver::mailer::MailReport;
 use archiver::pushover_notifier::Notify;
 use archiver::ptp_device;
 use archiver::storage;
-use archiver::VERSION;
+use archiver::{AUTHOR, VERSION};
 
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
     App::new("archiver")
         .version(VERSION)
         .about("Footage archiver")
-        .author("richö butts")
+        .author(AUTHOR)
         .arg(
             Arg::with_name("config")
                 .long("config")
@@ -38,7 +38,7 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
         ).subcommand(
             SubCommand::with_name("daemon")
                 .version(VERSION)
-                .author("richö butts")
+                .author(AUTHOR)
                 .about("Runs archiver in persistent mode"),
         ).subcommand(
             SubCommand::with_name("scan")
@@ -48,13 +48,13 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
         ).subcommand(
             SubCommand::with_name("login")
                 .version(VERSION)
-                .author("richö butts")
+                .author(AUTHOR)
                 .about("Login to archiver web for config fetching"),
         ).subcommand(
             SubCommand::with_name("run")
                 .about("Runs archiver in persistent mode")
                 .version(VERSION)
-                .author("richö butts")
+                .author(AUTHOR)
                 .arg(
                     Arg::with_name("plan-only")
                         .long("plan-only")
