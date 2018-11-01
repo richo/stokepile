@@ -29,6 +29,7 @@ extern crate sha2;
 extern crate toml;
 extern crate tus;
 extern crate walkdir;
+extern crate url;
 
 macro_rules! sensitive_fmt {
     ($struct:ident) => {
@@ -47,6 +48,9 @@ macro_rules! sensitive_fmt {
 /// There's an outstanding pull request open to upstream the changes I made, at which point this
 /// can go.
 pub mod dropbox_content_hasher;
+
+/// A client to the web interface.
+pub mod client;
 
 /// Details pertaining to parsing the configuration file, as well as constructing the internal
 /// objects specified by the configuration.
@@ -81,6 +85,9 @@ pub mod mailer;
 /// local filesystem.
 mod mass_storage;
 
+/// Message types used for communication between the server and client components.
+pub mod messages;
+
 /// Contains the `MountablePeripheral` trait, common to `flysight`s and `mass_storage`s. This is
 /// simply the glue that makes it easy to check if they're currently present.
 mod peripheral;
@@ -114,8 +121,12 @@ pub mod storage;
 pub mod vimeo;
 
 mod version;
+
 /// What version of archiver do you have :)
 pub use version::VERSION;
+
+/// Who wrote this mess
+pub use version::AUTHOR;
 
 #[cfg(test)]
 /// Helpers for use in tests
@@ -137,5 +148,3 @@ extern crate oauth2;
 extern crate rand;
 #[cfg(feature = "web")]
 extern crate rocket;
-#[cfg(feature = "web")]
-extern crate url;

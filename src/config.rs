@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 use failure::Error;
 use toml;
+use url;
 
 use dropbox;
 use flysight::Flysight;
@@ -13,6 +14,9 @@ use mass_storage::MassStorage;
 use pushover_notifier::PushoverNotifier;
 use storage::StorageAdaptor;
 use vimeo::VimeoClient;
+
+// TODO(richo) Change this once we have a canonical domain
+pub static DEFAULT_API_BASE: &'static str = "https://onatopp.psych0tik.net";
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum DeviceConfig {
@@ -59,6 +63,8 @@ lazy_static! {
 #[derive(Default, Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct ArchiverConfig {
     staging: Option<PathBuf>,
+    api_base: Option<String>,
+    api_token: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
@@ -126,6 +132,8 @@ pub enum ConfigError {
     MissingBackend,
     #[fail(display = "Could not parse config: {}", _0)]
     ParseError(#[cause] toml::de::Error),
+    #[fail(display = "Invalid url for api base: {}", _0)]
+    InvalidApiBase(url::ParseError),
 }
 
 impl Config {
@@ -158,8 +166,23 @@ impl Config {
         if config.dropbox.is_none() && config.vimeo.is_none() {
             Err(ConfigError::MissingBackend)?;
         }
+        if let Some(base) = &config.archiver.api_base {
+            if let Err(err) = url::Url::parse(&base) {
+                Err(ConfigError::InvalidApiBase(err))?;
+            }
+        }
+
         Ok(config)
     }
+
+    /// Get the api base of this config, or return the default
+    pub fn api_base(&self) -> &str {
+        match &self.archiver.api_base {
+            Some(base) => &base,
+            None => DEFAULT_API_BASE,
+        }
+    }
+
 
     // Do we eventually want to make a camera/mass_storage distinction?
     pub fn mass_storages(&self) -> &Vec<MassStorageConfig> {
@@ -331,6 +354,15 @@ mod tests {
         let config = Config::from_file("archiver.toml.example").unwrap();
 
         assert_eq!(
+            config.archiver,
+            ArchiverConfig {
+                api_token: Some("ARCHIVER_TOKEN_GOES_HERE".into()),
+                api_base: Some("https://test-api.base".into()),
+                staging: Some("/test/staging/dir".into()),
+            }
+        );
+
+        assert_eq!(
             config.dropbox,
             Some(DropboxConfig {
                 token: "DROPBOX_TOKEN_GOES_HERE".into()
@@ -392,6 +424,22 @@ token = "TOKEN"
 "#,
         ).unwrap();
         assert_eq!(cfg.archiver.staging, Some(PathBuf::from("test/dir")));
+    }
+
+    #[test]
+    fn test_invalid_api_base() {
+        let cfg = Config::from_str(
+            r#"
+[archiver]
+api_base = "malformed"
+
+[dropbox]
+token = "TOKEN"
+"#,
+        ).unwrap_err();
+        let err = cfg.downcast::<ConfigError>().unwrap();
+        let formatted = format!("{:?}", err);
+        assert_eq!("InvalidApiBase(RelativeUrlWithoutBase)", &formatted);
     }
 
     #[test]

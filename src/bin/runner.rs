@@ -6,13 +6,16 @@ extern crate pretty_env_logger;
 extern crate failure;
 
 extern crate archiver;
+extern crate rpassword;
 
 use clap::{App, Arg, SubCommand};
 use failure::Error;
 use std::env;
+use std::io::{self, Write};
 use std::process;
 use std::thread;
 
+use archiver::client;
 use archiver::config;
 use archiver::ctx::Ctx;
 use archiver::device;
@@ -20,13 +23,13 @@ use archiver::mailer::MailReport;
 use archiver::pushover_notifier::Notify;
 use archiver::ptp_device;
 use archiver::storage;
-use archiver::VERSION;
+use archiver::{AUTHOR, VERSION};
 
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
     App::new("archiver")
         .version(VERSION)
         .about("Footage archiver")
-        .author("richö butts")
+        .author(AUTHOR)
         .arg(
             Arg::with_name("config")
                 .long("config")
@@ -35,7 +38,7 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
         ).subcommand(
             SubCommand::with_name("daemon")
                 .version(VERSION)
-                .author("richö butts")
+                .author(AUTHOR)
                 .about("Runs archiver in persistent mode"),
         ).subcommand(
             SubCommand::with_name("scan")
@@ -43,10 +46,15 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
                 .author("richö butts")
                 .about("Scan for attached devices"),
         ).subcommand(
+            SubCommand::with_name("login")
+                .version(VERSION)
+                .author(AUTHOR)
+                .about("Login to archiver web for config fetching"),
+        ).subcommand(
             SubCommand::with_name("run")
                 .about("Runs archiver in persistent mode")
                 .version(VERSION)
-                .author("richö butts")
+                .author(AUTHOR)
                 .arg(
                     Arg::with_name("plan-only")
                         .long("plan-only")
@@ -123,6 +131,19 @@ fn run() -> Result<(), Error> {
             for gopro in ptp_device::locate_gopros(&ctx)?.iter() {
                 println!("  {:?} : {}", gopro.kind, gopro.serial);
             }
+        }
+        // Login to upstream, adding the token to your local config file
+        ("login", Some(_subm)) => {
+            let client = client::ArchiverClient::new(&ctx.cfg.api_base())?;
+            let mut email = String::new();
+            let mut stdin = io::stdin();
+            let password;
+            println!("Fetching config from upstream.");
+            print!("email: ");
+            io::stdout().flush()?;
+            stdin.read_line(&mut email)?;
+            password = rpassword::prompt_password_stdout("password: ")?;
+            let token = client.login(email.trim_right(), &password);
         }
         _ => {
             error!("No subcommand provided");

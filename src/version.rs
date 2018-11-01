@@ -1,4 +1,5 @@
-pub const VERSION: &'static str = "0.1.0";
+pub static VERSION: &'static str = "0.1.0";
+pub static AUTHOR: &'static str = "richö butts";
 
 #[cfg(test)]
 mod tests {

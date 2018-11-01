@@ -16,6 +16,8 @@ extern crate lazy_static;
 extern crate rocket;
 extern crate rocket_contrib;
 
+extern crate serde_json;
+
 extern crate oauth2;
 
 extern crate archiver;
@@ -27,6 +29,7 @@ use rocket::http::RawStr;
 use rocket::http::{Cookie, Cookies, SameSite};
 use rocket::request::{FlashMessage, Form, FromFormValue};
 use rocket::response::{Flash, Redirect};
+use rocket_contrib::json::Json;
 use rocket::Rocket;
 use rocket_contrib::serve::StaticFiles;
 use rocket_contrib::templates::Template;
@@ -37,6 +40,7 @@ use oauth2::prelude::*;
 use oauth2::CsrfToken;
 
 use archiver::config::{Config, DeviceConfig};
+use archiver::messages;
 use archiver::web::auth::CurrentUser;
 use archiver::web::context::{Context, PossibleIntegration};
 use archiver::web::db::{init_pool, DbConn};
@@ -115,6 +119,22 @@ struct SignInUpForm {
     email: String,
     password: String,
     action: UserAction,
+}
+
+#[post("/json/signin", format = "json", data = "<signin>")]
+fn signin_json(
+    conn: DbConn,
+    signin: Json<messages::JsonSignIn>,
+) -> Json<messages::JsonSignInResp> {
+    match User::by_credentials(&*conn, &signin.0.email, &signin.0.password) {
+        Some(user) => {
+            let session = NewSession::new(&user).create(&*conn).unwrap();
+            Json(messages::JsonSignInResp::Token(session.id))
+        },
+        None => {
+            Json(messages::JsonSignInResp::Error("Incorrect username or password.".to_string()))
+        },
+    }
 }
 
 // TODO: CSRF.
@@ -423,6 +443,7 @@ fn configure_rocket(test_transactions: bool) -> Rocket {
                 get_config,
                 get_signin,
                 signin,
+                signin_json,
                 signout,
                 index,
                 connect_integration,
@@ -448,7 +469,10 @@ mod tests {
     use rocket::http::{ContentType, Header, Status};
     use rocket::local::{Client, LocalResponse};
 
+    use serde_json;
+
     use archiver::config::{Config, FlysightConfig};
+    use archiver::messages;
 
     use archiver::web::db::DbConn;
     use archiver::web::models::NewIntegration;
@@ -899,5 +923,45 @@ mod tests {
 
         let conn = db_conn(&client);
         assert_eq!(user.devices(&*conn).unwrap().len(), 0);
+    }
+
+    #[test]
+    fn test_json_signin() {
+        let client = client();
+
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+
+        let req = client
+            .post("/json/signin")
+            .header(ContentType::JSON)
+            .body("{\"email\": \"test@email.com\", \"password\": \"p@55w0rd\"}");
+
+        let mut response = req.dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        let message = serde_json::from_str::<messages::JsonSignInResp>(&response.body_string().unwrap()).unwrap();
+        assert!(match message {
+            messages::JsonSignInResp::Token(_) => true,
+            messages::JsonSignInResp::Error(_) => false,
+        }, "Didn't get a token");
+    }
+
+    #[test]
+    fn test_json_signin_invalid_credentials() {
+        let client = client();
+
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+
+        let req = client
+            .post("/json/signin")
+            .header(ContentType::JSON)
+            .body("{\"email\": \"test@email.com\", \"password\": \"buttsbutts\"}");
+
+        let mut response = req.dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        let message = serde_json::from_str::<messages::JsonSignInResp>(&response.body_string().unwrap()).unwrap();
+        assert!(match message {
+            messages::JsonSignInResp::Token(_) => false,
+            messages::JsonSignInResp::Error(_) => true,
+        }, "Didn't get an error");
     }
 }
