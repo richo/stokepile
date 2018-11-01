@@ -128,8 +128,8 @@ fn signin_json(
 ) -> Json<messages::JsonSignInResp> {
     match User::by_credentials(&*conn, &signin.0.email, &signin.0.password) {
         Some(user) => {
-            let session = NewSession::new(&user).create(&*conn).unwrap();
-            Json(messages::JsonSignInResp::Token(session.id))
+            let key = NewKey::new(&user).create(&*conn).unwrap();
+            Json(messages::JsonSignInResp::Token(key.token))
         },
         None => {
             Json(messages::JsonSignInResp::Error("Incorrect username or password.".to_string()))

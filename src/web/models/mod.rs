@@ -12,5 +12,5 @@ pub use self::integration::{Integration, NewIntegration};
 mod device;
 pub use self::device::{Device, NewDevice};
 
-mod Key;
-pub use self::device::{Key, NewKey};
+mod key;
+pub use self::key::{Key, NewKey};
