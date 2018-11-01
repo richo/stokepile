@@ -20,6 +20,15 @@ table! {
 }
 
 table! {
+    keys (id) {
+        id -> Varchar,
+        user_id -> Int4,
+        token -> Varchar,
+        expired -> Bool,
+    }
+}
+
+table! {
     sessions (id) {
         id -> Varchar,
         user_id -> Int4,
@@ -37,11 +46,13 @@ table! {
 
 joinable!(devices -> users (user_id));
 joinable!(integrations -> users (user_id));
+joinable!(keys -> users (user_id));
 joinable!(sessions -> users (user_id));
 
 allow_tables_to_appear_in_same_query!(
     devices,
     integrations,
+    keys,
     sessions,
     users,
 );
