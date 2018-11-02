@@ -144,6 +144,7 @@ fn run() -> Result<(), Error> {
             stdin.read_line(&mut email)?;
             password = rpassword::prompt_password_stdout("password: ")?;
             let token = client.login(email.trim_right(), &password);
+            println!("{}", &token?);
 
             // TODO(richo) rewrite config including token
         }

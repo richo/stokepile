@@ -420,7 +420,6 @@ fn index(user: Option<WebUser>, conn: DbConn, flash: Option<FlashMessage>) -> Te
         keys = user.user.keys(&*conn).unwrap();
     }
 
-
     let context = Context::default()
         .set_user(user)
         .set_integrations(possible_integrations)
