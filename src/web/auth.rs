@@ -72,7 +72,13 @@ impl<'a, 'r> FromRequest<'a, 'r> for ApiUser {
             if let Some(token) = request.headers().get_one("authorization") {
                 let api_token = token.trim_start_matches("Bearer: ");
                 match Key::by_token(&*conn, api_token) {
-                    Ok((key, user)) => Some(ApiUser::new(user, key)),
+                    Ok((key, user)) => {
+                        if key.is_expired() {
+                            None
+                        } else {
+                            Some(ApiUser::new(user, key))
+                        }
+                    },
                     Err(_) => None,
                 }
             } else {
