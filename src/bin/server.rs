@@ -41,7 +41,7 @@ use oauth2::CsrfToken;
 
 use archiver::config::{Config, DeviceConfig};
 use archiver::messages;
-use archiver::web::auth::{WebUser, ApiUser, AuthenticatedUser};
+use archiver::web::auth::{WebUser, AuthenticatedUser};
 use archiver::web::context::{Context, PossibleIntegration};
 use archiver::web::db::{init_pool, DbConn};
 use archiver::web::models::{NewKey, NewDevice, Integration, NewIntegration, NewSession, NewUser, User};
@@ -397,6 +397,7 @@ fn delete_device(
 fn index(user: Option<WebUser>, conn: DbConn, flash: Option<FlashMessage>) -> Template {
     let mut possible_integrations = vec![];
     let mut devices = vec![];
+    let mut keys = vec![];
 
     if let Some(user) = &user {
         if let Ok(integrations) = user.user.integrations(&*conn) {
@@ -416,6 +417,7 @@ fn index(user: Option<WebUser>, conn: DbConn, flash: Option<FlashMessage>) -> Te
             }
         }
         devices = user.user.devices(&*conn).unwrap();
+        keys = user.user.keys(&*conn).unwrap();
     }
 
 
@@ -423,6 +425,7 @@ fn index(user: Option<WebUser>, conn: DbConn, flash: Option<FlashMessage>) -> Te
         .set_user(user)
         .set_integrations(possible_integrations)
         .set_devices(devices)
+        .set_keys(keys)
         .set_integration_message(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
     Template::render("index", context)
 }

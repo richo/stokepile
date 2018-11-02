@@ -43,6 +43,14 @@ impl User {
             .load::<Device>(conn)
     }
 
+    pub fn keys(&self, conn: &PgConnection) -> QueryResult<Vec<Key>> {
+        use web::schema::keys::dsl::*;
+
+        keys
+            .filter(user_id.eq(self.id))
+            .load::<Key>(conn)
+    }
+
     pub fn integration_by_id(
         &self,
         integration_id: i32,

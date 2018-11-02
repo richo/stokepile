@@ -1,5 +1,6 @@
 use web::auth::WebUser;
 use web::models::Device;
+use web::models::Key;
 
 #[derive(Serialize, Debug)]
 pub struct PossibleIntegration {
@@ -15,6 +16,7 @@ pub struct Context {
     pub signin_error: Option<String>,
     pub integrations: Vec<PossibleIntegration>,
     pub devices: Vec<Device>,
+    pub keys: Vec<Key>,
     pub integration_message: Option<(String, String)>,
 }
 
@@ -36,6 +38,11 @@ impl Context {
 
     pub fn set_devices(mut self, devices: Vec<Device>) -> Self {
         self.devices = devices;
+        self
+    }
+
+    pub fn set_keys(mut self, keys: Vec<Key>) -> Self {
+        self.keys = keys;
         self
     }
 

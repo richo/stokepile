@@ -6,7 +6,7 @@ use chrono;
 use web::schema::keys;
 use super::*;
 
-#[derive(Identifiable, Queryable, Associations, Debug, AsChangeset, PartialEq)]
+#[derive(Identifiable, Queryable, Associations, Debug, AsChangeset, PartialEq, Serialize)]
 #[belongs_to(User)]
 pub struct Key {
     pub id: String,
