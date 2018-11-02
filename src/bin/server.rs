@@ -722,14 +722,14 @@ mod tests {
 
         {
             let conn = db_conn(&client);
-            token.expire(&*conn);
+            token.expire(&*conn).unwrap();
         }
 
         let req = client
             .get("/config")
             .header(Header::new("Authorization", format!("Bearer: {}", token.token)));
 
-        let mut response = req.dispatch();
+        let response = req.dispatch();
         assert_eq!(response.status(), Status::Unauthorized);
     }
 
@@ -1088,7 +1088,7 @@ mod tests {
     fn test_json_signin() {
         let client = client();
 
-        let user = create_user(&client, "test@email.com", "p@55w0rd");
+        let _user = create_user(&client, "test@email.com", "p@55w0rd");
 
         let req = client
             .post("/json/signin")
@@ -1108,7 +1108,7 @@ mod tests {
     fn test_json_signin_invalid_credentials() {
         let client = client();
 
-        let user = create_user(&client, "test@email.com", "p@55w0rd");
+        let _user = create_user(&client, "test@email.com", "p@55w0rd");
 
         let req = client
             .post("/json/signin")
