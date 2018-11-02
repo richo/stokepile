@@ -82,6 +82,41 @@
     </div>
   </div>
 </div>
+<div class="pure-g">
+  <div class="pure-u-1">
+    <h2>Configured API Keys</h2>
+
+    <div>
+      <table class="pure-table pure-table-horizontal device-list pure-table-striped">
+        <thead>
+          <tr>
+            <th>Created</th>
+            <th>Token</th>
+            <th>Expired</th>
+            <th>Expire</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each keys}}
+          <tr>
+            <td>{{this.created}}</td>
+            <!-- TODO(richo) click to reveal -->
+            <td>{{this.token}}</td>
+            <td>{{this.expired}}</td>
+            <td>
+              <!-- Make this a DELETE? -->
+          <form action="/key/expire" method="POST">
+            <input type="hidden" name="key_id" value="{{this.id}}" />
+            <button class="pure-button pure-button-secondary">Expire</button>
+          </form>
+            </td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
 {{else}}
 {{> common/signin }}
 {{/if}}

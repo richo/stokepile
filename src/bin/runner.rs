@@ -138,12 +138,15 @@ fn run() -> Result<(), Error> {
             let mut email = String::new();
             let mut stdin = io::stdin();
             let password;
-            println!("Fetching config from upstream.");
+            println!("Logging into {}", &ctx.cfg.api_base());
             print!("email: ");
             io::stdout().flush()?;
             stdin.read_line(&mut email)?;
             password = rpassword::prompt_password_stdout("password: ")?;
             let token = client.login(email.trim_right(), &password);
+            println!("{}", &token?);
+
+            // TODO(richo) rewrite config including token
         }
         _ => {
             error!("No subcommand provided");

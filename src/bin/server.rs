@@ -41,10 +41,10 @@ use oauth2::CsrfToken;
 
 use archiver::config::{Config, DeviceConfig};
 use archiver::messages;
-use archiver::web::auth::CurrentUser;
+use archiver::web::auth::{WebUser, AuthenticatedUser};
 use archiver::web::context::{Context, PossibleIntegration};
 use archiver::web::db::{init_pool, DbConn};
-use archiver::web::models::{NewDevice, Integration, NewIntegration, NewSession, NewUser, User};
+use archiver::web::models::{NewKey, NewDevice, Integration, NewIntegration, NewSession, NewUser, User};
 use archiver::web::oauth::Oauth2Provider;
 
 lazy_static! {
@@ -52,10 +52,10 @@ lazy_static! {
 }
 
 #[get("/config")]
-fn get_config(user: CurrentUser, conn: DbConn) -> Result<Content<String>, Flash<Redirect>> {
+fn get_config(user: AuthenticatedUser, conn: DbConn) -> Result<Content<String>, Flash<Redirect>> {
     let mut config = Config::build();
 
-    let integrations = user.user.integrations(&*conn).map_err(|e| Flash::error(
+    let integrations = user.user().integrations(&*conn).map_err(|e| Flash::error(
             Redirect::to("/"),
             format!("Error connecting to the DB: {}", e)))?;
     let mut integrations = integrations.iter();
@@ -72,7 +72,7 @@ fn get_config(user: CurrentUser, conn: DbConn) -> Result<Content<String>, Flash<
         }
     }
 
-    let devices = user.user.devices(&*conn).map_err(|e| Flash::error(
+    let devices = user.user().devices(&*conn).map_err(|e| Flash::error(
             Redirect::to("/"),
             format!("Error connecting to the DB: {}", e)))?;
     for device in devices {
@@ -128,8 +128,8 @@ fn signin_json(
 ) -> Json<messages::JsonSignInResp> {
     match User::by_credentials(&*conn, &signin.0.email, &signin.0.password) {
         Some(user) => {
-            let session = NewSession::new(&user).create(&*conn).unwrap();
-            Json(messages::JsonSignInResp::Token(session.id))
+            let key = NewKey::new(&user).create(&*conn).unwrap();
+            Json(messages::JsonSignInResp::Token(key.token))
         },
         None => {
             Json(messages::JsonSignInResp::Error("Incorrect username or password.".to_string()))
@@ -175,7 +175,7 @@ fn get_signin<'r>(flash: Option<FlashMessage>) -> Template {
 }
 
 #[post("/signout")]
-fn signout(user: CurrentUser, conn: DbConn, mut cookies: Cookies) -> Redirect {
+fn signout(user: WebUser, conn: DbConn, mut cookies: Cookies) -> Redirect {
     user.session
         .delete(&*conn)
         .expect("Could not delete session.");
@@ -191,7 +191,7 @@ struct DisconnectForm {
 
 #[post("/integration/disconnect", data = "<disconnect>")]
 fn disconnect_integration(
-    user: CurrentUser,
+    user: WebUser,
     disconnect: Form<DisconnectForm>,
     conn: DbConn,
 ) -> Result<Flash<Redirect>, Flash<Redirect>> {
@@ -225,7 +225,7 @@ struct ConnectForm {
 
 #[post("/integration", data = "<connect>")]
 fn connect_integration(
-    mut user: CurrentUser,
+    mut user: WebUser,
     conn: DbConn,
     connect: Form<ConnectForm>,
 ) -> Redirect {
@@ -253,7 +253,7 @@ pub struct Oauth2Response {
 
 #[get("/integration/finish?<resp..>")]
 fn finish_integration(
-    user: CurrentUser,
+    user: WebUser,
     resp: Form<Oauth2Response>,
     conn: DbConn,
 ) -> Result<Flash<Redirect>, Flash<Redirect>> {
@@ -333,7 +333,7 @@ struct DeviceForm {
 
 #[post("/device", data = "<device>")]
 fn create_device(
-    user: CurrentUser,
+    user: WebUser,
     conn: DbConn,
     device: Form<DeviceForm>,
 ) -> Result<Flash<Redirect>, Flash<Redirect>> {
@@ -366,7 +366,7 @@ struct DeleteDeviceForm {
 
 #[post("/device/delete", data = "<device>")]
 fn delete_device(
-    user: CurrentUser,
+    user: WebUser,
     conn: DbConn,
     device: Form<DeleteDeviceForm>,
 ) -> Result<Flash<Redirect>, Flash<Redirect>> {
@@ -393,10 +393,43 @@ fn delete_device(
         })
 }
 
+#[derive(Debug, FromForm)]
+struct ExpireKeyForm {
+    key_id: i32,
+}
+
+#[post("/key/expire", data = "<key>")]
+fn expire_key(
+    user: WebUser,
+    conn: DbConn,
+    key: Form<ExpireKeyForm>,
+) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    user.user
+        .key_by_id(key.key_id, &*conn)
+        .map(|i| i.expire(&*conn))
+        .map(|_| {
+            Flash::success(
+                Redirect::to("/"),
+                format!(
+                    "key has been expired."
+                ),
+            )
+        }).map_err(|e| {
+            warn!("{}", e);
+            Flash::error(
+                Redirect::to("/"),
+                format!(
+                    "the key could not be expired."
+                ),
+            )
+        })
+}
+
 #[get("/")]
-fn index(user: Option<CurrentUser>, conn: DbConn, flash: Option<FlashMessage>) -> Template {
+fn index(user: Option<WebUser>, conn: DbConn, flash: Option<FlashMessage>) -> Template {
     let mut possible_integrations = vec![];
     let mut devices = vec![];
+    let mut keys = vec![];
 
     if let Some(user) = &user {
         if let Ok(integrations) = user.user.integrations(&*conn) {
@@ -416,13 +449,14 @@ fn index(user: Option<CurrentUser>, conn: DbConn, flash: Option<FlashMessage>) -
             }
         }
         devices = user.user.devices(&*conn).unwrap();
+        keys = user.user.keys(&*conn).unwrap();
     }
-
 
     let context = Context::default()
         .set_user(user)
         .set_integrations(possible_integrations)
         .set_devices(devices)
+        .set_keys(keys)
         .set_integration_message(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
     Template::render("index", context)
 }
@@ -449,6 +483,7 @@ fn configure_rocket(test_transactions: bool) -> Rocket {
                 connect_integration,
                 disconnect_integration,
                 finish_integration,
+                expire_key,
                 create_device,
                 delete_device
             ],
@@ -478,6 +513,7 @@ mod tests {
     use archiver::web::models::NewIntegration;
     use archiver::web::models::NewUser;
     use archiver::web::models::NewDevice;
+    use archiver::web::models::NewKey;
     use archiver::web::models::Session;
     use archiver::web::models::User;
 
@@ -627,6 +663,129 @@ mod tests {
         let config = Config::from_str(&response.body_string().expect("Didn't recieve a body")).unwrap();
         let backend_names: Vec<_> = config.backends().iter().map(|b| b.name()).collect();
         assert_eq!(&backend_names, &["dropbox"]);
+    }
+
+    #[test]
+    fn test_get_config_with_api_token() {
+        let client = client();
+
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+
+        {
+            let conn = db_conn(&client);
+
+            NewIntegration::new(&user, "dropbox", "test_oauth_token")
+                .create(&*conn)
+                .unwrap();
+        }
+
+        let token = {
+            let conn = db_conn(&client);
+
+            NewKey::new(&user)
+                .create(&*conn)
+                .unwrap().token
+        };
+
+        let req = client
+            .get("/config")
+            .header(Header::new("Authorization", format!("Bearer: {}", token)));
+
+        let mut response = req.dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        let config = Config::from_str(&response.body_string().expect("Didn't recieve a body")).unwrap();
+        let backend_names: Vec<_> = config.backends().iter().map(|b| b.name()).collect();
+        assert_eq!(&backend_names, &["dropbox"]);
+    }
+
+    #[test]
+    fn test_get_config_with_invalid_api_token() {
+        let client = client();
+
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+
+        {
+            let conn = db_conn(&client);
+
+            NewIntegration::new(&user, "dropbox", "test_oauth_token")
+                .create(&*conn)
+                .unwrap();
+        }
+
+        let token = {
+            let conn = db_conn(&client);
+
+            NewKey::new(&user)
+                .create(&*conn)
+                .unwrap()
+        };
+
+        {
+            let conn = db_conn(&client);
+            token.expire(&*conn).unwrap();
+        }
+
+        let req = client
+            .get("/config")
+            .header(Header::new("Authorization", format!("Bearer: {}", token.token)));
+
+        let response = req.dispatch();
+        assert_eq!(response.status(), Status::Unauthorized);
+    }
+
+    #[test]
+    fn test_revoke_api_token() {
+        let client = client();
+
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+
+        let token = {
+            let conn = db_conn(&client);
+
+            NewKey::new(&user)
+                .create(&*conn)
+                .unwrap()
+        };
+
+        signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
+        let req = client
+            .post("/key/expire")
+            .header(ContentType::Form)
+            .body(&format!("key_id={}", token.id));
+
+        let response = req.dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
+
+        let conn = db_conn(&client);
+        assert!(user.key_by_id(token.id, &*conn).unwrap().expired.is_some(), "Didn't expire token");
+    }
+
+    #[test]
+    fn test_cannot_revoke_other_users_api_token() {
+        let client = client();
+
+        let user1 = create_user(&client, "ohno", "badpw");
+        let _user2 = create_user(&client, "lolwat", "worse");
+
+        let token = {
+            let conn = db_conn(&client);
+
+            NewKey::new(&user1)
+                .create(&*conn)
+                .unwrap()
+        };
+
+        signin(&client, "lolwat", "worse").unwrap();
+        let req = client
+            .post("/key/expire")
+            .header(ContentType::Form)
+            .body(&format!("key_id={}", token.id));
+
+        let response = req.dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
+
+        let conn = db_conn(&client);
+        assert!(user1.key_by_id(token.id, &*conn).unwrap().expired.is_none(), "Expired another user's token");
     }
 
     #[test]
@@ -929,7 +1088,7 @@ mod tests {
     fn test_json_signin() {
         let client = client();
 
-        let user = create_user(&client, "test@email.com", "p@55w0rd");
+        let _user = create_user(&client, "test@email.com", "p@55w0rd");
 
         let req = client
             .post("/json/signin")
@@ -949,7 +1108,7 @@ mod tests {
     fn test_json_signin_invalid_credentials() {
         let client = client();
 
-        let user = create_user(&client, "test@email.com", "p@55w0rd");
+        let _user = create_user(&client, "test@email.com", "p@55w0rd");
 
         let req = client
             .post("/json/signin")

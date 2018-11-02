@@ -28,7 +28,7 @@ impl ArchiverClient {
     pub fn new(base: &str) -> Result<Self, Error> {
         let base = Url::parse(base)?;
 
-        if cfg!(debug_assertions) {
+        if !cfg!(debug_assertions) {
             if base.scheme() != "https" {
                 return Err(format_err!("Non https urls not allowed in release builds"));
             }

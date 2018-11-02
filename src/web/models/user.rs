@@ -43,6 +43,14 @@ impl User {
             .load::<Device>(conn)
     }
 
+    pub fn keys(&self, conn: &PgConnection) -> QueryResult<Vec<Key>> {
+        use web::schema::keys::dsl::*;
+
+        keys
+            .filter(user_id.eq(self.id))
+            .load::<Key>(conn)
+    }
+
     pub fn integration_by_id(
         &self,
         integration_id: i32,
@@ -64,6 +72,18 @@ impl User {
 
         devices
             .filter(user_id.eq(self.id).and(id.eq(device_id)))
+            .get_result(conn)
+    }
+
+    pub fn key_by_id(
+        &self,
+        key_id: i32,
+        conn: &PgConnection,
+    ) -> QueryResult<Key> {
+        use web::schema::keys::dsl::*;
+
+        keys
+            .filter(user_id.eq(self.id).and(id.eq(key_id)))
             .get_result(conn)
     }
 }
