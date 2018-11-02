@@ -51,6 +51,11 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
                 .author(AUTHOR)
                 .about("Login to archiver web for config fetching"),
         ).subcommand(
+            SubCommand::with_name("fetch")
+                .version(VERSION)
+                .author(AUTHOR)
+                .about("Fetch config from upstream, overwriting whatever you have"),
+        ).subcommand(
             SubCommand::with_name("run")
                 .about("Runs archiver in persistent mode")
                 .version(VERSION)
@@ -131,6 +136,12 @@ fn run() -> Result<(), Error> {
             for gopro in ptp_device::locate_gopros(&ctx)?.iter() {
                 println!("  {:?} : {}", gopro.kind, gopro.serial);
             }
+        }
+        ("fetch", Some(_subm)) => {
+            let token = config::AccessToken::load()?;
+            let client = client::ArchiverClient::new(&ctx.cfg.api_base())?;
+            let config = client.fetch_config(token);
+            info!("{:?}", config);
         }
         // Login to upstream, adding the token to your local config file
         ("login", Some(_subm)) => {

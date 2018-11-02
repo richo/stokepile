@@ -54,6 +54,10 @@ impl AccessToken {
         file.read_to_string(&mut token)?;
         Ok(AccessToken(token))
     }
+
+    pub fn as_authorization_header(&self) -> String {
+        format!("Bearer: {}", &self.0)
+    }
 }
 
 #[derive(Debug, Eq, PartialEq)]

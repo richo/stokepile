@@ -7,6 +7,7 @@ use reqwest;
 use reqwest::header::{HeaderMap, HeaderValue};
 
 use messages;
+use config;
 
 /// A client to the web interface
 
@@ -38,6 +39,21 @@ impl ArchiverClient {
             base,
             client: reqwest::Client::new(),
         })
+    }
+
+    pub fn fetch_config(&self, token: config::AccessToken) -> Result<config::Config, Error> {
+        let mut endpoint = self.base.clone();
+        endpoint.set_path("/config");
+
+        let mut headers = HeaderMap::new();
+        headers.insert(reqwest::header::AUTHORIZATION, HeaderValue::from_str(&token.as_authorization_header())?);
+
+        let mut resp = self.client.get(endpoint)
+            // TODO(richo) we can actually reuse the web stuff for this
+            .headers(headers)
+            .send()?;
+
+        config::Config::from_str(&resp.text()?)
     }
 
     pub fn login(&self, email: &str, password: &str) -> Result<SessionToken, Error> {
