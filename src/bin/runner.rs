@@ -144,6 +144,8 @@ fn run() -> Result<(), Error> {
             stdin.read_line(&mut email)?;
             password = rpassword::prompt_password_stdout("password: ")?;
             let token = client.login(email.trim_right(), &password);
+
+            // TODO(richo) rewrite config including token
         }
         _ => {
             error!("No subcommand provided");
