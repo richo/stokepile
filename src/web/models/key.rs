@@ -35,6 +35,16 @@ impl Key {
 
         update(self).set(expired.eq(now)).execute(conn)
     }
+
+    pub fn is_expired(&self) -> bool {
+        match self.expired {
+            Some(ts) => {
+                let now = chrono::Utc::now().naive_utc();
+                ts < now
+            },
+            None => false,
+        }
+    }
 }
 
 #[derive(Insertable, Debug)]
