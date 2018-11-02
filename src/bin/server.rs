@@ -41,10 +41,10 @@ use oauth2::CsrfToken;
 
 use archiver::config::{Config, DeviceConfig};
 use archiver::messages;
-use archiver::web::auth::CurrentUser;
+use archiver::web::auth::{WebUser, ApiUser, AuthenticatedUser};
 use archiver::web::context::{Context, PossibleIntegration};
 use archiver::web::db::{init_pool, DbConn};
-use archiver::web::models::{NewDevice, Integration, NewIntegration, NewSession, NewUser, User};
+use archiver::web::models::{NewKey, NewDevice, Integration, NewIntegration, NewSession, NewUser, User};
 use archiver::web::oauth::Oauth2Provider;
 
 lazy_static! {
@@ -52,10 +52,10 @@ lazy_static! {
 }
 
 #[get("/config")]
-fn get_config(user: CurrentUser, conn: DbConn) -> Result<Content<String>, Flash<Redirect>> {
+fn get_config(user: AuthenticatedUser, conn: DbConn) -> Result<Content<String>, Flash<Redirect>> {
     let mut config = Config::build();
 
-    let integrations = user.user.integrations(&*conn).map_err(|e| Flash::error(
+    let integrations = user.user().integrations(&*conn).map_err(|e| Flash::error(
             Redirect::to("/"),
             format!("Error connecting to the DB: {}", e)))?;
     let mut integrations = integrations.iter();
@@ -72,7 +72,7 @@ fn get_config(user: CurrentUser, conn: DbConn) -> Result<Content<String>, Flash<
         }
     }
 
-    let devices = user.user.devices(&*conn).map_err(|e| Flash::error(
+    let devices = user.user().devices(&*conn).map_err(|e| Flash::error(
             Redirect::to("/"),
             format!("Error connecting to the DB: {}", e)))?;
     for device in devices {
@@ -175,7 +175,7 @@ fn get_signin<'r>(flash: Option<FlashMessage>) -> Template {
 }
 
 #[post("/signout")]
-fn signout(user: CurrentUser, conn: DbConn, mut cookies: Cookies) -> Redirect {
+fn signout(user: WebUser, conn: DbConn, mut cookies: Cookies) -> Redirect {
     user.session
         .delete(&*conn)
         .expect("Could not delete session.");
@@ -191,7 +191,7 @@ struct DisconnectForm {
 
 #[post("/integration/disconnect", data = "<disconnect>")]
 fn disconnect_integration(
-    user: CurrentUser,
+    user: WebUser,
     disconnect: Form<DisconnectForm>,
     conn: DbConn,
 ) -> Result<Flash<Redirect>, Flash<Redirect>> {
@@ -225,7 +225,7 @@ struct ConnectForm {
 
 #[post("/integration", data = "<connect>")]
 fn connect_integration(
-    mut user: CurrentUser,
+    mut user: WebUser,
     conn: DbConn,
     connect: Form<ConnectForm>,
 ) -> Redirect {
@@ -253,7 +253,7 @@ pub struct Oauth2Response {
 
 #[get("/integration/finish?<resp..>")]
 fn finish_integration(
-    user: CurrentUser,
+    user: WebUser,
     resp: Form<Oauth2Response>,
     conn: DbConn,
 ) -> Result<Flash<Redirect>, Flash<Redirect>> {
@@ -333,7 +333,7 @@ struct DeviceForm {
 
 #[post("/device", data = "<device>")]
 fn create_device(
-    user: CurrentUser,
+    user: WebUser,
     conn: DbConn,
     device: Form<DeviceForm>,
 ) -> Result<Flash<Redirect>, Flash<Redirect>> {
@@ -366,7 +366,7 @@ struct DeleteDeviceForm {
 
 #[post("/device/delete", data = "<device>")]
 fn delete_device(
-    user: CurrentUser,
+    user: WebUser,
     conn: DbConn,
     device: Form<DeleteDeviceForm>,
 ) -> Result<Flash<Redirect>, Flash<Redirect>> {
@@ -394,7 +394,7 @@ fn delete_device(
 }
 
 #[get("/")]
-fn index(user: Option<CurrentUser>, conn: DbConn, flash: Option<FlashMessage>) -> Template {
+fn index(user: Option<WebUser>, conn: DbConn, flash: Option<FlashMessage>) -> Template {
     let mut possible_integrations = vec![];
     let mut devices = vec![];
 
@@ -478,6 +478,7 @@ mod tests {
     use archiver::web::models::NewIntegration;
     use archiver::web::models::NewUser;
     use archiver::web::models::NewDevice;
+    use archiver::web::models::NewKey;
     use archiver::web::models::Session;
     use archiver::web::models::User;
 
@@ -621,6 +622,39 @@ mod tests {
         }
 
         let req = client.get("/config");
+
+        let mut response = req.dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        let config = Config::from_str(&response.body_string().expect("Didn't recieve a body")).unwrap();
+        let backend_names: Vec<_> = config.backends().iter().map(|b| b.name()).collect();
+        assert_eq!(&backend_names, &["dropbox"]);
+    }
+
+    #[test]
+    fn test_get_config_with_api_token() {
+        let client = client();
+
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+
+        {
+            let conn = db_conn(&client);
+
+            NewIntegration::new(&user, "dropbox", "test_oauth_token")
+                .create(&*conn)
+                .unwrap();
+        }
+
+        let token = {
+            let conn = db_conn(&client);
+
+            NewKey::new(&user)
+                .create(&*conn)
+                .unwrap().token
+        };
+
+        let req = client
+            .get("/config")
+            .header(Header::new("Authorization", format!("Bearer: {}", token)));
 
         let mut response = req.dispatch();
         assert_eq!(response.status(), Status::Ok);
