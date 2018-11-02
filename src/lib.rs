@@ -18,6 +18,7 @@ extern crate log;
 
 extern crate chrono;
 extern crate digest;
+extern crate dirs;
 extern crate hashing_copy;
 extern crate hex;
 extern crate libusb;

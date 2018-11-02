@@ -1,11 +1,12 @@
 use std::env;
 use std::fs::File;
-use std::io::Read;
-use std::path::PathBuf;
+use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
 
 use failure::Error;
 use toml;
 use url;
+use dirs;
 
 use dropbox;
 use flysight::Flysight;
@@ -17,6 +18,43 @@ use vimeo::VimeoClient;
 
 // TODO(richo) Change this once we have a canonical domain
 pub static DEFAULT_API_BASE: &'static str = "https://onatopp.psych0tik.net";
+pub static TOKEN_FILE_NAME: &'static str = ".archiver-token";
+
+#[derive(Debug)]
+pub struct AccessToken(String);
+
+fn get_home() -> Result<PathBuf, Error> {
+    match dirs::home_dir() {
+        Some(home) => Ok(home),
+        None => return Err(format_err!("Couldn't find your home directory. Is HOME set?")),
+    }
+}
+
+impl AccessToken {
+    pub fn save(token: &str) -> Result<(), Error> {
+        AccessToken::save_with_dir_fn(get_home, token)
+    }
+
+    fn save_with_dir_fn<F, T>(home: F, token: &str) -> Result<(), Error>
+    where F: Fn() -> Result<T, Error>, T: AsRef<Path> {
+        let mut file = File::create(home()?.as_ref().join(TOKEN_FILE_NAME))?;
+        file.write(token.as_bytes())?;
+        Ok(())
+    }
+
+    pub fn load() -> Result<Self, Error> {
+        AccessToken::load_with_dir_fn(get_home)
+    }
+
+    fn load_with_dir_fn<F, T>(home: F) -> Result<Self, Error>
+    where F: Fn() -> Result<T, Error>, T: AsRef<Path> {
+        let mut token = String::new();
+        let mut file = File::open(home()?.as_ref().join(TOKEN_FILE_NAME))
+            .map_err(|_| ConfigError::NoTokenFile)?;
+        file.read_to_string(&mut token)?;
+        Ok(AccessToken(token))
+    }
+}
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum DeviceConfig {
@@ -134,6 +172,8 @@ pub enum ConfigError {
     ParseError(#[cause] toml::de::Error),
     #[fail(display = "Invalid url for api base: {}", _0)]
     InvalidApiBase(url::ParseError),
+    #[fail(display = "The token file does not exist. Did you login?")]
+    NoTokenFile,
 }
 
 impl Config {
@@ -348,6 +388,7 @@ impl ConfigBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use test_helpers;
 
     #[test]
     fn test_example_config_parses() {
@@ -671,5 +712,36 @@ mountpoint="/mnt/archiver/comp"
         ).unwrap();
         assert_mass_storages(&config);
         assert_flysights(&config);
+    }
+
+    #[test]
+    fn test_save_token() {
+        let dir = test_helpers::tempdir();
+        let token = "test-token";
+        let mut saved_token = String::new();
+        AccessToken::save_with_dir_fn(|| Ok(dir.path()), token).unwrap();
+        File::open(dir.path().join(TOKEN_FILE_NAME)).unwrap()
+            .read_to_string(&mut saved_token).unwrap();
+        assert_eq!(&saved_token, token);
+    }
+
+    #[test]
+    fn test_load_token() {
+        let dir = test_helpers::tempdir();
+        let token = "test-token";
+        File::create(dir.path().join(TOKEN_FILE_NAME)).unwrap()
+            .write(token.as_bytes()).unwrap();
+        assert_eq!(AccessToken::load_with_dir_fn(|| Ok(dir.path())).unwrap().0, token);
+    }
+
+    #[test]
+    fn test_nice_error_for_nonexistant_token() {
+        let dir = test_helpers::tempdir();
+        let token_error = AccessToken::load_with_dir_fn(|| Ok(dir.path())).unwrap_err();
+        let inner_error = token_error.downcast::<ConfigError>().unwrap();
+        assert!(match inner_error {
+            ConfigError::NoTokenFile => true,
+            _ => false,
+        }, "Didn't get the correct error");
     }
 }

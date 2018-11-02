@@ -143,10 +143,11 @@ fn run() -> Result<(), Error> {
             io::stdout().flush()?;
             stdin.read_line(&mut email)?;
             password = rpassword::prompt_password_stdout("password: ")?;
-            let token = client.login(email.trim_right(), &password);
-            println!("{}", &token?);
+            let token = client.login(email.trim_right(), &password)?;
+            println!("Token recieved, saving to ~/{}", config::TOKEN_FILE_NAME);
 
             // TODO(richo) rewrite config including token
+            config::AccessToken::save(&token)?;
         }
         _ => {
             error!("No subcommand provided");
