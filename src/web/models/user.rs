@@ -74,6 +74,18 @@ impl User {
             .filter(user_id.eq(self.id).and(id.eq(device_id)))
             .get_result(conn)
     }
+
+    pub fn key_by_id(
+        &self,
+        key_id: i32,
+        conn: &PgConnection,
+    ) -> QueryResult<Key> {
+        use web::schema::keys::dsl::*;
+
+        keys
+            .filter(user_id.eq(self.id).and(id.eq(key_id)))
+            .get_result(conn)
+    }
 }
 
 #[derive(Insertable, Debug)]

@@ -9,7 +9,7 @@ use super::*;
 #[derive(Identifiable, Queryable, Associations, Debug, AsChangeset, PartialEq, Serialize)]
 #[belongs_to(User)]
 pub struct Key {
-    pub id: String,
+    pub id: i32,
     pub user_id: i32,
     pub token: String,
     pub created: chrono::naive::NaiveDateTime,
@@ -50,7 +50,6 @@ impl Key {
 #[derive(Insertable, Debug)]
 #[table_name = "keys"]
 pub struct NewKey {
-    pub id: String,
     pub user_id: i32,
     pub token: String,
     created: chrono::naive::NaiveDateTime,
@@ -65,7 +64,6 @@ fn generate_token_id() -> String {
 impl NewKey {
     pub fn new(user: &User) -> Self {
         NewKey {
-            id: generate_token_id(),
             user_id: user.id,
             token: generate_token_id(),
             created: chrono::Utc::now().naive_utc(),

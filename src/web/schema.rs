@@ -21,7 +21,7 @@ table! {
 
 table! {
     keys (id) {
-        id -> Varchar,
+        id -> Int4,
         user_id -> Int4,
         token -> Varchar,
         created -> Timestamp,
