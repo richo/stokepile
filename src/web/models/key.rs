@@ -12,6 +12,7 @@ pub struct Key {
     pub id: String,
     pub user_id: i32,
     pub token: String,
+    pub created: chrono::naive::NaiveDateTime,
     pub expired: Option<chrono::naive::NaiveDateTime>,
 }
 
@@ -42,6 +43,7 @@ pub struct NewKey {
     pub id: String,
     pub user_id: i32,
     pub token: String,
+    created: chrono::naive::NaiveDateTime,
     expired: Option<chrono::naive::NaiveDateTime>,
 }
 
@@ -56,6 +58,7 @@ impl NewKey {
             id: generate_token_id(),
             user_id: user.id,
             token: generate_token_id(),
+            created: chrono::Utc::now().naive_utc(),
             expired: None,
         }
     }

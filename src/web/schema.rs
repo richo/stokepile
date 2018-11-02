@@ -24,6 +24,7 @@ table! {
         id -> Varchar,
         user_id -> Int4,
         token -> Varchar,
+        created -> Timestamp,
         expired -> Nullable<Timestamp>,
     }
 }
