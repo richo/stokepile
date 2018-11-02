@@ -664,6 +664,41 @@ mod tests {
     }
 
     #[test]
+    fn test_get_config_with_invalid_api_token() {
+        let client = client();
+
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+
+        {
+            let conn = db_conn(&client);
+
+            NewIntegration::new(&user, "dropbox", "test_oauth_token")
+                .create(&*conn)
+                .unwrap();
+        }
+
+        let token = {
+            let conn = db_conn(&client);
+
+            NewKey::new(&user)
+                .create(&*conn)
+                .unwrap()
+        };
+
+        {
+            let conn = db_conn(&client);
+            token.expire(&*conn);
+        }
+
+        let req = client
+            .get("/config")
+            .header(Header::new("Authorization", format!("Bearer: {}", token.token)));
+
+        let mut response = req.dispatch();
+        assert_eq!(response.status(), Status::Unauthorized);
+    }
+
+    #[test]
     fn test_get_config_with_devices() {
         let client = client();
 
