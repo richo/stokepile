@@ -734,6 +734,61 @@ mod tests {
     }
 
     #[test]
+    fn test_revoke_api_token() {
+        let client = client();
+
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+
+        let token = {
+            let conn = db_conn(&client);
+
+            NewKey::new(&user)
+                .create(&*conn)
+                .unwrap()
+        };
+
+        signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
+        let req = client
+            .post("/key/expire")
+            .header(ContentType::Form)
+            .body(&format!("key_id={}", token.id));
+
+        let response = req.dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
+
+        let conn = db_conn(&client);
+        assert!(user.key_by_id(token.id, &*conn).unwrap().expired.is_some(), "Didn't expire token");
+    }
+
+    #[test]
+    fn test_cannot_revoke_other_users_api_token() {
+        let client = client();
+
+        let user1 = create_user(&client, "ohno", "badpw");
+        let _user2 = create_user(&client, "lolwat", "worse");
+
+        let token = {
+            let conn = db_conn(&client);
+
+            NewKey::new(&user1)
+                .create(&*conn)
+                .unwrap()
+        };
+
+        signin(&client, "lolwat", "worse").unwrap();
+        let req = client
+            .post("/key/expire")
+            .header(ContentType::Form)
+            .body(&format!("key_id={}", token.id));
+
+        let response = req.dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
+
+        let conn = db_conn(&client);
+        assert!(user1.key_by_id(token.id, &*conn).unwrap().expired.is_none(), "Expired another user's token");
+    }
+
+    #[test]
     fn test_get_config_with_devices() {
         let client = client();
 
