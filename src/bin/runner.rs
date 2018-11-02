@@ -138,7 +138,7 @@ fn run() -> Result<(), Error> {
             let mut email = String::new();
             let mut stdin = io::stdin();
             let password;
-            println!("Fetching config from upstream.");
+            println!("Logging into {}", &ctx.cfg.api_base());
             print!("email: ");
             io::stdout().flush()?;
             stdin.read_line(&mut email)?;
