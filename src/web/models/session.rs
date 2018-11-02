@@ -1,6 +1,4 @@
 use serde_json;
-use rand;
-
 use diesel::prelude::*;
 
 use web::schema::sessions;
@@ -51,15 +49,10 @@ pub struct NewSession {
     pub user_id: i32,
 }
 
-fn generate_session_id() -> String {
-    let (x, y) = rand::random::<(u64, u64)>();
-    format!("{:x}{:x}", x, y)
-}
-
 impl NewSession {
     pub fn new(user: &User) -> Self {
         NewSession {
-            id: generate_session_id(),
+            id: generate_secret(),
             user_id: user.id,
         }
     }

@@ -1,5 +1,3 @@
-use rand;
-
 use diesel::prelude::*;
 use chrono;
 
@@ -56,16 +54,11 @@ pub struct NewKey {
     expired: Option<chrono::naive::NaiveDateTime>,
 }
 
-fn generate_token_id() -> String {
-    let (x, y) = rand::random::<(u64, u64)>();
-    format!("{:x}{:x}", x, y)
-}
-
 impl NewKey {
     pub fn new(user: &User) -> Self {
         NewKey {
             user_id: user.id,
-            token: generate_token_id(),
+            token: generate_secret(),
             created: chrono::Utc::now().naive_utc(),
             expired: None,
         }
