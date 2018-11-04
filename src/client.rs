@@ -15,6 +15,8 @@ use config;
 pub enum ClientError {
     #[fail(display = "Username or password was incorrect")]
     InvalidLogin,
+    #[fail(display = "Server error: {}", _0)]
+    ServerError(String),
 }
 
 pub type SessionToken = String;
@@ -53,6 +55,10 @@ impl ArchiverClient {
             .headers(headers)
             .send()?;
 
+        if resp.status() == 500 {
+            Err(ClientError::ServerError(resp.text()?))?;
+        }
+
         config::Config::from_str(&resp.text()?)
     }
 
@@ -73,6 +79,11 @@ impl ArchiverClient {
             .body(serde_json::to_string(&payload)?)
             .headers(headers)
             .send()?;
+
+        if resp.status() == 500 {
+            Err(ClientError::ServerError(resp.text()?))?;
+        }
+
         let resp: messages::JsonSignInResp = resp.json()?;
         match resp {
             messages::JsonSignInResp::Token(s) => Ok(s),
