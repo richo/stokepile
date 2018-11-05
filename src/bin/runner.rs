@@ -35,27 +35,32 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
                 .long("config")
                 .takes_value(true)
                 .help("Path to configuration file"),
-        ).subcommand(
+        )
+        .subcommand(
             SubCommand::with_name("daemon")
                 .version(VERSION)
                 .author(AUTHOR)
                 .about("Runs archiver in persistent mode"),
-        ).subcommand(
+        )
+        .subcommand(
             SubCommand::with_name("scan")
                 .version(VERSION)
                 .author("richö butts")
                 .about("Scan for attached devices"),
-        ).subcommand(
+        )
+        .subcommand(
             SubCommand::with_name("login")
                 .version(VERSION)
                 .author(AUTHOR)
                 .about("Login to archiver web for config fetching"),
-        ).subcommand(
+        )
+        .subcommand(
             SubCommand::with_name("fetch")
                 .version(VERSION)
                 .author(AUTHOR)
                 .about("Fetch config from upstream, overwriting whatever you have"),
-        ).subcommand(
+        )
+        .subcommand(
             SubCommand::with_name("run")
                 .about("Runs archiver in persistent mode")
                 .version(VERSION)
