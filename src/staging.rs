@@ -104,7 +104,8 @@ impl UploadDescriptor {
             self.device_name,
             self.time_component(),
             self.extension
-        ).into()
+        )
+        .into()
     }
 
     fn date_component(&self) -> String {

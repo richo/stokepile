@@ -54,10 +54,7 @@ pub struct ReportEntry {
 impl ReportEntry {
     /// Bind an UploadDescriptor to this entry, returning the finalised ReportEntry.
     pub fn new(desc: UploadDescriptor, results: Vec<(String, UploadStatus)>) -> ReportEntry {
-        ReportEntry {
-            desc,
-            results,
-        }
+        ReportEntry { desc, results }
     }
 }
 
@@ -65,13 +62,11 @@ impl ReportEntry {
     /// Was every attempt to upload in this transaction successful.
     pub fn is_success(&self) -> bool {
         self.results.iter().all(|r| match r.1 {
-            UploadStatus::AlreadyUploaded |
-                UploadStatus::Succeeded => true,
+            UploadStatus::AlreadyUploaded | UploadStatus::Succeeded => true,
             UploadStatus::Errored(_) => false,
         })
     }
 }
-
 
 impl UploadReport {
     /// Attach a ReportEntry to this report.
@@ -95,8 +90,8 @@ mod tests {
 
     fn dummy_report() -> UploadReport {
         let mut report: UploadReport = Default::default();
-        report.record_activity(
-            ReportEntry::new( UploadDescriptor {
+        report.record_activity(ReportEntry::new(
+            UploadDescriptor {
                 capture_time: Local.ymd(2018, 8, 24).and_hms(9, 55, 30),
                 device_name: "test-device".to_string(),
                 extension: "mp4".to_string(),
@@ -107,10 +102,9 @@ mod tests {
                 ("vimeo".into(), UploadStatus::Succeeded),
                 ("youtube".into(), UploadStatus::Succeeded),
             ],
-            )
-        );
-        report.record_activity(
-            ReportEntry::new(UploadDescriptor {
+        ));
+        report.record_activity(ReportEntry::new(
+            UploadDescriptor {
                 capture_time: Local.ymd(2018, 8, 24).and_hms(12, 30, 30),
                 device_name: "test-device".to_string(),
                 extension: "mp4".to_string(),
@@ -118,11 +112,16 @@ mod tests {
                 size: 0,
             },
             vec![
-                ("vimeo".into(), UploadStatus::Succeeded),
-                ("youtube".into(), UploadStatus::Errored(format_err!("Something bad happened")))
-                ],
-            )
-        );
+                (
+                    "vimeo".into(),
+                     UploadStatus::Succeeded
+                ),
+                (
+                    "youtube".into(),
+                    UploadStatus::Errored(format_err!("Something bad happened")),
+                ),
+            ],
+        ));
         report
     }
 
@@ -134,7 +133,8 @@ mod tests {
         // one, remove its offset, and template it in here for the testcase.
         let local = Local::today();
         let offset = local.offset();
-        let expected = format!("\
+        let expected = format!(
+            "\
 ARCHIVER UPLOAD REPORT
 ======================
 
@@ -148,11 +148,10 @@ test-device
     2018-08-24T12:30:30{offset}.mp4 (0b)
     # vimeo: Succeeded
     # youtube: Upload failed: ErrorMessage {{ msg: &quot;Something bad happened&quot; }}
-", offset = offset);
-        assert_eq!(
-            report.to_plaintext().unwrap(),
-            expected
+",
+            offset = offset
         );
+        assert_eq!(report.to_plaintext().unwrap(), expected);
     }
 }
 

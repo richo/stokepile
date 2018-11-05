@@ -43,7 +43,6 @@ impl UploadableFile for MassStorageFile {
     fn delete(&mut self) -> Result<(), Error> {
         fs::remove_file(&self.source_path)?;
         Ok(())
-
     }
 }
 
@@ -105,8 +104,8 @@ mod tests {
     fn fix_filetimes(root: &Path) -> Result<(), Error> {
         for (i, entry) in walkdir::WalkDir::new(root).into_iter().enumerate() {
             let entry = entry.unwrap();
-            if ! entry.file_type().is_file() {
-                continue
+            if !entry.file_type().is_file() {
+                continue;
             }
             let metadata = fs::metadata(entry.path())?;
             let mtime = FileTime::from_last_modification_time(&metadata);

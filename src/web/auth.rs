@@ -15,10 +15,7 @@ pub struct WebUser {
 
 impl WebUser {
     pub fn new(user: User, session: Session) -> Self {
-        WebUser {
-            user,
-            session,
-        }
+        WebUser { user, session }
     }
 }
 
@@ -55,10 +52,7 @@ pub struct ApiUser {
 
 impl ApiUser {
     pub fn new(user: User, key: Key) -> Self {
-        ApiUser {
-            user,
-            key,
-        }
+        ApiUser { user, key }
     }
 }
 
@@ -78,7 +72,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for ApiUser {
                         } else {
                             Some(ApiUser::new(user, key))
                         }
-                    },
+                    }
                     Err(_) => None,
                 }
             } else {
@@ -117,6 +111,6 @@ impl<'a, 'r> FromRequest<'a, 'r> for AuthenticatedUser {
         if let Outcome::Success(api) = ApiUser::from_request(request) {
             return Outcome::Success(AuthenticatedUser::Api(api));
         }
-        return Outcome::Failure((Status::Unauthorized, ()))
+        return Outcome::Failure((Status::Unauthorized, ()));
     }
 }

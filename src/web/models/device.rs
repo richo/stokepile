@@ -22,30 +22,26 @@ pub struct Device {
 impl From<Device> for config::DeviceConfig {
     fn from(device: Device) -> Self {
         match &device.kind[..] {
-            "ptp" => {
-                config::DeviceConfig::Gopro(GoproConfig {
-                    name: device.name,
-                    serial: device.identifier
-                })
-            },
+            "ptp" => config::DeviceConfig::Gopro(GoproConfig {
+                name: device.name,
+                serial: device.identifier,
+            }),
             "mass_storage" => {
                 config::DeviceConfig::MassStorage(MassStorageConfig {
                     name: device.name,
                     // TODO(richo) add a metadata field and store this there
                     extensions: vec!["mp4".into()],
-                    mountpoint: device.identifier
+                    mountpoint: device.identifier,
                 })
-            },
-            "flysight" => {
-                config::DeviceConfig::Flysight(FlysightConfig {
-                    name: device.name,
-                    mountpoint: device.identifier
-                })
-            },
+            }
+            "flysight" => config::DeviceConfig::Flysight(FlysightConfig {
+                name: device.name,
+                mountpoint: device.identifier,
+            }),
             kind => {
                 // This feels sound with the overlapping borrows, revisit?
                 config::DeviceConfig::UnknownDevice(kind.to_string())
-            },
+            }
         }
     }
 }
@@ -54,9 +50,7 @@ impl Device {
     pub fn by_id(&self, device_id: i32, conn: &PgConnection) -> QueryResult<Device> {
         use web::schema::devices::dsl::*;
 
-        devices
-            .filter(id.eq(device_id))
-            .get_result::<Device>(conn)
+        devices.filter(id.eq(device_id)).get_result::<Device>(conn)
     }
 
     pub fn delete(&self, conn: &PgConnection) -> QueryResult<usize> {

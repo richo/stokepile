@@ -48,9 +48,14 @@ impl ArchiverClient {
         endpoint.set_path("/config");
 
         let mut headers = HeaderMap::new();
-        headers.insert(reqwest::header::AUTHORIZATION, HeaderValue::from_str(&token.as_authorization_header())?);
+        headers.insert(
+            reqwest::header::AUTHORIZATION,
+            HeaderValue::from_str(&token.as_authorization_header())?,
+        );
 
-        let mut resp = self.client.get(endpoint)
+        let mut resp = self
+            .client
+            .get(endpoint)
             // TODO(richo) we can actually reuse the web stuff for this
             .headers(headers)
             .send()?;
@@ -67,14 +72,19 @@ impl ArchiverClient {
         endpoint.set_path("/json/signin");
 
         let mut headers = HeaderMap::new();
-        headers.insert(reqwest::header::CONTENT_TYPE, HeaderValue::from_static("application/json"));
+        headers.insert(
+            reqwest::header::CONTENT_TYPE,
+            HeaderValue::from_static("application/json"),
+        );
 
         let payload = messages::JsonSignIn {
             email: email.into(),
             password: password.into(),
         };
 
-        let mut resp = self.client.post(endpoint)
+        let mut resp = self
+            .client
+            .post(endpoint)
             // TODO(richo) we can actually reuse the web stuff for this
             .body(serde_json::to_string(&payload)?)
             .headers(headers)

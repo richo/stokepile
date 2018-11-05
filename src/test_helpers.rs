@@ -15,10 +15,9 @@ pub(crate) fn test_data(suffix: &str) -> tempfile::TempDir {
     let root = TEST_DATA.join(suffix);
     for entry in walkdir::WalkDir::new(&root) {
         let entry = entry.unwrap();
-        let target = source.path().join(entry
-                                        .path()
-                                        .strip_prefix(&root)
-                                        .unwrap());
+        let target = source
+            .path()
+            .join(entry.path().strip_prefix(&root).unwrap());
         if entry.file_type().is_dir() {
             let _ = fs::create_dir(&target);
         } else {

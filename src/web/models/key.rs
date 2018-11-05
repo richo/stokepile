@@ -19,8 +19,7 @@ impl Key {
         use web::schema::keys::dsl::*;
         use web::schema::users;
 
-        keys
-            .inner_join(users::table)
+        keys.inner_join(users::table)
             .filter(token.eq(token_id))
             .get_result::<(Key, User)>(conn)
     }
@@ -39,7 +38,7 @@ impl Key {
             Some(ts) => {
                 let now = chrono::Utc::now().naive_utc();
                 ts < now
-            },
+            }
             None => false,
         }
     }

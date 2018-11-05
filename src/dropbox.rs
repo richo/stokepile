@@ -180,16 +180,20 @@ impl DropboxFilesClient {
 
         headers.insert(header::AUTHORIZATION, self.bearer_token()?);
         headers.insert(header::USER_AGENT, HeaderValue::from_str(&self.user_agent)?);
-        headers.insert(header::CONTENT_TYPE, HeaderValue::from_str(match &body {
-            DropboxBody::JSON(_) => "application/json",
-            DropboxBody::Binary(_) => "application/octet-stream",
-        })?);
+        headers.insert(
+            header::CONTENT_TYPE,
+            HeaderValue::from_str(match &body {
+                DropboxBody::JSON(_) => "application/json",
+                DropboxBody::Binary(_) => "application/octet-stream",
+            })?,
+        );
 
         self.client
             .post(&url)
             .body(match body {
                 DropboxBody::JSON(vec) | DropboxBody::Binary(vec) => vec,
-            }).headers(headers)
+            })
+            .headers(headers)
             .send()
             .map_err(|e| format_err!("HTTP error: {:?}", e))
     }
@@ -205,7 +209,7 @@ impl DropboxFilesClient {
         let text = res.text()?;
         match serde_json::from_str(&text) {
             Ok(meta) => Ok(meta),
-            Err(_) => Err(format_err!("Dropbox error: {}", text))
+            Err(_) => Err(format_err!("Dropbox error: {}", text)),
         }
     }
 
@@ -233,7 +237,7 @@ impl DropboxFilesClient {
         let text = &res.text()?;
         match serde_json::from_str(&text) {
             Ok(meta) => Ok(meta),
-            Err(_) => Err(format_err!("Dropbox error: {}", text))
+            Err(_) => Err(format_err!("Dropbox error: {}", text)),
         }
     }
 
@@ -241,7 +245,10 @@ impl DropboxFilesClient {
         use self::DropboxBody::*;
         let req = serde_json::to_vec(&UploadSessionAppendRequest { cursor })?;
         let mut headers = HeaderMap::new();
-        headers.insert(DROPBOX_API_ARG.clone(), HeaderValue::from_str(&String::from_utf8(req)?)?);
+        headers.insert(
+            DROPBOX_API_ARG.clone(),
+            HeaderValue::from_str(&String::from_utf8(req)?)?,
+        );
         let mut res = self.request(
             ("content", "2/files/upload_session/append_v2"),
             Binary(data.to_vec()),
@@ -263,7 +270,10 @@ impl DropboxFilesClient {
             commit: &commit,
         })?;
         let mut headers = HeaderMap::new();
-        headers.insert(DROPBOX_API_ARG.clone(), HeaderValue::from_str(&String::from_utf8(req)?)?);
+        headers.insert(
+            DROPBOX_API_ARG.clone(),
+            HeaderValue::from_str(&String::from_utf8(req)?)?,
+        );
         let mut res = self.request(
             ("content", "2/files/upload_session/finish"),
             Binary(data.to_vec()),
@@ -272,24 +282,29 @@ impl DropboxFilesClient {
         let text = res.text()?;
         match serde_json::from_str(&text) {
             Ok(meta) => Ok(meta),
-            Err(_) => Err(format_err!("Dropbox error: {}", text))
+            Err(_) => Err(format_err!("Dropbox error: {}", text)),
         }
     }
 }
 
-impl<T> StorageAdaptor<T> for DropboxFilesClient where T : Read {
+impl<T> StorageAdaptor<T> for DropboxFilesClient
+where
+    T: Read,
+{
     fn already_uploaded(&self, manifest: &staging::UploadDescriptor) -> bool {
         match self.get_metadata(&manifest.remote_path()) {
             Ok(ref metadata) if metadata.content_hash() == &manifest.content_hash => {
                 return true;
             }
-            _ => {
-                return false
-            }
+            _ => return false,
         }
     }
 
-    fn upload(&self, mut reader: T, manifest: &staging::UploadDescriptor) -> Result<StorageStatus, Error> {
+    fn upload(
+        &self,
+        mut reader: T,
+        manifest: &staging::UploadDescriptor,
+    ) -> Result<StorageStatus, Error> {
         let id = self.start_upload_session()?;
         let mut buffer = vec![0; DEFAULT_CHUNK_SIZE];
         let mut cursor = Cursor {
@@ -312,7 +327,8 @@ impl<T> StorageAdaptor<T> for DropboxFilesClient where T : Read {
             path: &manifest.remote_path(),
             mode: "overwrite".to_string(),
         };
-        self.upload_session_finish(&[], cursor, commit).map(|r| r.into())
+        self.upload_session_finish(&[], cursor, commit)
+            .map(|r| r.into())
     }
 
     fn name(&self) -> String {
@@ -362,7 +378,10 @@ mod tests {
         let hash = DropboxContentHasher::digest(&localfile[..]);
         eprintln!("hash!: {:?}", &hash);
         let path = Path::new("/archiver-test/hello.txt");
-        if let Err(e) = client.upload(&localfile[..], &staging::UploadDescriptor::test_descriptor()) {
+        if let Err(e) = client.upload(
+            &localfile[..],
+            &staging::UploadDescriptor::test_descriptor(),
+        ) {
             panic!("{:?}", e);
         }
         let metadata = client.get_metadata(&path).unwrap();

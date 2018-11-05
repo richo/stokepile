@@ -60,12 +60,10 @@ impl Ctx {
 }
 
 fn create_or_find_staging(cfg: &config::Config) -> Result<PathBuf, Error> {
-    let path = cfg
-        .staging_dir()?
-        .unwrap_or_else(|| {
-            info!("Staging dir not specified, falling back to `staging`");
-            PathBuf::from("staging")
-        });
+    let path = cfg.staging_dir()?.unwrap_or_else(|| {
+        info!("Staging dir not specified, falling back to `staging`");
+        PathBuf::from("staging")
+    });
 
     if let Err(e) = fs::create_dir(&path) {
         if e.kind() == io::ErrorKind::AlreadyExists {

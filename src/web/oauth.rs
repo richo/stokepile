@@ -28,7 +28,8 @@ lazy_static! {
     static ref BASE_URL: Url = Url::parse(
         &env::var("ARCHIVER_BASE_URL")
             .expect("Missing the ARCHIVER_BASE_URL environment variable."),
-    ).expect("Invalid ARCHIVER_BASE_URL");
+    )
+    .expect("Invalid ARCHIVER_BASE_URL");
 }
 
 #[derive(Clone)]
@@ -166,7 +167,8 @@ impl Oauth2Config {
             Some(client_secret.clone()),
             auth_url.clone(),
             Some(token_url.clone()),
-        ).set_redirect_url(redirect_url.clone());
+        )
+        .set_redirect_url(redirect_url.clone());
         scopes.iter().fold(client, |client, scope| {
             client.add_scope(Scope::new(scope.to_string()))
         })
@@ -182,8 +184,11 @@ pub enum Oauth2Provider {
 
 impl Oauth2Provider {
     pub fn providers() -> &'static [Oauth2Provider] {
-        static VARIANTS: &'static [Oauth2Provider] =
-            &[Oauth2Provider::Dropbox, Oauth2Provider::YouTube, Oauth2Provider::Vimeo];
+        static VARIANTS: &'static [Oauth2Provider] = &[
+            Oauth2Provider::Dropbox,
+            Oauth2Provider::YouTube,
+            Oauth2Provider::Vimeo,
+        ];
         VARIANTS
     }
 

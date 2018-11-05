@@ -38,17 +38,13 @@ impl User {
     pub fn devices(&self, conn: &PgConnection) -> QueryResult<Vec<Device>> {
         use web::schema::devices::dsl::*;
 
-        devices
-            .filter(user_id.eq(self.id))
-            .load::<Device>(conn)
+        devices.filter(user_id.eq(self.id)).load::<Device>(conn)
     }
 
     pub fn keys(&self, conn: &PgConnection) -> QueryResult<Vec<Key>> {
         use web::schema::keys::dsl::*;
 
-        keys
-            .filter(user_id.eq(self.id))
-            .load::<Key>(conn)
+        keys.filter(user_id.eq(self.id)).load::<Key>(conn)
     }
 
     pub fn integration_by_id(
@@ -63,11 +59,7 @@ impl User {
             .get_result(conn)
     }
 
-    pub fn device_by_id(
-        &self,
-        device_id: i32,
-        conn: &PgConnection,
-    ) -> QueryResult<Device> {
+    pub fn device_by_id(&self, device_id: i32, conn: &PgConnection) -> QueryResult<Device> {
         use web::schema::devices::dsl::*;
 
         devices
@@ -75,15 +67,10 @@ impl User {
             .get_result(conn)
     }
 
-    pub fn key_by_id(
-        &self,
-        key_id: i32,
-        conn: &PgConnection,
-    ) -> QueryResult<Key> {
+    pub fn key_by_id(&self, key_id: i32, conn: &PgConnection) -> QueryResult<Key> {
         use web::schema::keys::dsl::*;
 
-        keys
-            .filter(user_id.eq(self.id).and(id.eq(key_id)))
+        keys.filter(user_id.eq(self.id).and(id.eq(key_id)))
             .get_result(conn)
     }
 }

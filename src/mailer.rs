@@ -43,7 +43,8 @@ impl MailReport for SendgridMailer {
             .add_to(Destination {
                 address: &self.to,
                 name: "archiver recipient",
-            }).add_from(&self.from)
+            })
+            .add_from(&self.from)
             .add_subject(&self.subject)
             .add_text(report);
         self.mailer

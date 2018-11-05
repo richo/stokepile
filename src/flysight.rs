@@ -30,7 +30,7 @@ impl Ord for FlysightFile {
         match self.capturedate.cmp(&other.capturedate) {
             Less => Less,
             Greater => Greater,
-            Equal => self.capturetime.cmp(&other.capturetime)
+            Equal => self.capturetime.cmp(&other.capturetime),
         }
     }
 }
@@ -43,8 +43,7 @@ impl PartialOrd for FlysightFile {
 
 impl PartialEq for FlysightFile {
     fn eq(&self, other: &FlysightFile) -> bool {
-        self.capturedate == other.capturedate &&
-            self.capturetime == other.capturetime
+        self.capturedate == other.capturedate && self.capturetime == other.capturetime
     }
 }
 
@@ -100,7 +99,8 @@ impl Staging for Flysight {
                     .expect("Failed to compile regex");
             static ref ENTRY: regex::bytes::Regex = regex::bytes::Regex::new(
                 r"(?P<hour>\d{2})-(?P<min>\d{2})-(?P<second>\d{2}).[cC][sS][vV]"
-            ).expect("Failed to compile regex");
+            )
+            .expect("Failed to compile regex");
         }
 
         let mut out = vec![];

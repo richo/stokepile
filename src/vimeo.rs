@@ -37,9 +37,7 @@ struct InnerUploadCreateVideoResponse {
 impl VimeoClient {
     /// Create a new VimeoClient authenticated by `token`.
     pub fn new(token: String) -> VimeoClient {
-        VimeoClient {
-            token,
-        }
+        VimeoClient { token }
     }
 
     fn create_upload_handle(&self, name: &str, size: u64) -> Result<UploadHandle, Error> {
@@ -54,12 +52,19 @@ impl VimeoClient {
 
         // Setup our headers
         let mut headers = self.default_headers(size);
-        headers.insert(reqwest::header::CONTENT_TYPE, HeaderValue::from_static("application/json"));
-        headers.insert(reqwest::header::ACCEPT, HeaderValue::from_static("application/vnd.vimeo.*+json;version=3.4"));
+        headers.insert(
+            reqwest::header::CONTENT_TYPE,
+            HeaderValue::from_static("application/json"),
+        );
+        headers.insert(
+            reqwest::header::ACCEPT,
+            HeaderValue::from_static("application/vnd.vimeo.*+json;version=3.4"),
+        );
 
         // Create our request object
         let client = reqwest::Client::new();
-        let text = client.post(api_endpoint)
+        let text = client
+            .post(api_endpoint)
             .body(json.to_string())
             .headers(headers)
             .send()?
@@ -88,7 +93,11 @@ impl StorageAdaptor<File> for VimeoClient {
     }
 
     /// Upload a file from the local filesystem to vimeo.
-    fn upload(&self, file: File, manifest: &staging::UploadDescriptor) -> Result<StorageStatus, Error> {
+    fn upload(
+        &self,
+        file: File,
+        manifest: &staging::UploadDescriptor,
+    ) -> Result<StorageStatus, Error> {
         // First we find out how big the file is so we can create our video object upstream
         let size = file.metadata()?.len();
         // Then we create an upload handle
@@ -124,20 +133,23 @@ mod tests {
     #[test]
     #[ignore]
     fn test_creates_upload_handle() {
-        let client = VimeoClient::new(
-            env::var("ARCHIVER_TEST_VIMEO_KEY").expect("Didn't provide test key"),
+        let client =
+            VimeoClient::new(env::var("ARCHIVER_TEST_VIMEO_KEY").expect("Didn't provide test key"));
+        let handle = client
+            .create_upload_handle("test_video.mp4", 1024)
+            .expect("Couldn't create upload handle");
+        assert!(
+            handle.url.starts_with("https://files.tus.vimeo.com"),
+            "Handle url not rooted at vimeo.com"
         );
-        let handle = client.create_upload_handle("test_video.mp4", 1024).expect("Couldn't create upload handle");
-        assert!(handle.url.starts_with("https://files.tus.vimeo.com"), "Handle url not rooted at vimeo.com");
         assert_eq!(handle.complete, false);
     }
 
     #[test]
     #[ignore]
     fn test_uploads_file_to_vimeo() {
-        let client = VimeoClient::new(
-            env::var("ARCHIVER_TEST_VIMEO_KEY").expect("Didn't provide test key"),
-        );
+        let client =
+            VimeoClient::new(env::var("ARCHIVER_TEST_VIMEO_KEY").expect("Didn't provide test key"));
         let fh = File::open("/tmp/test.mp4").expect("Couldn't open video");
         let desc = staging::UploadDescriptor::test_descriptor();
         client.upload(fh, &desc).expect("Could not upload file");

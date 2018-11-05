@@ -54,7 +54,9 @@ impl<'c> UploadableFile for GoproFile<'c> {
     fn delete(&mut self) -> Result<(), Error> {
         // lol how even does into
         let ret = self
-            .camera.lock().unwrap()
+            .camera
+            .lock()
+            .unwrap()
             .delete_object(self.handle, None)?;
         Ok(ret)
     }
@@ -69,7 +71,9 @@ impl<'b> Read for GoproFile<'b> {
             size = (self.size - self.offset) as usize;
         }
         let vec = self
-            .camera.lock().unwrap()
+            .camera
+            .lock()
+            .unwrap()
             .get_partialobject(self.handle, self.offset, size as u32, None)
             .expect("FIXME couldn't read from buf");
         &buf[..vec.len()].copy_from_slice(&vec[..]);
@@ -150,7 +154,11 @@ impl<'c> Staging for GoproConnection<'c> where {
             timeout,
         )?;
         for filehandle in filehandles {
-            let object = self.camera.lock().unwrap().get_objectinfo(filehandle, timeout)?;
+            let object = self
+                .camera
+                .lock()
+                .unwrap()
+                .get_objectinfo(filehandle, timeout)?;
             assert_eq!(
                 GoproObjectFormat::from_u16(object.ObjectFormat),
                 Some(GoproObjectFormat::Video)
@@ -166,7 +174,12 @@ impl<'c> Staging for GoproConnection<'c> where {
             out.push(file)
         }
 
-        info!("Loaded {} files from {:?} serial {}", out.len(), &self.gopro.kind, &self.gopro.serial);
+        info!(
+            "Loaded {} files from {:?} serial {}",
+            out.len(),
+            &self.gopro.kind,
+            &self.gopro.serial
+        );
 
         Ok(out)
     }

@@ -26,7 +26,11 @@ pub struct AccessToken(String);
 fn get_home() -> Result<PathBuf, Error> {
     match dirs::home_dir() {
         Some(home) => Ok(home),
-        None => return Err(format_err!("Couldn't find your home directory. Is HOME set?")),
+        None => {
+            return Err(format_err!(
+                "Couldn't find your home directory. Is HOME set?"
+            ))
+        }
     }
 }
 
@@ -36,7 +40,10 @@ impl AccessToken {
     }
 
     fn save_with_dir_fn<F, T>(home: F, token: &str) -> Result<(), Error>
-    where F: Fn() -> Result<T, Error>, T: AsRef<Path> {
+    where
+        F: Fn() -> Result<T, Error>,
+        T: AsRef<Path>,
+    {
         let mut file = File::create(home()?.as_ref().join(TOKEN_FILE_NAME))?;
         file.write(token.as_bytes())?;
         Ok(())
@@ -47,7 +54,10 @@ impl AccessToken {
     }
 
     fn load_with_dir_fn<F, T>(home: F) -> Result<Self, Error>
-    where F: Fn() -> Result<T, Error>, T: AsRef<Path> {
+    where
+        F: Fn() -> Result<T, Error>,
+        T: AsRef<Path>,
+    {
         let mut token = String::new();
         let mut file = File::open(home()?.as_ref().join(TOKEN_FILE_NAME))
             .map_err(|_| ConfigError::NoTokenFile)?;
@@ -227,7 +237,6 @@ impl Config {
         }
     }
 
-
     // Do we eventually want to make a camera/mass_storage distinction?
     pub fn mass_storages(&self) -> &Vec<MassStorageConfig> {
         match self.mass_storage {
@@ -252,7 +261,10 @@ impl Config {
 
     pub fn notifier(&self) -> Option<PushoverNotifier> {
         if let Some(ref pshvr) = self.pushover {
-            return Some(PushoverNotifier::new(pshvr.token.clone(), pshvr.recipient.clone()))
+            return Some(PushoverNotifier::new(
+                pshvr.token.clone(),
+                pshvr.recipient.clone(),
+            ));
         }
         None
     }
@@ -264,7 +276,7 @@ impl Config {
                 sndgrd.from.clone(),
                 sndgrd.to.clone(),
                 sndgrd.subject.clone(),
-                ))
+            ));
         }
         None
     }
@@ -273,7 +285,9 @@ impl Config {
     pub fn backends(&self) -> Vec<Box<dyn StorageAdaptor<File>>> {
         let mut out: Vec<Box<dyn StorageAdaptor<File>>> = vec![];
         if let Some(ref dropbox) = self.dropbox {
-            out.push(Box::new(dropbox::DropboxFilesClient::new(dropbox.token.clone())));
+            out.push(Box::new(dropbox::DropboxFilesClient::new(
+                dropbox.token.clone(),
+            )));
         }
         if let Some(ref vimeo) = self.vimeo {
             out.push(Box::new(VimeoClient::new(vimeo.token.clone())));
@@ -327,9 +341,9 @@ impl ConfigBuilder {
 
     /// Add multiple flysights to this config
     pub fn flysights(self, flysights: Vec<FlysightConfig>) -> Self {
-        flysights.into_iter().fold(self, |cfg, flysight| {
-            cfg.flysight(flysight)
-        })
+        flysights
+            .into_iter()
+            .fold(self, |cfg, flysight| cfg.flysight(flysight))
     }
 
     /// Add this mass_storage to the config object
@@ -342,9 +356,9 @@ impl ConfigBuilder {
 
     /// Add multiple mass_storages to this config
     pub fn mass_storages(self, mass_storages: Vec<MassStorageConfig>) -> Self {
-        mass_storages.into_iter().fold(self, |cfg, mass_storage| {
-            cfg.mass_storage(mass_storage)
-        })
+        mass_storages
+            .into_iter()
+            .fold(self, |cfg, mass_storage| cfg.mass_storage(mass_storage))
     }
 
     /// Add this gopro to the config object
@@ -357,9 +371,7 @@ impl ConfigBuilder {
 
     /// Add multiple gopros to this config
     pub fn gopros(self, gopros: Vec<GoproConfig>) -> Self {
-        gopros.into_iter().fold(self, |cfg, gopro| {
-            cfg.gopro(gopro)
-        })
+        gopros.into_iter().fold(self, |cfg, gopro| cfg.gopro(gopro))
     }
 
     /// Configure and enable pushover for this config
@@ -467,7 +479,8 @@ staging="test/dir"
 [dropbox]
 token = "TOKEN"
 "#,
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(cfg.archiver.staging, Some(PathBuf::from("test/dir")));
     }
 
@@ -481,7 +494,8 @@ api_base = "malformed"
 [dropbox]
 token = "TOKEN"
 "#,
-        ).unwrap_err();
+        )
+        .unwrap_err();
         let err = cfg.downcast::<ConfigError>().unwrap();
         let formatted = format!("{:?}", err);
         assert_eq!("InvalidApiBase(RelativeUrlWithoutBase)", &formatted);
@@ -496,7 +510,8 @@ token = "TOKEN"
 [dropbox]
 token = "TOKEN"
 "#,
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(cfg.backends().len(), 1);
     }
 
@@ -512,7 +527,8 @@ token = "TOKEN"
 [vimeo]
 token = "TOKEN"
 "#,
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(cfg.backends().len(), 2);
     }
 
@@ -530,7 +546,8 @@ token = "TOKEN"
 token = "PUSHOVER_TOKEN"
 recipient = "RECIPIENT_TOKEN"
 "#,
-        ).unwrap();
+        )
+        .unwrap();
         assert!(cfg.notifier().is_some(), "Couldn't construct notifier");
     }
 
@@ -540,7 +557,8 @@ recipient = "RECIPIENT_TOKEN"
             r#"
 [archiver]
 "#,
-        ).unwrap_err();
+        )
+        .unwrap_err();
         let error = error.downcast::<ConfigError>().unwrap();
         assert!(match error {
             ConfigError::MissingBackend => true,
@@ -556,7 +574,8 @@ recipient = "RECIPIENT_TOKEN"
 [dropbox]
 token="DROPBOX_TOKEN_GOES_HERE"
 "#,
-        ).unwrap();
+        )
+        .unwrap();
         assert_no_mass_storages(&config);
         assert_no_flysights(&config);
     }
@@ -639,7 +658,8 @@ name = "back"
 mountpoint="/mnt/archiver/back"
 extensions = ["mov"]
 "#,
-        ).unwrap();
+        )
+        .unwrap();
         assert_mass_storages(&config);
         assert_no_flysights(&config);
     }
@@ -660,7 +680,8 @@ serial = "C3131127500000"
 name = "gopro5"
 serial = "C3131127500001"
 "#,
-        ).unwrap();
+        )
+        .unwrap();
         assert_gopros(&config);
         assert_no_mass_storages(&config);
         assert_no_flysights(&config);
@@ -682,7 +703,8 @@ mountpoint="/mnt/archiver/training"
 name = "comp"
 mountpoint="/mnt/archiver/comp"
 "#,
-        ).unwrap();
+        )
+        .unwrap();
         assert_flysights(&config);
         assert_no_mass_storages(&config);
     }
@@ -713,7 +735,8 @@ mountpoint="/mnt/archiver/training"
 name = "comp"
 mountpoint="/mnt/archiver/comp"
 "#,
-        ).unwrap();
+        )
+        .unwrap();
         assert_mass_storages(&config);
         assert_flysights(&config);
     }
@@ -724,8 +747,10 @@ mountpoint="/mnt/archiver/comp"
         let token = "test-token";
         let mut saved_token = String::new();
         AccessToken::save_with_dir_fn(|| Ok(dir.path()), token).unwrap();
-        File::open(dir.path().join(TOKEN_FILE_NAME)).unwrap()
-            .read_to_string(&mut saved_token).unwrap();
+        File::open(dir.path().join(TOKEN_FILE_NAME))
+            .unwrap()
+            .read_to_string(&mut saved_token)
+            .unwrap();
         assert_eq!(&saved_token, token);
     }
 
@@ -733,9 +758,14 @@ mountpoint="/mnt/archiver/comp"
     fn test_load_token() {
         let dir = test_helpers::tempdir();
         let token = "test-token";
-        File::create(dir.path().join(TOKEN_FILE_NAME)).unwrap()
-            .write(token.as_bytes()).unwrap();
-        assert_eq!(AccessToken::load_with_dir_fn(|| Ok(dir.path())).unwrap().0, token);
+        File::create(dir.path().join(TOKEN_FILE_NAME))
+            .unwrap()
+            .write(token.as_bytes())
+            .unwrap();
+        assert_eq!(
+            AccessToken::load_with_dir_fn(|| Ok(dir.path())).unwrap().0,
+            token
+        );
     }
 
     #[test]
@@ -743,9 +773,12 @@ mountpoint="/mnt/archiver/comp"
         let dir = test_helpers::tempdir();
         let token_error = AccessToken::load_with_dir_fn(|| Ok(dir.path())).unwrap_err();
         let inner_error = token_error.downcast::<ConfigError>().unwrap();
-        assert!(match inner_error {
-            ConfigError::NoTokenFile => true,
-            _ => false,
-        }, "Didn't get the correct error");
+        assert!(
+            match inner_error {
+                ConfigError::NoTokenFile => true,
+                _ => false,
+            },
+            "Didn't get the correct error"
+        );
     }
 }
