@@ -57,9 +57,12 @@ lazy_static! {
 fn get_config(user: AuthenticatedUser, conn: DbConn) -> Result<Content<String>, Flash<Redirect>> {
     let mut config = Config::build();
 
-    let integrations = user.user().integrations(&*conn).map_err(|e| Flash::error(
+    let integrations = user.user().integrations(&*conn).map_err(|e| {
+        Flash::error(
             Redirect::to("/"),
-            format!("Error connecting to the DB: {}", e)))?;
+            format!("Error connecting to the DB: {}", e),
+        )
+    })?;
     let mut integrations = integrations.iter();
     for provider in Oauth2Provider::providers() {
         let name = provider.name();
@@ -67,16 +70,21 @@ fn get_config(user: AuthenticatedUser, conn: DbConn) -> Result<Content<String>, 
         if let Some(integration) = integrations.find(|ref x| x.provider == name) {
             let token = integration.access_token.to_string();
             match name {
-                "dropbox" => { config = config.dropbox(token) },
-                "vimeo" => { config = config.vimeo(token) },
-                name => { warn!("Unknown integration: {}", name); },
+                "dropbox" => config = config.dropbox(token),
+                "vimeo" => config = config.vimeo(token),
+                name => {
+                    warn!("Unknown integration: {}", name);
+                }
             }
         }
     }
 
-    let devices = user.user().devices(&*conn).map_err(|e| Flash::error(
+    let devices = user.user().devices(&*conn).map_err(|e| {
+        Flash::error(
             Redirect::to("/"),
-            format!("Error connecting to the DB: {}", e)))?;
+            format!("Error connecting to the DB: {}", e),
+        )
+    })?;
     for device in devices {
         match device.into() {
             DeviceConfig::Gopro(gopro) => config = config.gopro(gopro),
@@ -87,14 +95,17 @@ fn get_config(user: AuthenticatedUser, conn: DbConn) -> Result<Content<String>, 
     }
 
     match config.finish() {
-        Ok(config) => Ok(Content(ContentType::new("application", "toml"), config.to_toml())),
+        Ok(config) => Ok(Content(
+            ContentType::new("application", "toml"),
+            config.to_toml(),
+        )),
         Err(error) => Err(Flash::error(
             Redirect::to("/"),
             format!(
                 "There was a problem generating configuration for you: {}",
                 error
             ),
-        ))
+        )),
     }
 }
 
@@ -132,10 +143,10 @@ fn signin_json(
         Some(user) => {
             let key = NewKey::new(&user).create(&*conn).unwrap();
             Json(messages::JsonSignInResp::Token(key.token))
-        },
-        None => {
-            Json(messages::JsonSignInResp::Error("Incorrect username or password.".to_string()))
-        },
+        }
+        None => Json(messages::JsonSignInResp::Error(
+            "Incorrect username or password.".to_string(),
+        )),
     }
 }
 
@@ -208,7 +219,8 @@ fn disconnect_integration(
                     disconnect.provider.display_name()
                 ),
             )
-        }).map_err(|e| {
+        })
+        .map_err(|e| {
             warn!("{}", e);
             Flash::error(
                 Redirect::to("/"),
@@ -339,16 +351,18 @@ fn create_device(
     conn: DbConn,
     device: Form<DeviceForm>,
 ) -> Result<Flash<Redirect>, Flash<Redirect>> {
-    let row = NewDevice::new(&user.user, &device.name, device.kind.name(), &device.identifier)
-        .create(&*conn)
-        .ok();
+    let row = NewDevice::new(
+        &user.user,
+        &device.name,
+        device.kind.name(),
+        &device.identifier,
+    )
+    .create(&*conn)
+    .ok();
     match row {
         Some(_) => Ok(Flash::success(
             Redirect::to("/"),
-            format!(
-                "{} was added to your configuration.",
-                device.kind.name()
-            ),
+            format!("{} was added to your configuration.", device.kind.name()),
         )),
         None => Err(Flash::error(
             Redirect::to("/"),
@@ -378,12 +392,10 @@ fn delete_device(
         .map(|_| {
             Flash::success(
                 Redirect::to("/"),
-                format!(
-                    "{} has been removed from your account.",
-                    device.kind.name()
-                ),
+                format!("{} has been removed from your account.", device.kind.name()),
             )
-        }).map_err(|e| {
+        })
+        .map_err(|e| {
             warn!("{}", e);
             Flash::error(
                 Redirect::to("/"),
@@ -409,21 +421,10 @@ fn expire_key(
     user.user
         .key_by_id(key.key_id, &*conn)
         .map(|i| i.expire(&*conn))
-        .map(|_| {
-            Flash::success(
-                Redirect::to("/"),
-                format!(
-                    "key has been expired."
-                ),
-            )
-        }).map_err(|e| {
+        .map(|_| Flash::success(Redirect::to("/"), format!("key has been expired.")))
+        .map_err(|e| {
             warn!("{}", e);
-            Flash::error(
-                Redirect::to("/"),
-                format!(
-                    "the key could not be expired."
-                ),
-            )
+            Flash::error(Redirect::to("/"), format!("the key could not be expired."))
         })
 }
 
@@ -489,7 +490,8 @@ fn configure_rocket(test_transactions: bool) -> Rocket {
                 create_device,
                 delete_device
             ],
-        ).mount("/static", StaticFiles::from("web/static"))
+        )
+        .mount("/static", StaticFiles::from("web/static"))
         .attach(Template::fairing())
 }
 
@@ -662,7 +664,8 @@ mod tests {
 
         let mut response = req.dispatch();
         assert_eq!(response.status(), Status::Ok);
-        let config = Config::from_str(&response.body_string().expect("Didn't recieve a body")).unwrap();
+        let config =
+            Config::from_str(&response.body_string().expect("Didn't recieve a body")).unwrap();
         let backend_names: Vec<_> = config.backends().iter().map(|b| b.name()).collect();
         assert_eq!(&backend_names, &["dropbox"]);
     }
@@ -684,9 +687,7 @@ mod tests {
         let token = {
             let conn = db_conn(&client);
 
-            NewKey::new(&user)
-                .create(&*conn)
-                .unwrap().token
+            NewKey::new(&user).create(&*conn).unwrap().token
         };
 
         let req = client
@@ -695,7 +696,8 @@ mod tests {
 
         let mut response = req.dispatch();
         assert_eq!(response.status(), Status::Ok);
-        let config = Config::from_str(&response.body_string().expect("Didn't recieve a body")).unwrap();
+        let config =
+            Config::from_str(&response.body_string().expect("Didn't recieve a body")).unwrap();
         let backend_names: Vec<_> = config.backends().iter().map(|b| b.name()).collect();
         assert_eq!(&backend_names, &["dropbox"]);
     }
@@ -717,9 +719,7 @@ mod tests {
         let token = {
             let conn = db_conn(&client);
 
-            NewKey::new(&user)
-                .create(&*conn)
-                .unwrap()
+            NewKey::new(&user).create(&*conn).unwrap()
         };
 
         {
@@ -727,9 +727,10 @@ mod tests {
             token.expire(&*conn).unwrap();
         }
 
-        let req = client
-            .get("/config")
-            .header(Header::new("Authorization", format!("Bearer: {}", token.token)));
+        let req = client.get("/config").header(Header::new(
+            "Authorization",
+            format!("Bearer: {}", token.token),
+        ));
 
         let response = req.dispatch();
         assert_eq!(response.status(), Status::Unauthorized);
@@ -744,9 +745,7 @@ mod tests {
         let token = {
             let conn = db_conn(&client);
 
-            NewKey::new(&user)
-                .create(&*conn)
-                .unwrap()
+            NewKey::new(&user).create(&*conn).unwrap()
         };
 
         signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
@@ -759,7 +758,10 @@ mod tests {
         assert_eq!(response.status(), Status::SeeOther);
 
         let conn = db_conn(&client);
-        assert!(user.key_by_id(token.id, &*conn).unwrap().expired.is_some(), "Didn't expire token");
+        assert!(
+            user.key_by_id(token.id, &*conn).unwrap().expired.is_some(),
+            "Didn't expire token"
+        );
     }
 
     #[test]
@@ -772,9 +774,7 @@ mod tests {
         let token = {
             let conn = db_conn(&client);
 
-            NewKey::new(&user1)
-                .create(&*conn)
-                .unwrap()
+            NewKey::new(&user1).create(&*conn).unwrap()
         };
 
         signin(&client, "lolwat", "worse").unwrap();
@@ -787,7 +787,10 @@ mod tests {
         assert_eq!(response.status(), Status::SeeOther);
 
         let conn = db_conn(&client);
-        assert!(user1.key_by_id(token.id, &*conn).unwrap().expired.is_none(), "Expired another user's token");
+        assert!(
+            user1.key_by_id(token.id, &*conn).unwrap().expired.is_none(),
+            "Expired another user's token"
+        );
     }
 
     #[test]
@@ -819,12 +822,12 @@ mod tests {
                 .unwrap();
         }
 
-
         let req = client.get("/config");
 
         let mut response = req.dispatch();
         assert_eq!(response.status(), Status::Ok);
-        let config = Config::from_str(&response.body_string().expect("Didn't recieve a body")).unwrap();
+        let config =
+            Config::from_str(&response.body_string().expect("Didn't recieve a body")).unwrap();
         let backend_names: Vec<_> = config.backends().iter().map(|b| b.name()).collect();
         assert_eq!(&backend_names, &["dropbox"]);
 
@@ -845,11 +848,9 @@ mod tests {
 
         let response = req.dispatch();
         assert_eq!(response.status(), Status::SeeOther);
-        assert!(
-            get_set_cookie(response, "sid")
-                .unwrap()
-                .starts_with("sid=;")
-        );
+        assert!(get_set_cookie(response, "sid")
+            .unwrap()
+            .starts_with("sid=;"));
 
         assert_eq!(session_from_cookie(&client, session_cookie), None);
     }
@@ -870,13 +871,11 @@ mod tests {
         let response = req.dispatch();
         assert_eq!(response.status(), Status::SeeOther);
 
-        assert!(
-            response
-                .headers()
-                .get_one("Location")
-                .unwrap()
-                .starts_with(Oauth2Config::dropbox().auth_url.as_str())
-        );
+        assert!(response
+            .headers()
+            .get_one("Location")
+            .unwrap()
+            .starts_with(Oauth2Config::dropbox().auth_url.as_str()));
 
         let session = session_from_cookie(&client, session_cookie).unwrap();
         assert!(session.data.get("dropbox").unwrap().is_string());
@@ -980,13 +979,11 @@ mod tests {
         let response = req.dispatch();
         assert_eq!(response.status(), Status::SeeOther);
 
-        assert!(
-            response
-                .headers()
-                .get_one("Location")
-                .unwrap()
-                .starts_with(Oauth2Config::dropbox().auth_url.as_str())
-        );
+        assert!(response
+            .headers()
+            .get_one("Location")
+            .unwrap()
+            .starts_with(Oauth2Config::dropbox().auth_url.as_str()));
 
         let session1 = session_from_cookie(&client1, s1.clone()).unwrap();
         let session2 = session_from_cookie(&client2, s2.clone()).unwrap();
@@ -1007,17 +1004,24 @@ mod tests {
         let user = create_user(&client, "test@email.com", "p@55w0rd");
         signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
 
-        for (name, kind, identifier) in &[("gopro5", "ptp", "C123456"), ("comp", "flysight", "/mnt/flysight"), ("sdcard", "mass_storage", "/media/sdcard")] {
+        for (name, kind, identifier) in &[
+            ("gopro5", "ptp", "C123456"),
+            ("comp", "flysight", "/mnt/flysight"),
+            ("sdcard", "mass_storage", "/media/sdcard"),
+        ] {
             let req = client
                 .post("/device")
                 .header(ContentType::Form)
-                .body(format!("name={}&kind={}&identifier={}", name, kind, identifier));
+                .body(format!(
+                    "name={}&kind={}&identifier={}",
+                    name, kind, identifier
+                ));
 
             let response = req.dispatch();
 
             assert_eq!(response.status(), Status::SeeOther);
             assert_eq!(response.headers().get_one("Location"), Some("/"));
-        };
+        }
 
         let conn = db_conn(&client);
 
@@ -1073,10 +1077,7 @@ mod tests {
         let req = client
             .post("/device/delete")
             .header(ContentType::Form)
-            .body(format!(
-                "kind=ptp&device_id={}",
-                device_id
-            ));
+            .body(format!("kind=ptp&device_id={}", device_id));
 
         let response = req.dispatch();
 
@@ -1099,11 +1100,16 @@ mod tests {
 
         let mut response = req.dispatch();
         assert_eq!(response.status(), Status::Ok);
-        let message = serde_json::from_str::<messages::JsonSignInResp>(&response.body_string().unwrap()).unwrap();
-        assert!(match message {
-            messages::JsonSignInResp::Token(_) => true,
-            messages::JsonSignInResp::Error(_) => false,
-        }, "Didn't get a token");
+        let message =
+            serde_json::from_str::<messages::JsonSignInResp>(&response.body_string().unwrap())
+                .unwrap();
+        assert!(
+            match message {
+                messages::JsonSignInResp::Token(_) => true,
+                messages::JsonSignInResp::Error(_) => false,
+            },
+            "Didn't get a token"
+        );
     }
 
     #[test]
@@ -1119,10 +1125,15 @@ mod tests {
 
         let mut response = req.dispatch();
         assert_eq!(response.status(), Status::Ok);
-        let message = serde_json::from_str::<messages::JsonSignInResp>(&response.body_string().unwrap()).unwrap();
-        assert!(match message {
-            messages::JsonSignInResp::Token(_) => false,
-            messages::JsonSignInResp::Error(_) => true,
-        }, "Didn't get an error");
+        let message =
+            serde_json::from_str::<messages::JsonSignInResp>(&response.body_string().unwrap())
+                .unwrap();
+        assert!(
+            match message {
+                messages::JsonSignInResp::Token(_) => false,
+                messages::JsonSignInResp::Error(_) => true,
+            },
+            "Didn't get an error"
+        );
     }
 }
