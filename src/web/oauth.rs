@@ -6,8 +6,8 @@ use rocket::http::RawStr;
 use rocket::request::FromFormValue;
 
 use std::env;
-use url::Url;
 use std::fmt;
+use url::Url;
 
 lazy_static! {
     static ref DROPBOX_CONFIG: Oauth2Config = {

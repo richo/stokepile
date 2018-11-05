@@ -29,8 +29,8 @@ extern crate sendgrid;
 extern crate sha2;
 extern crate toml;
 extern crate tus;
-extern crate walkdir;
 extern crate url;
+extern crate walkdir;
 
 macro_rules! sensitive_fmt {
     ($struct:ident) => {

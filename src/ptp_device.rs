@@ -4,7 +4,7 @@ use std::rc::Rc;
 use std::sync::Mutex;
 
 use super::ctx;
-use super::staging::{UploadableFile, Staging};
+use super::staging::{Staging, UploadableFile};
 
 use chrono;
 use chrono::prelude::*;

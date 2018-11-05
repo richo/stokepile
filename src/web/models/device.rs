@@ -1,10 +1,10 @@
 use diesel::prelude::*;
 
-use web::schema::devices;
 use super::*;
+use web::schema::devices;
 
 use config;
-use config::{GoproConfig, FlysightConfig, MassStorageConfig};
+use config::{FlysightConfig, GoproConfig, MassStorageConfig};
 
 #[derive(Identifiable, Queryable, Associations, Debug, Serialize)]
 #[belongs_to(User)]

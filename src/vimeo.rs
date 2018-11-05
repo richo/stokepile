@@ -1,13 +1,13 @@
 use std::fs::File;
 
-use tus;
+use failure::Error;
 use reqwest;
 use reqwest::header::{HeaderMap, HeaderValue};
-use failure::Error;
 use serde_json;
+use tus;
 
-use storage::{StorageAdaptor, StorageStatus};
 use staging;
+use storage::{StorageAdaptor, StorageStatus};
 
 /// A client for the vimeo API
 pub struct VimeoClient {

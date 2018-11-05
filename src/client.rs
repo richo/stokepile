@@ -1,13 +1,13 @@
-use url::Url;
 use failure::Error;
+use url::Url;
 
 use serde_json;
 
 use reqwest;
 use reqwest::header::{HeaderMap, HeaderValue};
 
-use messages;
 use config;
+use messages;
 
 /// A client to the web interface
 

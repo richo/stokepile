@@ -1,6 +1,6 @@
 use std::env;
-use std::ops::Deref;
 use std::fmt;
+use std::ops::Deref;
 
 use diesel::pg::PgConnection;
 use diesel::r2d2::{ConnectionManager, CustomizeConnection, Error, Pool, PooledConnection};

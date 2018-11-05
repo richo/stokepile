@@ -1,7 +1,7 @@
 use std::fs::{self, File};
 use std::path::{Path, PathBuf};
 
-use reporting::{UploadReport, UploadStatus, ReportEntry};
+use reporting::{ReportEntry, UploadReport, UploadStatus};
 use staging;
 
 use failure::Error;

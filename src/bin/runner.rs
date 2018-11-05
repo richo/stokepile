@@ -2,8 +2,8 @@
 extern crate log;
 
 extern crate clap;
-extern crate pretty_env_logger;
 extern crate failure;
+extern crate pretty_env_logger;
 
 extern crate archiver;
 extern crate rpassword;
@@ -20,8 +20,8 @@ use archiver::config;
 use archiver::ctx::Ctx;
 use archiver::device;
 use archiver::mailer::MailReport;
-use archiver::pushover_notifier::Notify;
 use archiver::ptp_device;
+use archiver::pushover_notifier::Notify;
 use archiver::storage;
 use archiver::{AUTHOR, VERSION};
 

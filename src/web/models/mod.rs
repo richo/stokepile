@@ -2,10 +2,10 @@
 use rand;
 
 mod user;
-pub use self::user::{User, NewUser};
+pub use self::user::{NewUser, User};
 
 mod session;
-pub use self::session::{Session, NewSession};
+pub use self::session::{NewSession, Session};
 
 mod integration;
 pub use self::integration::{Integration, NewIntegration};

@@ -1,8 +1,8 @@
 use bcrypt;
 use diesel::prelude::*;
 
-use web::schema::users;
 use super::*;
+use web::schema::users;
 
 #[derive(Queryable, Debug, Serialize)]
 pub struct User {

@@ -1,15 +1,14 @@
 /// This is a really small dropbox shim
 ///
 /// If this library is useful, I'll consider fleshing it out into a whole thing
-
 use serde::{Deserialize, Deserializer};
-use std::io::Read;
 use std::fmt;
+use std::io::Read;
 use std::path::Path;
 
-use version;
-use storage::{StorageAdaptor, StorageStatus};
 use staging;
+use storage::{StorageAdaptor, StorageStatus};
+use version;
 
 use failure::Error;
 use hex::FromHex;

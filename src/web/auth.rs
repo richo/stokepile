@@ -3,7 +3,7 @@ use rocket::request::{self, FromRequest, Request};
 use rocket::Outcome;
 
 use web::db::DbConn;
-use web::models::{Session, User, Key};
+use web::models::{Key, Session, User};
 
 #[derive(Debug, Serialize)]
 pub struct WebUser {

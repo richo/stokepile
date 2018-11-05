@@ -1,8 +1,8 @@
-use serde_json;
 use diesel::prelude::*;
+use serde_json;
 
-use web::schema::sessions;
 use super::*;
+use web::schema::sessions;
 
 #[derive(Identifiable, Queryable, Associations, Debug, AsChangeset, PartialEq)]
 #[belongs_to(User)]

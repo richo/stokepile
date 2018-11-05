@@ -3,10 +3,10 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
+use dirs;
 use failure::Error;
 use toml;
 use url;
-use dirs;
 
 use dropbox;
 use flysight::Flysight;

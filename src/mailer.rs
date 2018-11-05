@@ -1,6 +1,6 @@
-use std::fmt;
 use failure::Error;
-use sendgrid::{SGClient, Destination, Mail};
+use sendgrid::{Destination, Mail, SGClient};
+use std::fmt;
 
 // Urgh, I guess we're rewriting the sendgrid bindings too. So much allocating :<
 

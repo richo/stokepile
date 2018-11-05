@@ -1,8 +1,8 @@
-use diesel::prelude::*;
 use chrono;
+use diesel::prelude::*;
 
-use web::schema::keys;
 use super::*;
+use web::schema::keys;
 
 #[derive(Identifiable, Queryable, Associations, Debug, AsChangeset, PartialEq, Serialize)]
 #[belongs_to(User)]

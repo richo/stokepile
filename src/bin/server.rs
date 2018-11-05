@@ -23,14 +23,14 @@ extern crate oauth2;
 extern crate archiver;
 
 use rocket::config::Environment;
-use rocket::response::content::Content;
 use rocket::http::ContentType;
 use rocket::http::RawStr;
 use rocket::http::{Cookie, Cookies, SameSite};
 use rocket::request::{FlashMessage, Form, FromFormValue};
+use rocket::response::content::Content;
 use rocket::response::{Flash, Redirect};
-use rocket_contrib::json::Json;
 use rocket::Rocket;
+use rocket_contrib::json::Json;
 use rocket_contrib::serve::StaticFiles;
 use rocket_contrib::templates::Template;
 
@@ -41,10 +41,12 @@ use oauth2::CsrfToken;
 
 use archiver::config::{Config, DeviceConfig};
 use archiver::messages;
-use archiver::web::auth::{WebUser, AuthenticatedUser};
+use archiver::web::auth::{AuthenticatedUser, WebUser};
 use archiver::web::context::{Context, PossibleIntegration};
 use archiver::web::db::{init_pool, DbConn};
-use archiver::web::models::{NewKey, NewDevice, Integration, NewIntegration, NewSession, NewUser, User};
+use archiver::web::models::{
+    Integration, NewDevice, NewIntegration, NewKey, NewSession, NewUser, User,
+};
 use archiver::web::oauth::Oauth2Provider;
 
 lazy_static! {
@@ -510,10 +512,10 @@ mod tests {
     use archiver::messages;
 
     use archiver::web::db::DbConn;
-    use archiver::web::models::NewIntegration;
-    use archiver::web::models::NewUser;
     use archiver::web::models::NewDevice;
+    use archiver::web::models::NewIntegration;
     use archiver::web::models::NewKey;
+    use archiver::web::models::NewUser;
     use archiver::web::models::Session;
     use archiver::web::models::User;
 

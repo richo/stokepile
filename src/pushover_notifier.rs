@@ -1,5 +1,5 @@
-use std::fmt;
 use failure::Error;
+use std::fmt;
 
 use pushover::Pushover;
 

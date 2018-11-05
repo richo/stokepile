@@ -1,7 +1,7 @@
 use diesel::prelude::*;
 
-use web::schema::integrations;
 use super::*;
+use web::schema::integrations;
 
 #[derive(Identifiable, Queryable, Associations, Debug)]
 #[belongs_to(User)]

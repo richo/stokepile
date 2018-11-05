@@ -1,10 +1,10 @@
-use std::path::PathBuf;
+use std::fmt;
 use std::fs;
 use std::io;
-use std::fmt;
+use std::path::PathBuf;
 
-use libusb;
 use failure::Error;
+use libusb;
 
 use config;
 use mailer;

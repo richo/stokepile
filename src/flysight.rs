@@ -1,7 +1,7 @@
+use std::cmp::Ordering;
 use std::fs::{self, File};
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
-use std::cmp::Ordering;
 
 use super::peripheral::MountablePeripheral;
 use super::staging::{Staging, UploadableFile};
