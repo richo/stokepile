@@ -194,6 +194,7 @@ impl<'c> GoproConnection<'c> {
 impl<'c> Drop for GoproConnection<'c> {
     fn drop(&mut self) {
         // If this fails.. who cares I guess
+        info!("Closing session on {:?}", &self);
         let _ = self.camera.lock().unwrap().close_session(None);
     }
 }
