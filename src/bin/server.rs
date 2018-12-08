@@ -1,4 +1,4 @@
-#![feature(plugin, custom_derive, decl_macro, proc_macro_hygiene)]
+#![feature(plugin, decl_macro, proc_macro_hygiene)]
 
 #[macro_use]
 extern crate log;
