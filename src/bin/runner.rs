@@ -143,11 +143,18 @@ fn run() -> Result<(), Error> {
             }
         }
         ("fetch", Some(_subm)) => {
-            let ctx = Ctx::create(cfg?)?;
+            let base = match cfg {
+                Ok(cfg) => {
+                    cfg.api_base().to_string()
+                },
+                Err(_) => {
+                    info!("Error loading config, proceeding with default api base");
+                    config::DEFAULT_API_BASE.to_string()
+                },
+            };
             let token = config::AccessToken::load()?;
-            let client = client::ArchiverClient::new(&ctx.cfg.api_base())?;
+            let client = client::ArchiverClient::new(&base)?;
             let config = client.fetch_config(token);
-            info!("{:?}", config);
         }
         // Login to upstream, adding the token to your local config file
         ("login", Some(_subm)) => {
