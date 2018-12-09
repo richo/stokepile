@@ -43,7 +43,7 @@ use archiver::config::{Config, DeviceConfig};
 use archiver::messages;
 use archiver::web::auth::{AuthenticatedUser, WebUser};
 use archiver::web::context::{Context, PossibleIntegration};
-use archiver::web::db::{init_pool, DbConn};
+use archiver::web::db::DbConn;
 use archiver::web::models::{
     Integration, NewDevice, NewIntegration, NewKey, NewSession, NewUser, User,
 };
@@ -473,7 +473,6 @@ fn init_logging() {
 
 fn configure_rocket(test_transactions: bool) -> Rocket {
     rocket::ignite()
-        .manage(init_pool(test_transactions))
         .mount(
             "/",
             routes![
@@ -493,6 +492,7 @@ fn configure_rocket(test_transactions: bool) -> Rocket {
         )
         .mount("/static", StaticFiles::from("web/static"))
         .attach(Template::fairing())
+        .attach(DbConn::fairing())
 }
 
 fn main() {

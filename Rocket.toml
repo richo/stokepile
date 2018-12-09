@@ -1,2 +1,5 @@
 [global]
 template_dir = "web/templates"
+
+[global.databases]
+maindb = { url = "postgres://archiver:archiver@db/archiver_web" }

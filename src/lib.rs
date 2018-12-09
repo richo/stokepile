@@ -1,4 +1,5 @@
 #![deny(unused_must_use, missing_debug_implementations)]
+#![feature(custom_attribute)]
 
 extern crate serde;
 #[macro_use]
