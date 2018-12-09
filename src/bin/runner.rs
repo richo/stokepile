@@ -11,6 +11,7 @@ extern crate rpassword;
 use clap::{App, Arg, SubCommand};
 use failure::Error;
 use std::env;
+use std::fs::File;
 use std::io::{self, Write};
 use std::process;
 use std::thread;
@@ -153,8 +154,14 @@ fn run() -> Result<(), Error> {
                 },
             };
             let token = config::AccessToken::load()?;
+            info!("Creating client");
             let client = client::ArchiverClient::new(&base)?;
-            let config = client.fetch_config(token);
+            info!("Fetching config from {}", &base);
+            let config = client.fetch_config(token)?;
+            let filename = matches.value_of("config").unwrap_or("archiver.toml");
+            let mut fh = File::create(&filename)?;
+            fh.write(config.to_toml().as_bytes())?;
+            info!("Wrote config to {}", &filename);
         }
         // Login to upstream, adding the token to your local config file
         ("login", Some(_subm)) => {
