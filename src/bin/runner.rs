@@ -95,15 +95,14 @@ fn main() {
 fn run() -> Result<(), Error> {
     let matches = cli_opts().get_matches();
 
-    // TODO(richo) run -> Result<(), Error> so I can use ?
-    let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("archiver.toml"))?;
-    let ctx = Ctx::create(cfg)?;
+    let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("archiver.toml"));
 
     match matches.subcommand() {
         ("daemon", Some(_subm)) => {
             unimplemented!();
         }
         ("run", Some(_subm)) => {
+            let ctx = Ctx::create(cfg?)?;
             let devices = device::attached_devices(&ctx)?;
             info!("Attached devices:");
             for device in &devices {
@@ -137,12 +136,14 @@ fn run() -> Result<(), Error> {
             ctx.mailer.send_report(&plaintext)?;
         }
         ("scan", Some(_subm)) => {
+            let ctx = Ctx::create(cfg?)?;
             println!("Found the following gopros:");
             for gopro in ptp_device::locate_gopros(&ctx)?.iter() {
                 println!("  {:?} : {}", gopro.kind, gopro.serial);
             }
         }
         ("fetch", Some(_subm)) => {
+            let ctx = Ctx::create(cfg?)?;
             let token = config::AccessToken::load()?;
             let client = client::ArchiverClient::new(&ctx.cfg.api_base())?;
             let config = client.fetch_config(token);
@@ -150,15 +151,25 @@ fn run() -> Result<(), Error> {
         }
         // Login to upstream, adding the token to your local config file
         ("login", Some(_subm)) => {
-            let client = client::ArchiverClient::new(&ctx.cfg.api_base())?;
+            let base = match cfg {
+                Ok(cfg) => {
+                    cfg.api_base().to_string()
+                },
+                Err(_) => {
+                    info!("Error loading config, proceeding with default api base");
+                    config::DEFAULT_API_BASE.to_string()
+                },
+            };
+            let client = client::ArchiverClient::new(&base)?;
             let mut email = String::new();
             let mut stdin = io::stdin();
             let password;
-            println!("Logging into {}", &ctx.cfg.api_base());
+            println!("Logging into {}", base);
             print!("email: ");
             io::stdout().flush()?;
             stdin.read_line(&mut email)?;
             password = rpassword::prompt_password_stdout("password: ")?;
+            println!("Logging in");
             let token = client.login(email.trim_right(), &password)?;
             println!("Token recieved, saving to ~/{}", config::TOKEN_FILE_NAME);
 
