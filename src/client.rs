@@ -6,8 +6,8 @@ use serde_json;
 use reqwest;
 use reqwest::header::{HeaderMap, HeaderValue};
 
-use config;
-use messages;
+use crate::config;
+use crate::messages;
 
 /// A client to the web interface
 

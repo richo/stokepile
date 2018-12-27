@@ -6,9 +6,9 @@ use std::path::PathBuf;
 use failure::Error;
 use libusb;
 
-use config;
-use mailer;
-use pushover_notifier;
+use crate::config;
+use crate::mailer;
+use crate::pushover_notifier;
 
 /// Ctx is the global context object. Constructed by consuming a `config::Config`.
 pub struct Ctx {

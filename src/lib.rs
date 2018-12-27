@@ -124,10 +124,10 @@ pub mod vimeo;
 mod version;
 
 /// What version of archiver do you have :)
-pub use version::VERSION;
+pub use crate::version::VERSION;
 
 /// Who wrote this mess
-pub use version::AUTHOR;
+pub use crate::version::AUTHOR;
 
 #[cfg(test)]
 /// Helpers for use in tests

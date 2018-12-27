@@ -1,7 +1,7 @@
 use failure::Error;
 use std::fmt;
 
-use pushover::Pushover;
+use crate::pushover::Pushover;
 
 pub struct PushoverNotifier {
     token: String,

@@ -86,7 +86,7 @@ impl MountablePeripheral for MassStorage {
 mod tests {
     use super::*;
     use filetime::{self, FileTime};
-    use test_helpers;
+    use crate::test_helpers;
     use walkdir;
 
     use std::path::Path;

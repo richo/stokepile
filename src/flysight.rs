@@ -136,7 +136,7 @@ impl Staging for Flysight {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test_helpers;
+    use crate::test_helpers;
 
     #[test]
     fn test_flysight_loads_files() {

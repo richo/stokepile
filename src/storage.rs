@@ -1,8 +1,8 @@
 use std::fs::{self, File};
 use std::path::{Path, PathBuf};
 
-use reporting::{ReportEntry, UploadReport, UploadStatus};
-use staging;
+use crate::reporting::{ReportEntry, UploadReport, UploadStatus};
+use crate::staging;
 
 use failure::Error;
 use serde_json;

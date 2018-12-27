@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use chrono;
 use chrono::prelude::*;
-use dropbox_content_hasher::DropboxContentHasher;
+use crate::dropbox_content_hasher::DropboxContentHasher;
 use failure::Error;
 use hashing_copy;
 use serde_json;

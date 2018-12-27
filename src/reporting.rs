@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use staging::UploadDescriptor;
+use crate::staging::UploadDescriptor;
 
 use failure::Error;
 use handlebars::{Handlebars, TemplateRenderError};

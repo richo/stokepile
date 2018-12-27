@@ -8,13 +8,13 @@ use failure::Error;
 use toml;
 use url;
 
-use dropbox;
-use flysight::Flysight;
-use mailer::SendgridMailer;
-use mass_storage::MassStorage;
-use pushover_notifier::PushoverNotifier;
-use storage::StorageAdaptor;
-use vimeo::VimeoClient;
+use crate::dropbox;
+use crate::flysight::Flysight;
+use crate::mailer::SendgridMailer;
+use crate::mass_storage::MassStorage;
+use crate::pushover_notifier::PushoverNotifier;
+use crate::storage::StorageAdaptor;
+use crate::vimeo::VimeoClient;
 
 // TODO(richo) Change this once we have a canonical domain
 pub static DEFAULT_API_BASE: &'static str = "https://onatopp.psych0tik.net";
@@ -404,7 +404,7 @@ impl ConfigBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test_helpers;
+    use crate::test_helpers;
 
     #[test]
     fn test_example_config_parses() {

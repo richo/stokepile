@@ -6,9 +6,9 @@ use std::fmt;
 use std::io::Read;
 use std::path::Path;
 
-use staging;
-use storage::{StorageAdaptor, StorageStatus};
-use version;
+use crate::staging;
+use crate::storage::{StorageAdaptor, StorageStatus};
+use crate::version;
 
 use failure::Error;
 use hex::FromHex;

@@ -6,8 +6,8 @@ use reqwest::header::{HeaderMap, HeaderValue};
 use serde_json;
 use tus;
 
-use staging;
-use storage::{StorageAdaptor, StorageStatus};
+use crate::staging;
+use crate::storage::{StorageAdaptor, StorageStatus};
 
 /// A client for the vimeo API
 pub struct VimeoClient {
