@@ -238,7 +238,7 @@ impl<'c> fmt::Debug for GoproConnection<'c> {
 pub fn locate_gopros(ctx: &ctx::Ctx) -> Result<Vec<Gopro>, Error> {
     let mut res = vec![];
 
-    for mut device in ctx.usb_ctx.devices()?.iter() {
+    for device in ctx.usb_ctx.devices()?.iter() {
         let device_desc = device.device_descriptor()?;
 
         if device_desc.vendor_id() != GOPRO_VENDOR {

@@ -1,12 +1,12 @@
 #[macro_use]
 extern crate log;
 
-extern crate clap;
-extern crate failure;
-extern crate pretty_env_logger;
 
-extern crate archiver;
-extern crate rpassword;
+
+use pretty_env_logger;
+
+
+use rpassword;
 
 use clap::{App, Arg, SubCommand};
 use failure::Error;
@@ -176,7 +176,7 @@ fn run() -> Result<(), Error> {
             };
             let client = client::ArchiverClient::new(&base)?;
             let mut email = String::new();
-            let mut stdin = io::stdin();
+            let stdin = io::stdin();
             let password;
             println!("Logging into {}", base);
             print!("email: ");
