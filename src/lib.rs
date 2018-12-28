@@ -15,21 +15,21 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 
-extern crate chrono;
-extern crate digest;
-extern crate dirs;
-extern crate hashing_copy;
-extern crate hex;
-extern crate libusb;
-extern crate ptp;
-extern crate regex;
-extern crate reqwest;
-extern crate sendgrid;
-extern crate sha2;
-extern crate toml;
-extern crate tus;
-extern crate url;
-extern crate walkdir;
+use chrono;
+use digest;
+use dirs;
+use hashing_copy;
+use hex;
+use libusb;
+use ptp;
+use regex;
+use reqwest;
+use sendgrid;
+use sha2;
+use toml;
+use tus;
+use url;
+use walkdir;
 
 macro_rules! sensitive_fmt {
     ($struct:ident) => {
