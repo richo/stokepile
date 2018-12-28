@@ -15,22 +15,6 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 
-use chrono;
-use digest;
-use dirs;
-use hashing_copy;
-use hex;
-use libusb;
-use ptp;
-use regex;
-use reqwest;
-use sendgrid;
-use sha2;
-use toml;
-use tus;
-use url;
-use walkdir;
-
 macro_rules! sensitive_fmt {
     ($struct:ident) => {
         use std::fmt;
