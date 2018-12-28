@@ -1,10 +1,7 @@
 #[macro_use]
 extern crate log;
 
-
-
 use pretty_env_logger;
-
 
 use rpassword;
 
@@ -184,7 +181,7 @@ fn run() -> Result<(), Error> {
             stdin.read_line(&mut email)?;
             password = rpassword::prompt_password_stdout("password: ")?;
             println!("Logging in");
-            let token = client.login(email.trim_right(), &password)?;
+            let token = client.login(email.trim_end(), &password)?;
             println!("Token recieved, saving to ~/{}", config::TOKEN_FILE_NAME);
 
             // TODO(richo) rewrite config including token
