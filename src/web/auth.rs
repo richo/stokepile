@@ -2,8 +2,8 @@ use rocket::http::Status;
 use rocket::request::{self, FromRequest, Request};
 use rocket::Outcome;
 
-use web::db::DbConn;
-use web::models::{Key, Session, User};
+use crate::web::db::DbConn;
+use crate::web::models::{Key, Session, User};
 
 #[derive(Debug, Serialize)]
 pub struct WebUser {

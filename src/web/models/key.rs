@@ -2,7 +2,7 @@ use chrono;
 use diesel::prelude::*;
 
 use super::*;
-use web::schema::keys;
+use crate::web::schema::keys;
 
 #[derive(Identifiable, Queryable, Associations, Debug, AsChangeset, PartialEq, Serialize)]
 #[belongs_to(User)]
@@ -16,8 +16,8 @@ pub struct Key {
 
 impl Key {
     pub fn by_token(conn: &PgConnection, token_id: &str) -> QueryResult<(Self, User)> {
-        use web::schema::keys::dsl::*;
-        use web::schema::users;
+        use crate::web::schema::keys::dsl::*;
+        use crate::web::schema::users;
 
         keys.inner_join(users::table)
             .filter(token.eq(token_id))
@@ -26,7 +26,7 @@ impl Key {
 
     pub fn expire(&self, conn: &PgConnection) -> QueryResult<usize> {
         use diesel::update;
-        use web::schema::keys::dsl::*;
+        use crate::web::schema::keys::dsl::*;
 
         let now = chrono::Utc::now().naive_utc();
 

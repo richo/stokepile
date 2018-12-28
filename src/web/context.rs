@@ -1,6 +1,6 @@
-use web::auth::WebUser;
-use web::models::Device;
-use web::models::Key;
+use crate::web::auth::WebUser;
+use crate::web::models::Device;
+use crate::web::models::Key;
 
 #[derive(Serialize, Debug)]
 pub struct PossibleIntegration {

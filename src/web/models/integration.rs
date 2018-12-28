@@ -1,7 +1,7 @@
 use diesel::prelude::*;
 
 use super::*;
-use web::schema::integrations;
+use crate::web::schema::integrations;
 
 #[derive(Identifiable, Queryable, Associations, Debug)]
 #[belongs_to(User)]
@@ -14,7 +14,7 @@ pub struct Integration {
 
 impl Integration {
     pub fn by_id(&self, integration_id: i32, conn: &PgConnection) -> QueryResult<Integration> {
-        use web::schema::integrations::dsl::*;
+        use crate::web::schema::integrations::dsl::*;
 
         integrations
             .filter(id.eq(integration_id))

@@ -2,7 +2,7 @@ use diesel::prelude::*;
 use serde_json;
 
 use super::*;
-use web::schema::sessions;
+use crate::web::schema::sessions;
 
 #[derive(Identifiable, Queryable, Associations, Debug, AsChangeset, PartialEq)]
 #[belongs_to(User)]
@@ -14,8 +14,8 @@ pub struct Session {
 
 impl Session {
     pub fn by_id(conn: &PgConnection, session_id: &str) -> QueryResult<(Self, User)> {
-        use web::schema::sessions::dsl::*;
-        use web::schema::users;
+        use crate::web::schema::sessions::dsl::*;
+        use crate::web::schema::users;
 
         sessions
             .inner_join(users::table)
@@ -30,7 +30,7 @@ impl Session {
 
     pub fn save(&self, conn: &PgConnection) -> QueryResult<usize> {
         use diesel::update;
-        use web::schema::sessions::dsl::*;
+        use crate::web::schema::sessions::dsl::*;
 
         update(self).set(data.eq(&self.data)).execute(conn)
     }

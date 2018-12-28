@@ -1,10 +1,10 @@
 use diesel::prelude::*;
 
 use super::*;
-use web::schema::devices;
+use crate::web::schema::devices;
 
-use config;
-use config::{FlysightConfig, GoproConfig, MassStorageConfig};
+use crate::config;
+use crate::config::{FlysightConfig, GoproConfig, MassStorageConfig};
 
 #[derive(Identifiable, Queryable, Associations, Debug, Serialize)]
 #[belongs_to(User)]
@@ -48,7 +48,7 @@ impl From<Device> for config::DeviceConfig {
 
 impl Device {
     pub fn by_id(&self, device_id: i32, conn: &PgConnection) -> QueryResult<Device> {
-        use web::schema::devices::dsl::*;
+        use crate::web::schema::devices::dsl::*;
 
         devices.filter(id.eq(device_id)).get_result::<Device>(conn)
     }

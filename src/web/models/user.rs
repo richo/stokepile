@@ -2,7 +2,7 @@ use bcrypt;
 use diesel::prelude::*;
 
 use super::*;
-use web::schema::users;
+use crate::web::schema::users;
 
 #[derive(Queryable, Debug, Serialize)]
 pub struct User {
@@ -14,7 +14,7 @@ pub struct User {
 
 impl User {
     pub fn by_credentials(conn: &PgConnection, email: &str, password: &str) -> Option<User> {
-        use web::schema::users::dsl::{email as user_email, users};
+        use crate::web::schema::users::dsl::{email as user_email, users};
 
         if let Ok(user) = users.filter(user_email.eq(email)).get_result::<User>(conn) {
             if bcrypt::verify(password, &user.password).unwrap() {
@@ -28,7 +28,7 @@ impl User {
     }
 
     pub fn integrations(&self, conn: &PgConnection) -> QueryResult<Vec<Integration>> {
-        use web::schema::integrations::dsl::*;
+        use crate::web::schema::integrations::dsl::*;
 
         integrations
             .filter(user_id.eq(self.id))
@@ -36,13 +36,13 @@ impl User {
     }
 
     pub fn devices(&self, conn: &PgConnection) -> QueryResult<Vec<Device>> {
-        use web::schema::devices::dsl::*;
+        use crate::web::schema::devices::dsl::*;
 
         devices.filter(user_id.eq(self.id)).load::<Device>(conn)
     }
 
     pub fn keys(&self, conn: &PgConnection) -> QueryResult<Vec<Key>> {
-        use web::schema::keys::dsl::*;
+        use crate::web::schema::keys::dsl::*;
 
         keys.filter(user_id.eq(self.id)).load::<Key>(conn)
     }
@@ -52,7 +52,7 @@ impl User {
         integration_id: i32,
         conn: &PgConnection,
     ) -> QueryResult<Integration> {
-        use web::schema::integrations::dsl::*;
+        use crate::web::schema::integrations::dsl::*;
 
         integrations
             .filter(user_id.eq(self.id).and(id.eq(integration_id)))
@@ -60,7 +60,7 @@ impl User {
     }
 
     pub fn device_by_id(&self, device_id: i32, conn: &PgConnection) -> QueryResult<Device> {
-        use web::schema::devices::dsl::*;
+        use crate::web::schema::devices::dsl::*;
 
         devices
             .filter(user_id.eq(self.id).and(id.eq(device_id)))
@@ -68,7 +68,7 @@ impl User {
     }
 
     pub fn key_by_id(&self, key_id: i32, conn: &PgConnection) -> QueryResult<Key> {
-        use web::schema::keys::dsl::*;
+        use crate::web::schema::keys::dsl::*;
 
         keys.filter(user_id.eq(self.id).and(id.eq(key_id)))
             .get_result(conn)
