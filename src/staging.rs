@@ -8,6 +8,7 @@ use chrono::prelude::*;
 use crate::dropbox_content_hasher::DropboxContentHasher;
 use failure::Error;
 use hashing_copy;
+use serde::Serialize;
 use serde_json;
 
 pub trait UploadableFile {
@@ -76,7 +77,7 @@ pub trait Staging: Sized {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(PartialEq, Debug, Serialize, Deserialize)]
 pub struct UploadDescriptor {
     pub capture_time: DateTime<Local>,
     pub device_name: String,
@@ -166,5 +167,23 @@ mod tests {
             upload.remote_path(),
             PathBuf::from("/01-01-02/test/03-04-05.mp4".to_string())
         );
+    }
+
+    #[test]
+    fn test_uploaddescriptor_roundtrips_serializtion() {
+        let datetime = Local.ymd(2001, 1, 2).and_hms(3, 4, 5);
+
+        let original = UploadDescriptor {
+            capture_time: datetime,
+            device_name: "test".to_string(),
+            extension: "mp4".to_string(),
+            content_hash: [0; 32],
+            size: 0,
+        };
+
+        let serialized = serde_json::to_string(&original).expect("Couldn't serialize test vector");
+        let hydrated = serde_json::from_str(&serialized).expect("Couldn't deserialize test data");
+
+        assert_eq!(&original, &hydrated);
     }
 }
