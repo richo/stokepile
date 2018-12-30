@@ -35,7 +35,7 @@ pub fn init_pool(test_transactions: bool) -> PgPool {
 pub struct DbConn(pub PooledConnection<ConnectionManager<PgConnection>>);
 
 impl fmt::Debug for DbConn {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_tuple("DbConn")
             .field(&"PooledConnection<ConnectionManager<...>>")
             .finish()
@@ -56,7 +56,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for DbConn {
     type Error = ();
 
     fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
-        let pool = request.guard::<State<PgPool>>()?;
+        let pool = request.guard::<State<'_, PgPool>>()?;
         match pool.get() {
             Ok(conn) => Outcome::Success(DbConn(conn)),
             Err(_) => Outcome::Failure((Status::ServiceUnavailable, ())),

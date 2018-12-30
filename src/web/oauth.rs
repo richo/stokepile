@@ -43,7 +43,7 @@ pub struct Oauth2Config {
 }
 
 impl fmt::Debug for Oauth2Config {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("Oauth2Config")
             .field("client_id", &self.client_id)
             .field("client_secret", &"...")

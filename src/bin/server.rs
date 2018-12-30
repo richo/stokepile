@@ -3,24 +3,15 @@
 #[macro_use]
 extern crate log;
 
-extern crate diesel;
-extern crate failure;
-extern crate pretty_env_logger;
+use pretty_env_logger;
 
-extern crate dotenv;
+use dotenv;
 
 #[macro_use]
 extern crate lazy_static;
 
 #[macro_use]
 extern crate rocket;
-extern crate rocket_contrib;
-
-extern crate serde_json;
-
-extern crate oauth2;
-
-extern crate archiver;
 
 use rocket::config::Environment;
 use rocket::http::ContentType;
@@ -155,7 +146,7 @@ fn signin_json(
 fn signin(
     conn: DbConn,
     signin: Form<SignInUpForm>,
-    mut cookies: Cookies,
+    mut cookies: Cookies<'_>,
 ) -> Result<Redirect, Flash<Redirect>> {
     let user: Result<User, &str> = match signin.action {
         UserAction::SignIn => User::by_credentials(&*conn, &signin.email, &signin.password)
@@ -182,13 +173,13 @@ fn signin(
 }
 
 #[get("/signin")]
-fn get_signin<'r>(flash: Option<FlashMessage>) -> Template {
+fn get_signin<'r>(flash: Option<FlashMessage<'_, '_>>) -> Template {
     let context = Context::default().set_signin_error(flash.map(|msg| msg.msg().into()));
     Template::render("signin", context)
 }
 
 #[post("/signout")]
-fn signout(user: WebUser, conn: DbConn, mut cookies: Cookies) -> Redirect {
+fn signout(user: WebUser, conn: DbConn, mut cookies: Cookies<'_>) -> Redirect {
     user.session
         .delete(&*conn)
         .expect("Could not delete session.");
@@ -429,7 +420,7 @@ fn expire_key(
 }
 
 #[get("/")]
-fn index(user: Option<WebUser>, conn: DbConn, flash: Option<FlashMessage>) -> Template {
+fn index(user: Option<WebUser>, conn: DbConn, flash: Option<FlashMessage<'_, '_>>) -> Template {
     let mut possible_integrations = vec![];
     let mut devices = vec![];
     let mut keys = vec![];
@@ -531,7 +522,7 @@ mod tests {
         DbConn::maybe_from_rocket(client.rocket()).expect("db connection")
     }
 
-    fn get_set_cookie(response: LocalResponse, name: &str) -> Option<String> {
+    fn get_set_cookie(response: LocalResponse<'_>, name: &str) -> Option<String> {
         for cookie in response.headers().get("Set-Cookie") {
             if cookie.starts_with(&format!("{}=", name)) {
                 return Some(cookie.to_owned());
