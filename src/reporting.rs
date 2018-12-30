@@ -4,7 +4,7 @@ use crate::staging::UploadDescriptor;
 
 use failure::Error;
 use handlebars::{Handlebars, TemplateRenderError};
-use serde::ser::{Serialize, Serializer};
+use serde::ser::{Serialize, Serializer, SerializeStruct};
 
 handlebars_helper!(header: |v: str| format!("{}\n{}", v, str::repeat("=", v.len())));
 
@@ -47,8 +47,25 @@ pub struct UploadReport {
 /// results is a Vec of service-name, status tuples.
 #[derive(Debug, Serialize)]
 pub struct ReportEntry {
+    #[serde(serialize_with = "format_report")]
     desc: UploadDescriptor,
     results: Vec<(String, UploadStatus)>,
+}
+
+// We serialize with a custom serializer here, in order to use our date representation in the
+// reports.
+//
+// This naively seems like it'd be easier to implement on the UploadDescriptor, but it's
+// `Serialize` impl is responsible for making sure it round trips the disc safely.
+fn format_report<S>(desc: &UploadDescriptor, serializer: S) -> Result<S::Ok, S::Error>
+    where S: Serializer,
+{
+    let mut ser = serializer.serialize_struct("UploadDescriptor", 3)?;
+    ser.serialize_field("capture_time", &desc.capture_time.format("%Y-%m-%d %H:%M:%S").to_string())?;
+    ser.serialize_field("extension", &desc.extension)?;
+    ser.serialize_field("size", &desc.size)?;
+    ser.end()
+
 }
 
 impl ReportEntry {
@@ -131,8 +148,6 @@ mod tests {
         // We use LocalTime throughout, since it's reasonable to assume that is correct. However,
         // localtime formats including its offset, which we can't predict in tests. We construct
         // one, remove its offset, and template it in here for the testcase.
-        let local = Local::today();
-        let offset = local.offset();
         let expected = format!(
             "\
 ARCHIVER UPLOAD REPORT
@@ -141,16 +156,14 @@ ARCHIVER UPLOAD REPORT
 test-device
 ===========
 
-    2018-08-24T09:55:30{offset}.mp4 (0b)
+    2018-08-24 09:55:30.mp4 (0b)
     # vimeo: Succeeded
     # youtube: Succeeded
 
-    2018-08-24T12:30:30{offset}.mp4 (0b)
+    2018-08-24 12:30:30.mp4 (0b)
     # vimeo: Succeeded
     # youtube: Upload failed: ErrorMessage {{ msg: &quot;Something bad happened&quot; }}
-",
-            offset = offset
-        );
+");
         assert_eq!(report.to_plaintext().unwrap(), expected);
     }
 }
