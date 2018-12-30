@@ -1,5 +1,5 @@
-extern crate tempfile;
-extern crate walkdir;
+use tempfile;
+use walkdir;
 
 use std::fs;
 use std::path::PathBuf;

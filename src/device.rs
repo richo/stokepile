@@ -46,7 +46,7 @@ impl<'a> Device<'a> {
     }
 }
 
-pub fn attached_devices(ctx: &ctx::Ctx) -> Result<Vec<Device>, Error> {
+pub fn attached_devices(ctx: &ctx::Ctx) -> Result<Vec<Device<'_>>, Error> {
     let mut devices = vec![];
 
     // Should errors actually stop us finding other devices?

@@ -3,7 +3,7 @@ pub static AUTHOR: &'static str = "richö butts";
 
 #[cfg(test)]
 mod tests {
-    extern crate toml;
+    use toml;
 
     use super::*;
     use std::fs::File;

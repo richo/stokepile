@@ -19,7 +19,7 @@ macro_rules! sensitive_fmt {
     ($struct:ident) => {
         use std::fmt;
         impl fmt::Debug for $struct {
-            fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+            fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
                 fmt.debug_struct(stringify!($struct))
                     .field("token", &"...")
                     .finish()

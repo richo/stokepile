@@ -30,7 +30,7 @@ pub struct DropboxFilesClient {
 }
 
 impl fmt::Debug for DropboxFilesClient {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("DropboxFilesClient")
             .field("token", &"...")
             .field("user_agent", &self.client)
@@ -262,7 +262,7 @@ impl DropboxFilesClient {
         &self,
         data: &[u8],
         cursor: Cursor,
-        commit: Commit,
+        commit: Commit<'_>,
     ) -> Result<UploadMetadataResponse, Error> {
         use self::DropboxBody::*;
         let req = serde_json::to_vec(&UploadSessionFinishRequest {

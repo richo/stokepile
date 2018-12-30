@@ -12,7 +12,7 @@ pub struct SendgridMailer {
 }
 
 impl fmt::Debug for SendgridMailer {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct(stringify!($struct))
             .field("mailer", &"SGClient { ... }")
             .field("to", &self.to)

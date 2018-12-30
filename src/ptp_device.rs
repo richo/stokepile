@@ -26,7 +26,7 @@ pub struct GoproFile<'c> {
 }
 
 impl<'c> fmt::Debug for GoproFile<'c> {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("GoproFile")
             .field("handle", &self.handle)
             .field("offset", &self.offset)
@@ -200,7 +200,7 @@ impl<'c> Drop for GoproConnection<'c> {
 }
 
 impl<'a> Gopro<'a> {
-    pub fn new(kind: GoproKind, serial: String, device: libusb::Device) -> Result<Gopro, Error> {
+    pub fn new(kind: GoproKind, serial: String, device: libusb::Device<'_>) -> Result<Gopro<'_>, Error> {
         Ok(Gopro {
             kind: kind,
             serial: serial,
@@ -220,7 +220,7 @@ impl<'a> Gopro<'a> {
 }
 
 impl<'a> fmt::Debug for Gopro<'a> {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("Gopro")
             .field("kind", &self.kind)
             .field("serial", &self.serial)
@@ -230,12 +230,12 @@ impl<'a> fmt::Debug for Gopro<'a> {
 }
 
 impl<'c> fmt::Debug for GoproConnection<'c> {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.gopro.fmt(fmt)
     }
 }
 
-pub fn locate_gopros(ctx: &ctx::Ctx) -> Result<Vec<Gopro>, Error> {
+pub fn locate_gopros(ctx: &ctx::Ctx) -> Result<Vec<Gopro<'_>>, Error> {
     let mut res = vec![];
 
     for device in ctx.usb_ctx.devices()?.iter() {
