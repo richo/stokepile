@@ -7,6 +7,8 @@ use crate::staging;
 use failure::Error;
 use serde_json;
 
+const MAX_RETRIES: usize = 3;
+
 #[derive(Debug)]
 pub enum StorageStatus {
     Success,
@@ -80,7 +82,7 @@ where
 
                 info!("File not present upstream - beginning upload");
                 // We have inverted the sense of "success" and "failure" from try_for_each
-                let result = (0..3).try_fold(format_err!("dummy error"), |_, i| {
+                let result = (0..MAX_RETRIES).try_fold(format_err!("dummy error"), |_, i| {
                     let content = File::open(&content_path).expect("Couldn't open content file");
                     match ad.upload(content, &manifest) {
                         Ok(_resp) => {
