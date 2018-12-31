@@ -127,8 +127,8 @@ fn run() -> Result<(), Error> {
             let report = thread::spawn(move || storage::upload_from_staged(&staging, &backends))
                 .join()
                 .expect("Upload thread panicked")?;
-            ctx.notifier.notify("Finished uploading media")?;
             let plaintext = report.to_plaintext()?;
+            ctx.notifier.notify("Finished uploading media")?;
             println!("{}", plaintext);
             ctx.mailer.send_report(&plaintext)?;
         }

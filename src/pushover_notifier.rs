@@ -19,6 +19,7 @@ impl fmt::Debug for PushoverNotifier {
 
 pub trait Notify {
     fn notify(&self, msg: &str) -> Result<(), Error>;
+    fn notify_detailed(&self, title: &str, details: &str) -> Result<(), Error>;
 }
 
 impl PushoverNotifier {
@@ -43,6 +44,14 @@ impl Notify for Option<PushoverNotifier> {
         info!("sending push notification: {}", msg);
         match self {
             Some(notifier) => notifier.notify(msg),
+            None => Ok(()),
+        }
+    }
+
+    fn notify_detailed(&self, title: &str, details: &str) -> Result<(), Error> {
+        info!("sending detailed push notification: {}", title);
+        match self {
+            Some(notifier) => notifier.notify_detailed(title, details),
             None => Ok(()),
         }
     }

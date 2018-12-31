@@ -67,6 +67,8 @@ impl<'a> PushoverRequest<'a> {
 
     /// your message's title, otherwise your app's name is used
     setter!(title, String);
+    /// The optional body of your message
+    setter!(message, String);
     /// a supplementary URL to show with your message
     setter!(url, String);
     /// a title for your supplementary URL, otherwise just the URL is shown
