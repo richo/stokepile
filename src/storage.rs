@@ -78,23 +78,30 @@ where
                     return (ad.name(), UploadStatus::AlreadyUploaded);
                 }
 
-                // TODO(richo) This is super ugly, but it makes the logic a bit more straightforward.
-                //
-                // This is actually a realistic failure case though :(
                 info!("File not present upstream - beginning upload");
-                let content = File::open(&content_path).expect("Couldn't open content file");
-                match ad.upload(content, &manifest) {
-                    Ok(_resp) => {
-                        info!("Upload succeeded");
-                        return (ad.name(), UploadStatus::Succeeded);
+                // We have inverted the sense of "success" and "failure" from try_for_each
+                let result = (0..3).try_fold(format_err!("dummy error"), |_, i| {
+                    let content = File::open(&content_path).expect("Couldn't open content file");
+                    match ad.upload(content, &manifest) {
+                        Ok(_resp) => {
+                            info!("Upload succeeded");
+                            // Returning Err short circuits the iterator
+                            None
+                        }
+                        Err(error) => {
+                            error!(
+                                "Attempt {} of upload of {:?} failed: {:?}",
+                                &i, &content_path, &error
+                            );
+                            Some(error)
+                        }
                     }
-                    Err(error) => {
-                        error!(
-                            "Upload of {:?} failed: {:?}, continuing with next file",
-                            &content_path, &error
-                        );
-                        return (ad.name(), UploadStatus::Errored(error));
-                    }
+                });
+                // So we have to pull them apart to flip them
+                match result {
+                    // The "ok" state means we fell all the way through
+                    Some(err) => (ad.name(), UploadStatus::Errored(err)),
+                    None => (ad.name(), UploadStatus::Succeeded),
                 }
             })
             .collect();
