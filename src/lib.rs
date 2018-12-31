@@ -17,9 +17,8 @@ extern crate log;
 
 macro_rules! sensitive_fmt {
     ($struct:ident) => {
-        use std::fmt;
-        impl fmt::Debug for $struct {
-            fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        impl std::fmt::Debug for $struct {
+            fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 fmt.debug_struct(stringify!($struct))
                     .field("token", &"...")
                     .finish()
