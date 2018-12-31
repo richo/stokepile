@@ -125,6 +125,7 @@ where
 mod tests {
     use super::*;
     use std::cell::Cell;
+    use tempfile;
     use crate::staging::UploadDescriptor;
 
     /// A storage adaptor that will succeed on the nth attempt
@@ -142,8 +143,8 @@ mod tests {
         }
     }
 
-    impl StorageAdaptor<Vec<u8>> for TemporarilyBrokenStorageAdaptor {
-        fn upload(&self, _: Vec<u8>, _: &staging::UploadDescriptor) -> Result<StorageStatus, Error> {
+    impl StorageAdaptor<File> for TemporarilyBrokenStorageAdaptor {
+        fn upload(&self, _: File, _: &staging::UploadDescriptor) -> Result<StorageStatus, Error> {
             let this_attempt = self.attempts.get() + 1;
             self.attempts.set(this_attempt);
 
@@ -167,10 +168,12 @@ mod tests {
     fn test_temporarily_broken_uploader_actually_works() {
         let manifest = UploadDescriptor::test_descriptor();
         let uploader = TemporarilyBrokenStorageAdaptor::new(3);
-        let buf = vec![0u8; 32];
-        assert!(uploader.upload(buf.clone(), &manifest).is_err());
-        assert!(uploader.upload(buf.clone(), &manifest).is_err());
-        assert!(uploader.upload(buf.clone(), &manifest).is_ok());
+        let buf = tempfile::tempfile().expect("Couldn't create tempfile");
+        assert!(uploader.upload(buf, &manifest).is_err());
+        let buf = tempfile::tempfile().expect("Couldn't create tempfile");
+        assert!(uploader.upload(buf, &manifest).is_err());
+        let buf = tempfile::tempfile().expect("Couldn't create tempfile");
+        assert!(uploader.upload(buf, &manifest).is_ok());
     }
 
     #[test]
