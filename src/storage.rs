@@ -124,6 +124,54 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::cell::Cell;
+    use crate::staging::UploadDescriptor;
+
+    /// A storage adaptor that will succeed on the nth attempt
+    struct TemporarilyBrokenStorageAdaptor {
+        attempts: Cell<usize>,
+        successful_attempt: usize,
+    }
+
+    impl TemporarilyBrokenStorageAdaptor {
+        fn new(tries: usize) -> TemporarilyBrokenStorageAdaptor {
+            TemporarilyBrokenStorageAdaptor {
+                attempts: Cell::new(0),
+                successful_attempt: tries,
+            }
+        }
+    }
+
+    impl StorageAdaptor<Vec<u8>> for TemporarilyBrokenStorageAdaptor {
+        fn upload(&self, _: Vec<u8>, _: &staging::UploadDescriptor) -> Result<StorageStatus, Error> {
+            let this_attempt = self.attempts.get() + 1;
+            self.attempts.set(this_attempt);
+
+            if this_attempt == self.successful_attempt {
+                return Ok(StorageStatus::Success);
+            } else {
+                bail!("Spurious error");
+            }
+        }
+
+        fn already_uploaded(&self, _: &staging::UploadDescriptor) -> bool {
+            false
+        }
+
+        fn name(&self) -> String {
+            "TemporarilyBrokenStorageAdaptor".to_string()
+        }
+    }
+
+    #[test]
+    fn test_temporarily_broken_uploader_actually_works() {
+        let manifest = UploadDescriptor::test_descriptor();
+        let uploader = TemporarilyBrokenStorageAdaptor::new(3);
+        let buf = vec![0u8; 32];
+        assert!(uploader.upload(buf.clone(), &manifest).is_err());
+        assert!(uploader.upload(buf.clone(), &manifest).is_err());
+        assert!(uploader.upload(buf.clone(), &manifest).is_ok());
+    }
 
     #[test]
     fn test_absolute_manifest_conversion() {
