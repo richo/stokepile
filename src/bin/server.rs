@@ -187,6 +187,13 @@ fn signout(user: WebUser, conn: DbConn, mut cookies: Cookies<'_>) -> Redirect {
     Redirect::to("/")
 }
 
+#[get("/settings")]
+fn settings(user: WebUser, conn: DbConn, mut cookies: Cookies<'_>) -> Template {
+    let context = Context::default()
+        .set_user(Some(user));
+    Template::render("settings", context)
+}
+
 #[derive(FromForm)]
 struct DisconnectForm {
     integration_id: i32,
@@ -473,6 +480,7 @@ fn configure_rocket(test_transactions: bool) -> Rocket {
                 signin,
                 signin_json,
                 signout,
+                settings,
                 index,
                 connect_integration,
                 disconnect_integration,
