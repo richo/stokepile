@@ -10,6 +10,8 @@ pub struct User {
     pub email: String,
     #[serde(skip_serializing)]
     pub password: String,
+    pub notify_email: Option<String>,
+    pub notify_pushover: Option<String>,
 }
 
 impl User {

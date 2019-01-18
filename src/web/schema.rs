@@ -42,6 +42,8 @@ table! {
         id -> Int4,
         email -> Varchar,
         password -> Varchar,
+        notify_email -> Nullable<Varchar>,
+        notify_pushover -> Nullable<Varchar>,
     }
 }
 
