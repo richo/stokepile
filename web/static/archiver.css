@@ -68,6 +68,12 @@ body {
   align-items: center;
 }
 
+.save-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .integration-list {
   padding: 0;
 }
