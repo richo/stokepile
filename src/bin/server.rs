@@ -187,11 +187,42 @@ fn signout(user: WebUser, conn: DbConn, mut cookies: Cookies<'_>) -> Redirect {
     Redirect::to("/")
 }
 
+#[derive(FromForm, Debug)]
+struct SettingsForm {
+    notification_email: String,
+    notification_pushover: String,
+}
+
+impl SettingsForm {
+    fn notification_email(&self) -> Option<&str> {
+        if self.notification_email.len() > 0 {
+            Some(&self.notification_email)
+        } else {
+            None
+        }
+    }
+
+    fn notification_pushover(&self) -> Option<&str> {
+        if self.notification_pushover.len() > 0 {
+            Some(&self.notification_pushover)
+        } else {
+            None
+        }
+    }
+}
+
 #[get("/settings")]
-fn settings(user: WebUser, conn: DbConn, mut cookies: Cookies<'_>) -> Template {
+fn get_settings(user: WebUser) -> Template {
     let context = Context::default()
         .set_user(Some(user));
     Template::render("settings", context)
+}
+
+#[post("/settings",  data = "<settings>")]
+fn post_settings(user: WebUser, conn: DbConn, settings: Form<SettingsForm>) -> Redirect {
+    info!("{:?}", &settings);
+
+    Redirect::to("/")
 }
 
 #[derive(FromForm)]
@@ -480,7 +511,8 @@ fn configure_rocket(test_transactions: bool) -> Rocket {
                 signin,
                 signin_json,
                 signout,
-                settings,
+                get_settings,
+                post_settings,
                 index,
                 connect_integration,
                 disconnect_integration,
