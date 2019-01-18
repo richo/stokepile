@@ -3,4 +3,5 @@ pub mod context;
 pub mod db;
 pub mod models;
 pub mod oauth;
+pub mod routes;
 pub mod schema;

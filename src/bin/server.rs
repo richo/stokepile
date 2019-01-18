@@ -39,65 +39,10 @@ use archiver::web::models::{
     Integration, NewDevice, NewIntegration, NewKey, NewSession, NewUser, User,
 };
 use archiver::web::oauth::Oauth2Provider;
+use archiver::web::routes;
 
 lazy_static! {
     static ref ROCKET_ENV: Environment = Environment::active().expect("Could not get ROCKET_ENV.");
-}
-
-#[get("/config")]
-fn get_config(user: AuthenticatedUser, conn: DbConn) -> Result<Content<String>, Flash<Redirect>> {
-    let mut config = Config::build();
-
-    let integrations = user.user().integrations(&*conn).map_err(|e| {
-        Flash::error(
-            Redirect::to("/"),
-            format!("Error connecting to the DB: {}", e),
-        )
-    })?;
-    let mut integrations = integrations.iter();
-    for provider in Oauth2Provider::providers() {
-        let name = provider.name();
-
-        if let Some(integration) = integrations.find(|ref x| x.provider == name) {
-            let token = integration.access_token.to_string();
-            match name {
-                "dropbox" => config = config.dropbox(token),
-                "vimeo" => config = config.vimeo(token),
-                name => {
-                    warn!("Unknown integration: {}", name);
-                }
-            }
-        }
-    }
-
-    let devices = user.user().devices(&*conn).map_err(|e| {
-        Flash::error(
-            Redirect::to("/"),
-            format!("Error connecting to the DB: {}", e),
-        )
-    })?;
-    for device in devices {
-        match device.into() {
-            DeviceConfig::Gopro(gopro) => config = config.gopro(gopro),
-            DeviceConfig::Flysight(flysight) => config = config.flysight(flysight),
-            DeviceConfig::MassStorage(mass_storage) => config = config.mass_storage(mass_storage),
-            DeviceConfig::UnknownDevice(kind) => warn!("Unknown device kind: {}", kind),
-        }
-    }
-
-    match config.finish() {
-        Ok(config) => Ok(Content(
-            ContentType::new("application", "toml"),
-            config.to_toml(),
-        )),
-        Err(error) => Err(Flash::error(
-            Redirect::to("/"),
-            format!(
-                "There was a problem generating configuration for you: {}",
-                error
-            ),
-        )),
-    }
 }
 
 enum UserAction {
@@ -506,7 +451,7 @@ fn configure_rocket(test_transactions: bool) -> Rocket {
         .mount(
             "/",
             routes![
-                get_config,
+                routes::config::get_config,
                 get_signin,
                 signin,
                 signin_json,

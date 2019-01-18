@@ -1,5 +1,6 @@
 #![deny(unused_must_use, missing_debug_implementations)]
 #![warn(rust_2018_idioms)]
+#![cfg_attr(feature = "web", feature(decl_macro, proc_macro_hygiene))]
 
 #[macro_use]
 extern crate serde;
