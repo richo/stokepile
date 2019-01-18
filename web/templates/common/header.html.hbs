@@ -18,6 +18,7 @@
       <div class="header-actions">
         {{#if user}}
         <span class="header-email">{{user.email}}</span>
+        <a href="/settings" class="pure-button button-small">Settings</a>
         <form action="/signout" method="POST">
           <button class="pure-button button-small">Sign Out</button>
         </form>
