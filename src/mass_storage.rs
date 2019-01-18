@@ -18,6 +18,7 @@ pub struct MassStorage {
     pub extensions: HashSet<String>,
 }
 
+#[derive(Debug)]
 pub struct MassStorageFile {
     capturedatetime: DateTime<Local>,
     file: File,

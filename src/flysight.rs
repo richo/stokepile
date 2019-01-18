@@ -17,6 +17,7 @@ pub struct Flysight {
     path: PathBuf,
 }
 
+#[derive(Debug)]
 pub struct FlysightFile {
     capturedate: String,
     capturetime: String,
