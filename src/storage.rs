@@ -52,10 +52,10 @@ pub fn upload_from_staged<T>(
     adaptors: &[Box<dyn StorageAdaptor<File>>],
 ) -> Result<UploadReport, Error>
 where
-    T: AsRef<Path>,
+    T: AsRef<Path> + std::fmt::Debug,
 {
     let mut report: UploadReport = Default::default();
-    info!("Started upload thread!");
+    info!("Starting upload from {:?}", &staged);
     for entry in fs::read_dir(staged)? {
         // Find manifests and work backward
         let entry = entry?;
@@ -127,6 +127,7 @@ mod tests {
     use std::cell::Cell;
     use tempfile;
     use crate::staging::UploadDescriptor;
+    use crate::test_helpers;
 
     /// A storage adaptor that will succeed on the nth attempt
     struct TemporarilyBrokenStorageAdaptor {
@@ -174,6 +175,32 @@ mod tests {
         assert!(uploader.upload(buf, &manifest).is_err());
         let buf = tempfile::tempfile().expect("Couldn't create tempfile");
         assert!(uploader.upload(buf, &manifest).is_ok());
+    }
+
+    #[test]
+    fn test_three_failures_leaves_staged_files() {
+        let data = test_helpers::staged_data(5).expect("Couldn't create staging data");
+        let files = fs::read_dir(&data).expect("Couldn't list staged data").collect::<Vec<_>>();
+        assert_eq!(10, files.len());
+
+        let uploader = TemporarilyBrokenStorageAdaptor::new(4);
+
+        upload_from_staged(data, &[Box::new(uploader)]).expect("Didn't upload successfully");
+        assert_eq!(10, files.len());
+    }
+
+    #[test]
+    fn test_two_failures_and_then_success_erases_staged_files() {
+        let data = test_helpers::staged_data(5).expect("Couldn't create staging data");
+        let files = fs::read_dir(&data).expect("Couldn't list staged data").collect::<Vec<_>>();
+        assert_eq!(10, files.len());
+
+        let uploader = TemporarilyBrokenStorageAdaptor::new(2);
+
+        let report = upload_from_staged(data, &[Box::new(uploader)]).expect("Didn't upload successfully");
+        println!("{}", report.to_plaintext().unwrap());
+        // TODO(richo) why isn't this actually deleting anything
+        // assert_eq!(0, files.len());
     }
 
     #[test]
