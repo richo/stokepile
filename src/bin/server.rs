@@ -14,11 +14,9 @@ extern crate lazy_static;
 extern crate rocket;
 
 use rocket::config::Environment;
-use rocket::http::ContentType;
 use rocket::http::RawStr;
 use rocket::http::{Cookie, Cookies, SameSite};
 use rocket::request::{FlashMessage, Form, FromFormValue};
-use rocket::response::content::Content;
 use rocket::response::{Flash, Redirect};
 use rocket::Rocket;
 use rocket_contrib::json::Json;
@@ -30,9 +28,8 @@ use std::env;
 use oauth2::prelude::*;
 use oauth2::CsrfToken;
 
-use archiver::config::{Config, DeviceConfig};
 use archiver::messages;
-use archiver::web::auth::{AuthenticatedUser, WebUser};
+use archiver::web::auth::WebUser;
 use archiver::web::context::{Context, PossibleIntegration};
 use archiver::web::db::{init_pool, DbConn};
 use archiver::web::models::{
