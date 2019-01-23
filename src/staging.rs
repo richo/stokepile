@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use chrono;
 use chrono::prelude::*;
 use crate::dropbox_content_hasher::DropboxContentHasher;
+use crate::formatting;
 use failure::Error;
 use hashing_copy;
 use serde::Serialize;
@@ -59,7 +60,7 @@ pub trait Staging: Sized {
                 )?;
                 // assert_eq!(size, desc.size);
                 info!("Shasum: {:x}", hash);
-                info!("size: {:x}", size);
+                info!("size: {}", formatting::human_readable_size(size as usize));
                 desc.content_hash.copy_from_slice(&hash);
             } // Ensure that we've closed our staging file
 

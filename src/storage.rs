@@ -3,9 +3,11 @@ use std::path::{Path, PathBuf};
 
 use crate::reporting::{ReportEntry, UploadReport, UploadStatus};
 use crate::staging;
+use crate::formatting;
 
 use failure::Error;
 use serde_json;
+use chrono::prelude::*;
 
 const MAX_RETRIES: usize = 3;
 
@@ -73,6 +75,7 @@ where
         let results: Vec<_> = adaptors
             .iter()
             .map(|ad| {
+                let start = Utc::now();
                 info!("Starting {} adaptor for {:?}", ad.name(), &content_path);
                 info!("Checking if file already exists");
                 if ad.already_uploaded(&manifest) {
@@ -86,7 +89,8 @@ where
                     let content = File::open(&content_path).expect("Couldn't open content file");
                     match ad.upload(content, &manifest) {
                         Ok(_resp) => {
-                            info!("Upload succeeded");
+                            let finish = Utc::now();
+                            info!("Upload succeeded in {}", formatting::human_readable_time(finish - start));
                             // Returning Err short circuits the iterator
                             None
                         }

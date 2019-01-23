@@ -1,4 +1,4 @@
-use std::time::Duration;
+use time::Duration;
 
 /// Convert an integer number of bytes to something a human being might reasonably intepret. Allows
 /// for one place of decimal precision for low quanta of a given denomination.
@@ -30,13 +30,13 @@ pub fn human_readable_size(bytes: usize) -> String {
 /// Format a given `Duration` as a formatted amount of time a human might reasonably interpret.
 /// ```rust
 /// # use archiver::formatting::human_readable_time;
-/// use std::time::Duration;
+/// use time::Duration;
 ///
-/// assert_eq!(human_readable_time(Duration::new(45, 0)), "45s".to_string());
-/// assert_eq!(human_readable_time(Duration::new(45311, 0)), "12h35m11s".to_string());
+/// assert_eq!(human_readable_time(Duration::seconds(45)), "45s".to_string());
+/// assert_eq!(human_readable_time(Duration::seconds(45311)), "12h35m11s".to_string());
 /// ```
 pub fn human_readable_time(time: Duration) -> String {
-    let mut secs = time.as_secs();
+    let mut secs = time.num_seconds();
     let mut out = "".to_string();
 
     if secs > 60 {

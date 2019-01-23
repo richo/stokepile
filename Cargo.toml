@@ -52,6 +52,7 @@ failure_derive = "0.1.2"
 filetime = "0.2.1"
 rpassword = "2.0.0"
 dirs = "1.0.4"
+time = "0.1.42"
 
 [[bin]]
 name = "server"
