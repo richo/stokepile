@@ -62,6 +62,9 @@ pub mod dropbox;
 /// Flysight specific code. This mostly relates to parsing out the filenames that flysights create.
 mod flysight;
 
+/// A module concerning itself with presenting information in a human readable format.
+pub mod formatting;
+
 /// Contains the MailReport trait which all mailers must implement, as well as the archiver
 /// specific glue for the `SGClient` object we use from the `sendgrid` crate.
 pub mod mailer;
