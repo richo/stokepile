@@ -124,6 +124,9 @@ mod test_helpers;
 extern crate filetime;
 
 #[cfg(feature = "web")]
+#[macro_use]
+extern crate rocket;
+#[cfg(feature = "web")]
 pub mod web;
 #[cfg(feature = "web")]
 #[macro_use]
