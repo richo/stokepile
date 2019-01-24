@@ -21,7 +21,7 @@ rocket_contrib = { version = "0.4.0", optional = true, default_features = false,
 diesel = { version = "1.4.0", features = ["postgres", "r2d2", "serde_json", "chrono"], optional = true }
 bcrypt = { version = "0.2.2", optional = true }
 rand = { version = "0.6.4", optional = true }
-oauth2 = { version = "2.0.0-alpha.2", optional = true }
+oauth2 = { version = "2.0.0-alpha.4", optional = true }
 dotenv = { version = "0.13.0", optional = true }
 
 toml = "0.4.10"
