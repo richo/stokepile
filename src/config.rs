@@ -10,6 +10,7 @@ use url;
 
 use crate::dropbox;
 use crate::flysight::Flysight;
+use crate::local_backup::LocalBackup;
 use crate::mailer::SendgridMailer;
 use crate::mass_storage::MassStorage;
 use crate::pushover_notifier::PushoverNotifier;
@@ -87,6 +88,7 @@ pub struct Config {
     flysight: Option<Vec<FlysightConfig>>,
     gopro: Option<Vec<GoproConfig>>,
     mass_storage: Option<Vec<MassStorageConfig>>,
+    local_backup: Option<Vec<LocalBackupConfig>>,
     // gswoop: Option<GswoopConfig>,
     sendgrid: Option<SendgridConfig>,
     pushover: Option<PushoverConfig>,
@@ -101,6 +103,7 @@ pub struct ConfigBuilder {
     flysight: Option<Vec<FlysightConfig>>,
     gopro: Option<Vec<GoproConfig>>,
     mass_storage: Option<Vec<MassStorageConfig>>,
+    local_backup: Option<Vec<LocalBackupConfig>>,
     // gswoop: Option<GswoopConfig>,
     sendgrid: Option<SendgridConfig>,
     pushover: Option<PushoverConfig>,
@@ -138,6 +141,20 @@ pub struct FlysightConfig {
 impl FlysightConfig {
     pub fn flysight(&self) -> Flysight {
         Flysight::new(self.name.clone(), PathBuf::from(self.mountpoint.clone()))
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
+pub struct LocalBackupConfig {
+    pub mountpoint: String,
+}
+
+impl LocalBackupConfig {
+    pub fn local_backup(&self) -> LocalBackup {
+        // TODO(richo) barf if there's nothing mounted exactly here?
+        LocalBackup {
+            destination: PathBuf::from(self.mountpoint.clone()),
+        }
     }
 }
 
@@ -284,6 +301,11 @@ impl Config {
     /// Returns a vec of all configured backends
     pub fn backends(&self) -> Vec<Box<dyn StorageAdaptor<File>>> {
         let mut out: Vec<Box<dyn StorageAdaptor<File>>> = vec![];
+        if let Some(ref locals) = self.local_backup {
+            for adaptor in locals {
+                out.push(Box::new(adaptor.local_backup()));
+            }
+        }
         if let Some(ref dropbox) = self.dropbox {
             out.push(Box::new(dropbox::DropboxFilesClient::new(
                 dropbox.token.clone(),
@@ -394,6 +416,7 @@ impl ConfigBuilder {
             vimeo: self.vimeo,
             flysight: self.flysight,
             gopro: self.gopro,
+            local_backup: self.local_backup,
             mass_storage: self.mass_storage,
             sendgrid: self.sendgrid,
             pushover: self.pushover,
