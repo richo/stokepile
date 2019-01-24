@@ -2,7 +2,7 @@ use digest;
 
 use digest::generic_array::typenum::U64;
 use digest::generic_array::GenericArray;
-use digest::{Digest, FixedOutput, Input};
+use digest::{Reset, Digest, FixedOutput, Input};
 use sha2::Sha256;
 
 pub const BLOCK_SIZE: usize = 4 * 1024 * 1024;
@@ -29,7 +29,7 @@ pub const BLOCK_SIZE: usize = 4 * 1024 * 1024;
 /// loop {
 ///     let len = f.read(&mut buf).unwrap();
 ///     if len == 0 { break; }
-///     hasher.input(&buf[..len])
+///     Input::input(&mut hasher, &buf[..len])
 /// }
 /// drop(f);
 ///
@@ -60,19 +60,28 @@ impl Default for DropboxContentHasher {
     }
 }
 
+impl Reset for DropboxContentHasher {
+    fn reset(&mut self) {
+        self.overall_hasher = Sha256::new();
+        self.block_hasher = Sha256::new();
+        self.block_pos = 0;
+    }
+}
+
 impl Input for DropboxContentHasher {
-    fn process(&mut self, mut input: &[u8]) {
+    fn input<B: AsRef<[u8]>>(&mut self, data: B) {
+        let mut input = data.as_ref();
         while input.len() > 0 {
             if self.block_pos == BLOCK_SIZE {
                 let block_hasher = self.block_hasher.clone();
-                self.overall_hasher.input(block_hasher.result().as_slice());
+                Input::input(&mut self.overall_hasher, block_hasher.result().as_slice());
                 self.block_hasher = Sha256::new();
                 self.block_pos = 0;
             }
 
             let space_in_block = BLOCK_SIZE - self.block_pos;
             let (head, rest) = input.split_at(::std::cmp::min(input.len(), space_in_block));
-            self.block_hasher.input(head);
+            Input::input(&mut self.block_hasher, head);
 
             self.block_pos += head.len();
             input = rest;
@@ -85,8 +94,7 @@ impl FixedOutput for DropboxContentHasher {
 
     fn fixed_result(mut self) -> GenericArray<u8, Self::OutputSize> {
         if self.block_pos > 0 {
-            self.overall_hasher
-                .input(self.block_hasher.result().as_slice());
+            Input::input(&mut self.overall_hasher, self.block_hasher.result().as_slice());
         }
         self.overall_hasher.result()
     }
