@@ -1,9 +1,11 @@
 use crate::staging;
 use crate::storage::{StorageAdaptor, StorageStatus};
+use crate::dropbox_content_hasher;
 
 use std::fs::{self, File};
 use std::io::{self, Read};
 use std::path::PathBuf;
+use digest::Digest;
 
 use failure::Error;
 
@@ -16,9 +18,26 @@ impl<T> StorageAdaptor<T> for LocalBackup
 where
     T: Read,
 {
-    fn already_uploaded(&self, _manifest: &staging::UploadDescriptor) -> bool {
-        // TODO(richo) Check if the hashes match
-        return false;
+    fn already_uploaded(&self, manifest: &staging::UploadDescriptor) -> bool {
+        let local_path = self.destination.join(manifest.remote_path());
+        match File::open(local_path) {
+            Ok(mut file) => {
+                let mut hasher: dropbox_content_hasher::DropboxContentHasher = Default::default();
+                let mut buf: Vec<_> = vec![0; dropbox_content_hasher::BLOCK_SIZE];
+                loop {
+                    let len = file.read(&mut buf).unwrap();
+                    if len == 0 { break; }
+                    hasher.input(&buf[..len])
+                }
+                drop(file);
+                hasher.result().as_slice() == manifest.content_hash
+            },
+            Err(_) => {
+                // TODO(richo) We could figure out what's going on here but it's almost certainly
+                // that the file doesn't exist
+                false
+            },
+        }
     }
 
     fn upload(
