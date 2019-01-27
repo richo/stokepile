@@ -1,6 +1,6 @@
 use crate::staging;
 use crate::storage::{StorageAdaptor, StorageStatus};
-use crate::dropbox_content_hasher;
+use dropbox_content_hasher;
 
 use std::fs::{self, File};
 use std::io::{self, Read};
