@@ -338,7 +338,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::super::dropbox_content_hasher::DropboxContentHasher;
+    use dropbox_content_hasher::DropboxContentHasher;
     use super::*;
     use sha2::Digest;
     use std::env;

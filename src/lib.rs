@@ -29,11 +29,6 @@ macro_rules! sensitive_fmt {
     };
 }
 
-/// Currently, we have vendored Dropbox's implementation of their content hashing algorithm.
-/// There's an outstanding pull request open to upstream the changes I made, at which point this
-/// can go.
-pub mod dropbox_content_hasher;
-
 /// A client to the web interface.
 pub mod client;
 
