@@ -61,3 +61,8 @@ where
         "local backup".to_string()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+}
