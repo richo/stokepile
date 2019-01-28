@@ -396,6 +396,19 @@ impl ConfigBuilder {
         gopros.into_iter().fold(self, |cfg, gopro| cfg.gopro(gopro))
     }
 
+    /// Add a local backup to this config
+    pub fn local_backup(mut self, local_backup: LocalBackupConfig) -> Self {
+        let mut local_backups = self.local_backup.unwrap_or(vec![]);
+        local_backups.push(local_backup);
+        self.local_backup = Some(local_backups);
+        self
+    }
+
+    /// Add multiple gopros to this config
+    pub fn local_backups(self, local_backups: Vec<LocalBackupConfig>) -> Self {
+        local_backups.into_iter().fold(self, |cfg, local_backup| cfg.local_backup(local_backup))
+    }
+
     /// Configure and enable pushover for this config
     pub fn pushover(mut self, pushover: PushoverConfig) -> Self {
         self.pushover = Some(pushover);
