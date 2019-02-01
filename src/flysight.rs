@@ -73,6 +73,10 @@ impl UploadableFile for FlysightFile {
         fs::remove_file(&self.source_path)?;
         Ok(())
     }
+
+    fn size(&self) -> Result<u64, Error> {
+        Ok(self.file.metadata()?.len())
+    }
 }
 
 impl MountablePeripheral for Flysight {

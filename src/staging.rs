@@ -18,6 +18,7 @@ pub trait UploadableFile {
     fn capture_datetime(&self) -> Result<DateTime<Local>, chrono::ParseError>;
     fn reader(&mut self) -> &mut Self::Reader;
     fn delete(&mut self) -> Result<(), Error>;
+    fn size(&self) -> Result<u64, Error>;
 }
 
 pub trait Staging: Sized {
@@ -37,8 +38,7 @@ pub trait Staging: Sized {
                 device_name: name.to_string(),
                 extension: file.extension().to_string(),
                 content_hash: [0; 32],
-                // TODO(richo) actual double check sizes
-                size: 0,
+                size: file.size()?,
             };
 
             let staging_name = desc.staging_name();
@@ -58,7 +58,7 @@ pub trait Staging: Sized {
                     file.reader(),
                     &mut staged,
                 )?;
-                // assert_eq!(size, desc.size);
+                assert_eq!(size, desc.size);
                 desc.content_hash.copy_from_slice(&hash);
                 info!("Staged {}: shasum={:x} size={}", &staging_name, &hash, formatting::human_readable_size(size as usize));
             } // Ensure that we've closed our staging file

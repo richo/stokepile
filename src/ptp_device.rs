@@ -60,6 +60,10 @@ impl<'c> UploadableFile for GoproFile<'c> {
             .delete_object(self.handle, None)?;
         Ok(ret)
     }
+
+    fn size(&self) -> Result<u64, Error> {
+        Ok(self.size as u64)
+    }
 }
 
 impl<'b> Read for GoproFile<'b> {

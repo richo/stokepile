@@ -104,6 +104,10 @@ impl UploadableFile for DummyDataFile {
         self.deleted = true;
         Ok(())
     }
+
+    fn size(&self) -> Result<u64, Error> {
+        Ok(self.file.metadata()?.len())
+    }
 }
 
 pub(crate) fn staged_data(num_files: usize) -> Result<tempfile::TempDir, Error> {
