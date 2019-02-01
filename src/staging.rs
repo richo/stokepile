@@ -59,9 +59,8 @@ pub trait Staging: Sized {
                     &mut staged,
                 )?;
                 // assert_eq!(size, desc.size);
-                info!("Shasum: {:x}", hash);
-                info!("size: {}", formatting::human_readable_size(size as usize));
                 desc.content_hash.copy_from_slice(&hash);
+                info!("Staged {}: shasum={:x} size={}", &staging_name, &hash, formatting::human_readable_size(size as usize));
             } // Ensure that we've closed our staging file
 
             {
