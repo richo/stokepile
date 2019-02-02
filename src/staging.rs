@@ -120,7 +120,7 @@ impl UploadDescriptor {
     #[cfg(test)]
     pub fn test_descriptor() -> Self {
         UploadDescriptor {
-            capture_time: Local::now(),
+            capture_time: Local.ymd(2018, 8, 26).and_hms(14, 30, 0),
             device_name: "test-device".into(),
             extension: "mp4".into(),
             content_hash: Default::default(),
