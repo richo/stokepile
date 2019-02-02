@@ -31,7 +31,7 @@ where
     T: Read,
 {
     fn already_uploaded(&self, manifest: &staging::UploadDescriptor) -> bool {
-        let local_path = self.destination.join(manifest.remote_path());
+        let local_path = self.local_path(&manifest);
         match File::open(local_path) {
             Ok(mut file) => {
                 let mut hasher: dropbox_content_hasher::DropboxContentHasher = Default::default();
@@ -80,6 +80,9 @@ where
 mod tests {
     use super::*;
     use crate::staging::UploadDescriptor;
+    use crate::test_helpers;
+    use dropbox_content_hasher::DropboxContentHasher;
+    use hashing_copy;
 
     #[test]
     fn test_containing_dir() {
@@ -101,5 +104,29 @@ mod tests {
 
         assert_eq!(backup_adaptor.local_path(&manifest),
                    PathBuf::from("/test/directory/18-08-26/test-device/14-30-00.mp4"));
+    }
+
+    #[test]
+    fn test_already_uploaded() {
+        let tmp = test_helpers::tempdir();
+        let adaptor = LocalBackup {
+            destination: tmp.path().to_path_buf(),
+        };
+
+        let mut manifest = UploadDescriptor::test_descriptor();
+        let reader = "This is some dummy data to stage".to_string();
+
+        let containing_dir = adaptor.containing_dir(&manifest);
+        fs::create_dir_all(&containing_dir).expect("Couldn't create containing directory");
+
+        let local_path = adaptor.local_path(&manifest);
+        let mut local_file = File::create(local_path).expect("Couldn't create local file");
+
+        let (size, hash) = hashing_copy::copy_and_hash::<_, _, DropboxContentHasher>(
+            &mut reader.as_bytes(), &mut local_file).expect("Couldn't copy test data");
+        manifest.size = size;
+        manifest.content_hash.copy_from_slice(&hash);
+
+        assert!(StorageAdaptor::<&[u8]>::already_uploaded(&adaptor, &manifest));
     }
 }
