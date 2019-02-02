@@ -14,6 +14,18 @@ pub struct LocalBackup {
     pub(crate) destination: PathBuf
 }
 
+impl LocalBackup {
+    fn containing_dir(&self, manifest: &staging::UploadDescriptor) -> PathBuf {
+        let local = self.local_path(manifest);
+        local.parent().unwrap().to_path_buf()
+    }
+
+    fn local_path(&self, manifest: &staging::UploadDescriptor) -> PathBuf {
+        let root = PathBuf::from("/");
+        self.destination.join(manifest.remote_path().strip_prefix(&root).unwrap())
+    }
+}
+
 impl<T> StorageAdaptor<T> for LocalBackup
 where
     T: Read,
@@ -45,13 +57,14 @@ where
         mut reader: T,
         manifest: &staging::UploadDescriptor,
     ) -> Result<StorageStatus, Error> {
-        let local = manifest.remote_path();
-        let containing_dir = self.destination.join(local.parent().unwrap());
+        let containing_dir = self.containing_dir(&manifest);
+        let local_path = self.local_path(&manifest);
+        let mut local_file = File::create(&local_path)?;
+
         // TODO(richo) assert that we're mounted first?
         fs::create_dir_all(&containing_dir)?;
-        let mut local_copy = File::create(self.destination.join(local))?;
 
-        io::copy(&mut reader, &mut local_copy)?;
+        io::copy(&mut reader, &mut local_file)?;
 
 
         Ok(StorageStatus::Success)
@@ -65,4 +78,27 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::staging::UploadDescriptor;
+
+    #[test]
+    fn test_containing_dir() {
+        let backup_adaptor = LocalBackup {
+            destination: PathBuf::from("/test/directory"),
+        };
+        let manifest = UploadDescriptor::test_descriptor();
+
+        assert_eq!(backup_adaptor.containing_dir(&manifest),
+                   PathBuf::from("/test/directory/18-08-26/test-device"));
+    }
+
+    #[test]
+    fn test_local_path() {
+        let backup_adaptor = LocalBackup {
+            destination: PathBuf::from("/test/directory"),
+        };
+        let manifest = UploadDescriptor::test_descriptor();
+
+        assert_eq!(backup_adaptor.local_path(&manifest),
+                   PathBuf::from("/test/directory/18-08-26/test-device/14-30-00.mp4"));
+    }
 }
