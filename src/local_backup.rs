@@ -59,10 +59,11 @@ where
     ) -> Result<StorageStatus, Error> {
         let containing_dir = self.containing_dir(&manifest);
         let local_path = self.local_path(&manifest);
-        let mut local_file = File::create(&local_path)?;
 
         // TODO(richo) assert that we're mounted first?
         fs::create_dir_all(&containing_dir)?;
+
+        let mut local_file = File::create(&local_path)?;
 
         io::copy(&mut reader, &mut local_file)?;
 
