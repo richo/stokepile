@@ -45,7 +45,7 @@ pub trait Staging: Sized {
             let manifest_name = desc.manifest_name();
 
             let mut options = fs::OpenOptions::new();
-            let options = options.write(true).create_new(true);
+            let options = options.write(true).create_new(true).truncate(true);
 
             let staging_path = destination.as_ref().join(&staging_name);
             let manifest_path = destination.as_ref().join(&manifest_name);
