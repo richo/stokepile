@@ -50,8 +50,7 @@ pub trait Staging: Sized {
             let staging_path = destination.as_ref().join(&staging_name);
             let manifest_path = destination.as_ref().join(&manifest_name);
 
-            info!("Staging {}", &staging_name);
-            trace!(" To {:?}", staging_path);
+            info!("Staging {} to {:?}", &staging_name, &staging_path);
             {
                 let mut staged = options.open(&staging_path)?;
                 let (size, hash) = hashing_copy::copy_and_hash::<_, _, DropboxContentHasher>(
