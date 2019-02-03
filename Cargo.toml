@@ -14,8 +14,12 @@ edition = "2018"
   "oauth2",
   "dotenv"
 ]
+"cocoa-ui" = [
+  "cocoa"
+]
 
 [dependencies]
+# Dependencies for the Web interface
 rocket = { version = "0.4.0", optional = true, features = ["tls"] }
 rocket_contrib = { version = "0.4.0", optional = true, default_features = false, features = ["handlebars_templates", "json", "serve"] }
 diesel = { version = "1.4.0", features = ["postgres", "r2d2", "serde_json", "chrono"], optional = true }
@@ -23,6 +27,9 @@ bcrypt = { version = "0.2.2", optional = true }
 rand = { version = "0.6.4", optional = true }
 oauth2 = { version = "2.0.0-alpha.4", optional = true }
 dotenv = { version = "0.13.0", optional = true }
+
+# Depdencies for the cocoa ui
+cocoa = { version = "0.18.4", optional = true }
 
 toml = "0.4.10"
 clap = "2.32.0"
@@ -59,6 +66,11 @@ dropbox-content-hasher = "0.3.0"
 name = "server"
 path = "src/bin/server.rs"
 required-features = ["web"]
+
+[[bin]]
+name = "cocoa-ui"
+path = "src/bin/cocoa-ui.rs"
+required-features = ["cocoa-ui"]
 
 [[bin]]
 name = "runner"
