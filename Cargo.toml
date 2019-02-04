@@ -17,6 +17,10 @@ edition = "2018"
   "serde_urlencoded"
 ]
 
+"azul-ui" = [
+  "azul"
+]
+
 [dependencies]
 rocket = { version = "0.4.0", optional = true, features = ["tls"] }
 rocket_contrib = { version = "0.4.0", optional = true, default_features = false, features = ["handlebars_templates", "json", "serve"] }
@@ -27,6 +31,8 @@ bcrypt = { version = "0.3.0", optional = true }
 rand = { version = "0.6.5", optional = true }
 oauth2 = { version = "2.0.0-alpha.4", optional = true }
 serde_urlencoded = { version = "0.5.4", optional = true }
+
+azul = { git = "https://github.com/maps4print/azul", optional = true }
 
 toml = "0.5.0"
 clap = "2.32.0"
@@ -72,3 +78,8 @@ required-features = ["web"]
 name = "run_migrations"
 path = "src/bin/run_migrations.rs"
 required-features = ["web"]
+
+[[bin]]
+name = "azul-ui"
+path = "src/bin/azul-ui.rs"
+required-features = ["azul-ui"]
