@@ -71,12 +71,13 @@ impl AccessToken {
     }
 }
 
+// TODO(richo) this was never used, but either use it to generalise, or unify over a trait like
+// MaybeAttachedDevice ?
 #[derive(Debug, Eq, PartialEq)]
-pub enum DeviceConfig {
-    Gopro(GoproConfig),
-    MassStorage(MassStorageConfig),
-    Flysight(FlysightConfig),
-    UnknownDevice(String),
+pub enum DeviceConfig<'a> {
+    Gopro(&'a GoproConfig),
+    MassStorage(&'a MassStorageConfig),
+    Flysight(&'a FlysightConfig),
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Default)]
@@ -274,6 +275,21 @@ impl Config {
             None => &EMPTY_GOPROS,
             Some(ref v) => v,
         }
+    }
+
+    /// Return a Vec of all the configured devices.
+    pub fn configured_devices(&self) -> Vec<DeviceConfig<'_>> {
+        let mut out = vec![];
+        for flysight in self.flysights() {
+            out.push(DeviceConfig::Flysight(flysight));
+        }
+        for gopro in self.gopros() {
+            out.push(DeviceConfig::Gopro(gopro));
+        }
+        for mass_storage in self.mass_storages() {
+            out.push(DeviceConfig::MassStorage(mass_storage));
+        }
+        out
     }
 
     pub fn notifier(&self) -> Option<PushoverNotifier> {
