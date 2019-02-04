@@ -9,6 +9,7 @@ use clap::{App, Arg, SubCommand};
 use std::fs::File;
 use std::io::{self, Write};
 use std::thread;
+use failure::bail;
 
 use archiver::client;
 use archiver::config;
@@ -166,8 +167,7 @@ archiver::run(|| {
             config::AccessToken::save(&token)?;
         }
         _ => {
-            error!("No subcommand provided");
-            unreachable!();
+            bail!("No subcommand provided");
         } // Either no subcommand or one not tested for...
     }
 
