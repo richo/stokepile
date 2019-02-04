@@ -70,7 +70,7 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
 }
 
 fn main() {
-archiver::run(|| {
+archiver::cli::run(|| {
     let matches = cli_opts().get_matches();
 
     let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("archiver.toml"));

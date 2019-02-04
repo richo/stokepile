@@ -425,7 +425,7 @@ fn configure_rocket(test_transactions: bool) -> Rocket {
 }
 
 fn main() {
-archiver::run(|| {
+archiver::cli::run(|| {
     dotenv::dotenv().ok();
     configure_rocket(false).launch();
     Ok(())

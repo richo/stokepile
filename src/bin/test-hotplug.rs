@@ -107,7 +107,7 @@ lazy_static! {
 }
 
 fn main() {
-    archiver::run(|| {
+    archiver::cli::run(|| {
         trace!("Creating device state");
         let mut state: DeviceState = Default::default();
 

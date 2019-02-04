@@ -41,6 +41,9 @@ pub mod config;
 /// of standing up the context.
 pub mod ctx;
 
+/// Some helpers associated with driving the clis that ship with archiver.
+pub mod cli;
+
 /// Some helpers to abstract over the various types of devices that we can interact with. Much of
 /// this will probably go away at some point, and Device will become a trait instead of the enum
 /// that it is today.
@@ -133,24 +136,3 @@ extern crate diesel;
 extern crate bcrypt;
 #[cfg(feature = "web")]
 extern crate rand;
-
-pub fn init_logging() {
-    if let None = ::std::env::var_os("RUST_LOG") {
-        ::std::env::set_var("RUST_LOG", "INFO");
-    }
-    pretty_env_logger::init();
-}
-
-// This helpers is common to the bins, so it has to be exported
-#[doc(hidden)]
-pub fn run(main: fn() -> Result<(), ::failure::Error>) {
-    init_logging();
-    if let Err(e) = main() {
-        error!("Error running archiver");
-        error!("{:?}", e);
-        if ::std::env::var("RUST_BACKTRACE").is_ok() {
-            error!("{:?}", e.backtrace());
-        }
-        ::std::process::exit(1);
-    }
-}
