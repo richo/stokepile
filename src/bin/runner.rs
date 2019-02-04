@@ -107,10 +107,17 @@ archiver::run(|| {
             let report = thread::spawn(move || storage::upload_from_staged(&staging, &backends))
                 .join()
                 .expect("Upload thread panicked")?;
-            ctx.notifier.notify("Finished uploading media")?;
+
+            if let Err(e) = ctx.notifier.notify("Finished uploading media") {
+                error!("Failed to send push notification: {:?}", e);
+            }
+
             let plaintext = report.to_plaintext()?;
             println!("{}", plaintext);
-            ctx.mailer.send_report(&plaintext)?;
+
+            if let Err(e) = ctx.mailer.send_report(&plaintext) {
+                error!("Failed to send upload report: {:?}", e);
+            }
         }
         ("scan", Some(_subm)) => {
             let ctx = Ctx::create(cfg?)?;
