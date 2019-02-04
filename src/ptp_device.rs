@@ -80,7 +80,7 @@ impl<'b> Read for GoproFile<'b> {
             .lock()
             .unwrap()
             .get_partialobject(self.handle, self.offset, size as u32, None)
-            .expect("FIXME couldn't read from buf");
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
         &buf[..vec.len()].copy_from_slice(&vec[..]);
         self.offset += vec.len() as u32;
         return Ok(vec.len());
