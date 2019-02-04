@@ -11,6 +11,7 @@ use chrono::prelude::*;
 use failure::Error;
 use libusb;
 use ptp;
+use std::hash::{Hash, Hasher};
 
 fn parse_gopro_date(date: &str) -> Result<DateTime<Local>, chrono::ParseError> {
     Local.datetime_from_str(date, "%Y%m%dT%H%M%S")
@@ -110,7 +111,7 @@ const GOPRO_VENDOR: u16 = 0x2672;
 const GOPRO_MANUFACTURER: &'static str = "GoPro";
 
 #[repr(u16)]
-#[derive(Debug)]
+#[derive(Eq, PartialEq, Debug, Hash)]
 pub enum GoproKind {
     Hero4Silver,
     Hero2018,
@@ -131,11 +132,19 @@ impl GoproKind {
 }
 
 // Specialising to PTP devices later might be neat, but for now this is fine
+#[derive(Eq, PartialEq)]
 pub struct Gopro<'d> {
     // TODO(richo) having a name in here would simplify the Staging impl
     pub kind: GoproKind,
     pub serial: String,
     device: libusb::Device<'d>,
+}
+
+impl<'d> Hash for Gopro<'d> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.kind.hash(state);
+        self.serial.hash(state);
+    }
 }
 
 pub struct GoproConnection<'c> {

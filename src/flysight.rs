@@ -11,7 +11,7 @@ use chrono::prelude::*;
 use failure::Error;
 use regex;
 
-#[derive(Debug)]
+#[derive(Eq, PartialEq, Debug, Hash)]
 pub struct Flysight {
     name: String,
     path: PathBuf,

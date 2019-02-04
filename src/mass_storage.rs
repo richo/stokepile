@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::fs::{self, File};
 use std::path::PathBuf;
 
@@ -10,12 +9,12 @@ use chrono::prelude::*;
 use failure::Error;
 use walkdir::WalkDir;
 
-#[derive(Debug)]
+#[derive(Eq, PartialEq, Debug, Hash)]
 pub struct MassStorage {
     // TODO(richo) privatise these
     pub name: String,
     pub path: PathBuf,
-    pub extensions: HashSet<String>,
+    pub extensions: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -96,10 +95,8 @@ mod tests {
 
     use std::path::Path;
 
-    fn extensions() -> HashSet<String> {
-        let mut set = HashSet::new();
-        set.insert("mp4".into());
-        set
+    fn extensions() -> Vec<String> {
+        vec!["mp4".into()]
     }
 
     /// Git checkouts will have mtimes super close together, which will break our algorithm.

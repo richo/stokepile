@@ -11,12 +11,12 @@ use super::peripheral::Peripheral;
 use super::ptp_device;
 use super::staging::Staging;
 
-#[derive(Debug)]
+#[derive(Eq, PartialEq, Debug, Hash)]
 pub struct DeviceDescription {
     pub name: String,
 }
 
-#[derive(Debug)]
+#[derive(Eq, PartialEq, Debug, Hash)]
 pub enum Device<'a> {
     Gopro(DeviceDescription, ptp_device::Gopro<'a>),
     MassStorage(DeviceDescription, mass_storage::MassStorage),
