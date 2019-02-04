@@ -132,13 +132,21 @@ impl GoproKind {
 }
 
 // Specialising to PTP devices later might be neat, but for now this is fine
-#[derive(Eq, PartialEq)]
 pub struct Gopro<'d> {
     // TODO(richo) having a name in here would simplify the Staging impl
     pub kind: GoproKind,
     pub serial: String,
     device: libusb::Device<'d>,
 }
+
+impl<'d> PartialEq for Gopro<'d> {
+    fn eq(&self, other: &Gopro<'d>) -> bool {
+        self.kind == other.kind &&
+            self.serial == other.serial
+    }
+}
+
+impl<'d> Eq for Gopro<'d> {}
 
 impl<'d> Hash for Gopro<'d> {
     fn hash<H: Hasher>(&self, state: &mut H) {
