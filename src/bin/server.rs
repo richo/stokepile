@@ -428,6 +428,7 @@ fn main() {
 archiver::run(|| {
     dotenv::dotenv().ok();
     configure_rocket(false).launch();
+    Ok(())
 })
 }
 
@@ -1066,5 +1067,4 @@ mod tests {
             "Didn't get an error"
         );
     }
-})
 }
