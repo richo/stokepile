@@ -398,13 +398,6 @@ fn index(user: Option<WebUser>, conn: DbConn, flash: Option<FlashMessage<'_, '_>
     Template::render("index", context)
 }
 
-fn init_logging() {
-    if let None = env::var_os("RUST_LOG") {
-        env::set_var("RUST_LOG", "INFO");
-    }
-    pretty_env_logger::init();
-}
-
 fn configure_rocket(test_transactions: bool) -> Rocket {
     rocket::ignite()
         .manage(init_pool(test_transactions))
@@ -432,9 +425,10 @@ fn configure_rocket(test_transactions: bool) -> Rocket {
 }
 
 fn main() {
+archiver::run(|| {
     dotenv::dotenv().ok();
-    init_logging();
     configure_rocket(false).launch();
+})
 }
 
 #[cfg(test)]
@@ -1072,4 +1066,5 @@ mod tests {
             "Didn't get an error"
         );
     }
+})
 }

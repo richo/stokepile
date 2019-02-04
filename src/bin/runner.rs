@@ -6,11 +6,8 @@ use pretty_env_logger;
 use rpassword;
 
 use clap::{App, Arg, SubCommand};
-use failure::Error;
-use std::env;
 use std::fs::File;
 use std::io::{self, Write};
-use std::process;
 use std::thread;
 
 use archiver::client;
@@ -71,26 +68,8 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
         )
 }
 
-fn init_logging() {
-    if let None = env::var_os("RUST_LOG") {
-        env::set_var("RUST_LOG", "INFO");
-    }
-    pretty_env_logger::init();
-}
-
 fn main() {
-    init_logging();
-    if let Err(e) = run() {
-        error!("Error running archiver");
-        error!("{:?}", e);
-        if env::var("RUST_BACKTRACE").is_ok() {
-            error!("{:?}", e.backtrace());
-        }
-        process::exit(1);
-    }
-}
-
-fn run() -> Result<(), Error> {
+archiver::run(|| {
     let matches = cli_opts().get_matches();
 
     let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("archiver.toml"));
@@ -193,4 +172,5 @@ fn run() -> Result<(), Error> {
     }
 
     Ok(())
+})
 }
