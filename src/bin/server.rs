@@ -9,7 +9,7 @@ use dotenv;
 extern crate rocket;
 
 use rocket::http::RawStr;
-use rocket::request::{FlashMessage, Form, FromFormValue};
+use rocket::request::{Form, FromFormValue};
 use rocket::response::{Flash, Redirect};
 use rocket::Rocket;
 use rocket_contrib::serve::StaticFiles;
@@ -19,7 +19,6 @@ use oauth2::prelude::*;
 use oauth2::CsrfToken;
 
 use archiver::web::auth::WebUser;
-use archiver::web::context::{Context, PossibleIntegration};
 use archiver::web::db::{init_pool, DbConn};
 use archiver::web::models::{
     Integration, NewDevice, NewIntegration,
@@ -259,41 +258,6 @@ fn expire_key(
         })
 }
 
-#[get("/")]
-fn index(user: Option<WebUser>, conn: DbConn, flash: Option<FlashMessage<'_, '_>>) -> Template {
-    let mut possible_integrations = vec![];
-    let mut devices = vec![];
-    let mut keys = vec![];
-
-    if let Some(user) = &user {
-        if let Ok(integrations) = user.user.integrations(&*conn) {
-            let mut integrations = integrations.iter();
-
-            for provider in Oauth2Provider::providers() {
-                let name = provider.name();
-
-                let configured_integration = integrations.find(|ref x| x.provider == name);
-
-                possible_integrations.push(PossibleIntegration {
-                    id: configured_integration.map(|i| i.id),
-                    name: provider.name(),
-                    display_name: provider.display_name(),
-                    connected: configured_integration.is_some(),
-                });
-            }
-        }
-        devices = user.user.devices(&*conn).unwrap();
-        keys = user.user.keys(&*conn).unwrap();
-    }
-
-    let context = Context::default()
-        .set_user(user)
-        .set_integrations(possible_integrations)
-        .set_devices(devices)
-        .set_keys(keys)
-        .set_integration_message(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
-    Template::render("index", context)
-}
 
 fn configure_rocket(test_transactions: bool) -> Rocket {
     rocket::ignite()
@@ -310,7 +274,9 @@ fn configure_rocket(test_transactions: bool) -> Rocket {
 
                 routes::settings::get_settings,
                 routes::settings::post_settings,
-                index,
+
+                routes::index::index,
+
                 connect_integration,
                 disconnect_integration,
                 finish_integration,
