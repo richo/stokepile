@@ -54,6 +54,7 @@ rpassword = "2.1.0"
 dirs = "1.0.4"
 time = "0.1.42"
 dropbox-content-hasher = "0.3.0"
+lockfile = "0.2.1"
 
 [[bin]]
 name = "server"
