@@ -72,23 +72,13 @@ pub fn connect_integration(
     Redirect::to(authorize_url.as_str().to_string())
 }
 
-#[derive(FromForm)]
+#[derive(FromForm, RedactedDebug)]
 pub struct Oauth2Response {
     pub provider: Oauth2Provider,
     pub state: String,
+    #[redacted]
     pub code: String,
     pub scope: Option<String>,
-}
-
-impl fmt::Debug for Oauth2Response {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.debug_struct("Oauth2Response")
-            .field("provider", &self.provider)
-            .field("state", &self.state)
-            .field("code", &"...")
-            .field("scope", &self.scope)
-            .finish()
-    }
 }
 
 #[get("/integration/finish?<resp..>")]

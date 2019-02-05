@@ -10,10 +10,11 @@ use crate::staging;
 use crate::storage::{StorageAdaptor, StorageStatus};
 
 /// A client for the vimeo API
+#[derive(RedactedDebug)]
 pub struct VimeoClient {
+    #[redacted]
     token: String,
 }
-sensitive_fmt!(VimeoClient);
 
 #[derive(Debug)]
 struct UploadHandle {

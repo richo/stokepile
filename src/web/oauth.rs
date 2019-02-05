@@ -32,27 +32,15 @@ lazy_static! {
     .expect("Invalid ARCHIVER_BASE_URL");
 }
 
-#[derive(Clone)]
+#[derive(Clone, RedactedDebug)]
 pub struct Oauth2Config {
     pub client_id: ClientId,
+    #[redacted]
     pub client_secret: ClientSecret,
     pub auth_url: AuthUrl,
     pub token_url: TokenUrl,
     pub scopes: &'static [&'static str],
     pub redirect_url: RedirectUrl,
-}
-
-impl fmt::Debug for Oauth2Config {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.debug_struct("Oauth2Config")
-            .field("client_id", &self.client_id)
-            .field("client_secret", &"...")
-            .field("auth_url", &self.auth_url)
-            .field("token_url", &self.token_url)
-            .field("scopes", &self.scopes)
-            .field("redirect_url", &self.redirect_url)
-            .finish()
-    }
 }
 
 impl Oauth2Config {

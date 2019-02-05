@@ -75,10 +75,11 @@ impl<'a> PushoverRequest<'a> {
     setter!(priority, Priority);
 }
 
+#[derive(RedactedDebug)]
 pub struct Pushover {
+    #[redacted]
     token: String,
 }
-sensitive_fmt!(Pushover);
 
 impl Pushover {
     pub fn new(token: String) -> Pushover {

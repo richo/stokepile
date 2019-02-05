@@ -16,18 +16,8 @@ extern crate handlebars;
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
-
-macro_rules! sensitive_fmt {
-    ($struct:ident) => {
-        impl std::fmt::Debug for $struct {
-            fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                fmt.debug_struct(stringify!($struct))
-                    .field("token", &"...")
-                    .finish()
-            }
-        }
-    };
-}
+#[macro_use]
+extern crate redacted_debug;
 
 #[cfg(test)]
 macro_rules! client_for_routes {

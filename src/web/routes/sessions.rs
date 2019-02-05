@@ -17,21 +17,12 @@ use crate::web::models::{
     NewKey, NewSession, NewUser, User,
 };
 
-#[derive(FromForm)]
+#[derive(FromForm, RedactedDebug)]
 pub struct SignInUpForm {
     email: String,
+    #[redacted]
     password: String,
     action: UserAction,
-}
-
-impl fmt::Debug for SignInUpForm {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> std::fmt::Result {
-        fmt.debug_struct("SignInUpForm")
-            .field("email", &self.email)
-            .field("password", &"...")
-            .field("action", &self.action)
-            .finish()
-    }
 }
 
 #[derive(Debug)]

@@ -22,21 +22,12 @@ lazy_static! {
 
 const DEFAULT_CHUNK_SIZE: usize = 4 * 1024 * 1024;
 
-#[derive(Clone)]
+#[derive(Clone, RedactedDebug)]
 pub struct DropboxFilesClient {
+    #[redacted]
     token: String,
     user_agent: String,
     client: reqwest::Client,
-}
-
-impl fmt::Debug for DropboxFilesClient {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.debug_struct("DropboxFilesClient")
-            .field("token", &"...")
-            .field("user_agent", &self.client)
-            .field("client", &self.client)
-            .finish()
-    }
 }
 
 #[derive(Serialize)]

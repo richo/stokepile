@@ -3,18 +3,11 @@ use std::fmt;
 
 use crate::pushover::Pushover;
 
+#[derive(RedactedDebug)]
 pub struct PushoverNotifier {
+    #[redacted]
     token: String,
     recipient: String,
-}
-
-impl fmt::Debug for PushoverNotifier {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.debug_struct("PushoverNotifier")
-            .field("token", &"...")
-            .field("recipient", &self.recipient)
-            .finish()
-    }
 }
 
 pub trait Notify {
