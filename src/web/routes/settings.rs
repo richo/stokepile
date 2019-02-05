@@ -56,3 +56,82 @@ impl SettingsForm {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::web::test_helpers::*;
+    use crate::web::models::User;
+    use diesel::prelude::*;
+
+    use rocket::http::{ContentType};
+
+    client_for_routes!(get_settings, post_settings => client);
+
+    #[test]
+    fn test_can_set_and_unset_settings() {
+        use crate::web::schema::users::dsl::{users, id};
+
+        init_env();
+        let client = client();
+        let user = create_user(&client, "test1@email.com", "p@55w0rd");
+        let _session = signin(&client, "test1%40email.com", "p%4055w0rd").unwrap();
+
+        assert_eq!(None, user.notify_email);
+        assert_eq!(None, user.notify_pushover);
+
+        // Set some settings
+        let req = client
+            .post("/settings")
+            .header(ContentType::Form)
+            .body(r"notification_email=test-value&notification_pushover=another%20test%20value")
+            .dispatch();
+
+        // Reload the user. There is probably a better way to do this.
+        let user = {
+            let conn = db_conn(&client);
+
+            users.filter(id.eq(user.id)).get_result::<User>(&*conn).unwrap()
+        };
+
+        assert_eq!(Some("test-value".into()), user.notify_email);
+        assert_eq!(Some("another test value".into()), user.notify_pushover);
+    }
+
+
+    #[test]
+    fn test_connect_integration_doesnt_stomp_on_sessions() {
+        use crate::web::schema::users::dsl::{users, id};
+        init_env();
+
+        let client1 = client();
+        let client2 = client();
+        let u1 = create_user(&client1, "test1@email.com", "p@55w0rd");
+        let u2 = create_user(&client2, "test2@email.com", "p@55w0rd");
+
+        let s1 = signin(&client1, "test1%40email.com", "p%4055w0rd").unwrap();
+        let s2 = signin(&client2, "test2%40email.com", "p%4055w0rd").unwrap();
+
+        // Set some settings
+        let req = client1
+            .post("/settings")
+            .header(ContentType::Form)
+            .body(r"notification_email=lol&notification_pushover=hithere")
+            .dispatch();
+
+        let u1 = {
+            let conn = db_conn(&client1);
+            users.filter(id.eq(u1.id)).get_result::<User>(&*conn).unwrap()
+        };
+        let u2 = {
+            let conn = db_conn(&client2);
+            users.filter(id.eq(u2.id)).get_result::<User>(&*conn).unwrap()
+        };
+
+        assert_eq!(None, u2.notify_email);
+        assert_eq!(None, u2.notify_pushover);
+
+        assert_eq!(Some("lol".into()), u1.notify_email);
+        assert_eq!(Some("hithere".into()), u1.notify_pushover);
+    }
+}
