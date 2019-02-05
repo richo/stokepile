@@ -1,10 +1,6 @@
 #[macro_use]
 extern crate log;
 
-use pretty_env_logger;
-
-use rpassword;
-
 use clap::{App, Arg};
 use lockfile;
 use std::thread;
