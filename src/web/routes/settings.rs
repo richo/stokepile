@@ -1,6 +1,6 @@
 use rocket::{get, post};
 use rocket_contrib::templates::Template;
-use rocket::response::Redirect;
+use rocket::response::{Flash, Redirect};
 use rocket::request::{Form, FromFormValue};
 
 use crate::web::auth::WebUser;
@@ -15,10 +15,13 @@ pub fn get_settings(user: WebUser) -> Template {
 }
 
 #[post("/settings",  data = "<settings>")]
-pub fn post_settings(user: WebUser, conn: DbConn, settings: Form<SettingsForm>) -> Redirect {
+pub fn post_settings(user: WebUser, conn: DbConn, settings: Form<SettingsForm>) -> Flash<Redirect> {
     info!("{:?}", &settings);
 
-    Redirect::to("/")
+    Flash::success(
+        Redirect::to("/"),
+        "Settings updated.",
+        )
 }
 
 #[derive(FromForm, Debug)]

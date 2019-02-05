@@ -15,11 +15,15 @@
         <tbody>
           <tr>
             <td>Notification email</td>
-            <td><input class="settings-text-input" type="text" name="notification_email" form="settings_form" placeholder="richo@example.org" /></td>
+            <td><input class="settings-text-input" type="text" name="notification_email" form="settings_form" placeholder="richo@example.org"
+              {{#if this.user.notify_email}}value="{{this.user.notify_email}}"{{/if}}
+              /></td>
           </tr>
           <tr>
             <td>Pushover ID</td>
-            <td><input class="settings-text-input" type="text" name="notification_pushover" form="settings_form" placeholder="J4VQGefXleUm7oQKMXLZDB1rRYGYxE" /></td>
+            <td><input class="settings-text-input" type="text" name="notification_pushover" form="settings_form" placeholder="J4VQGefXleUm7oQKMXLZDB1rRYGYxE"
+              {{#if this.user.notify_pushover}}value="{{this.user.notify_pushover}}"{{/if}}
+              /></td>
           </tr>
         </tbody>
       </table>
