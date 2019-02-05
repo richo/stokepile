@@ -28,12 +28,13 @@ fn main() {
         let matches = cli_opts().get_matches();
 
         let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("archiver.toml"));
-        let ctx = Ctx::create(cfg?)?;
         let is_cron = !matches.is_present("no-cron");
 
-        if is_cron {
-            let _lock = cli::acquire_lock()?;
-        }
+        let ctx = if is_cron {
+            Ctx::create(cfg?)?
+        } else {
+            Ctx::create_without_lock(cfg?)?
+        };
 
         let devices = device::attached_devices(&ctx)?;
 

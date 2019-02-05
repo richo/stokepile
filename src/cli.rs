@@ -1,9 +1,7 @@
 use crate::{AUTHOR, VERSION};
 
 use clap::{App, Arg};
-use dirs;
 use lockfile;
-use failure::{format_err, Error};
 
 /// Create the base set of clap options common to all cli commands
 pub fn base_opts<'a, 'b>() -> App<'a, 'b> {
@@ -16,15 +14,6 @@ pub fn base_opts<'a, 'b>() -> App<'a, 'b> {
                 .takes_value(true)
                 .help("Path to configuration file"),
         )
-}
-
-/// Acquire the lock for running mutative archiver operations, or return the error associated with
-/// the attempt (Most likely meaning that the lock is already held).
-pub fn acquire_lock() -> Result<lockfile::Lockfile, Error> {
-    // TODO(richo) for now we just stash this in the user's home directory.
-    let home = dirs::home_dir().ok_or(format_err!("Couldn't open HOME"))?;
-    let lock_path = home.join(".archiver.lock");
-    Ok(lockfile::Lockfile::create(lock_path)?)
 }
 
 /// Setup logging for archiver. This sets the log level to INFO if unset and configures the logging

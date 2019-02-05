@@ -16,7 +16,7 @@ fn main() {
         let matches = cli_opts().get_matches();
 
         let cfg = Config::from_file(matches.value_of("config").unwrap_or("archiver.toml"));
-        let ctx = Ctx::create(cfg?)?;
+        let ctx = Ctx::create_without_lock(cfg?)?;
         println!("Found the following gopros:");
 
         for gopro in ptp_device::locate_gopros(&ctx)?.iter() {

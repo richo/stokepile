@@ -3,8 +3,10 @@ use std::fs;
 use std::io;
 use std::path::PathBuf;
 
+use dirs;
 use failure::Error;
 use libusb;
+use lockfile::Lockfile;
 
 use crate::config;
 use crate::mailer;
@@ -24,6 +26,9 @@ pub struct Ctx {
     pub notifier: Option<pushover_notifier::PushoverNotifier>,
     /// An optional mailer that will be used to send reports when uploads finish or fail.
     pub mailer: Option<mailer::SendgridMailer>,
+    // This lock is optional, since we can opt into building it without, but by making the lock
+    // part of this API we can't accidentally end up not having one.
+    _lock: Option<lockfile::Lockfile>,
 }
 
 impl fmt::Debug for Ctx {
@@ -44,10 +49,31 @@ impl Ctx {
     /// This method has many side effects, creating a libusb context, creating the staging
     /// direectory if it does not exist, etc.
     pub fn create(cfg: config::Config) -> Result<Ctx, Error> {
+        Self::create_ctx(cfg, true)
+    }
+
+    /// Create a new context object without acquiring the archiver lock.
+    ///
+    /// Holding an unlocked Ctx allows you to perform destructive operations with no
+    /// synchronisation, it is the consumers responsibility to ensure this does not occur.
+    pub fn create_without_lock(cfg: config::Config) -> Result<Ctx, Error> {
+        Self::create_ctx(cfg, false)
+    }
+
+    fn create_ctx(cfg: config::Config, should_lock: bool) -> Result<Ctx, Error> {
         let staging = create_or_find_staging(&cfg)?;
         // TODO(richo) offload figuring out what notifier we should use to the config
         let notifier = cfg.notifier();
         let mailer = cfg.mailer();
+
+        let _lock = if should_lock {
+            // TODO(richo) for now we just stash this in the user's home directory.
+            let home = dirs::home_dir().ok_or(format_err!("Couldn't open HOME"))?;
+            let lock_path = home.join(".archiver.lock");
+            Some(lockfile::Lockfile::create(lock_path)?)
+        } else {
+            None
+        };
 
         Ok(Ctx {
             usb_ctx: libusb::Context::new()?,
@@ -55,6 +81,7 @@ impl Ctx {
             staging,
             notifier,
             mailer,
+            _lock,
         })
     }
 }
