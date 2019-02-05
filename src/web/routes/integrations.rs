@@ -132,3 +132,155 @@ pub fn finish_integration(
         )),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::web::test_helpers::*;
+    use crate::web::oauth::Oauth2Config;
+
+    use rocket::http::{ContentType, Header, Status};
+
+    client_for_routes!(connect_integration, disconnect_integration, finish_integration => client);
+
+    #[test]
+    fn test_connect_integration() {
+        init_env();
+
+        let client = client();
+        create_user(&client, "test@email.com", "p@55w0rd");
+        let session_cookie = signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
+
+        let req = client
+            .post("/integration")
+            .header(ContentType::Form)
+            .body(r"provider=dropbox");
+
+        let response = req.dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
+
+        assert!(response
+            .headers()
+            .get_one("Location")
+            .unwrap()
+            .starts_with(Oauth2Config::dropbox().auth_url.as_str()));
+
+        let session = session_from_cookie(&client, session_cookie).unwrap();
+        assert!(session.data.get("dropbox").unwrap().is_string());
+    }
+
+    #[test]
+    fn test_disconnect_integration() {
+        init_env();
+
+        let client = client();
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+        signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
+
+        let integration_id = {
+            let conn = db_conn(&client);
+
+            NewIntegration::new(&user, "dropbox", "test_oauth_token")
+                .create(&*conn)
+                .unwrap()
+                .id
+        };
+
+        let req = client
+            .post("/integration/disconnect")
+            .header(ContentType::Form)
+            .body(format!(
+                "provider=dropbox&integration_id={}",
+                integration_id
+            ));
+
+        let response = req.dispatch();
+
+        assert_eq!(response.status(), Status::SeeOther);
+
+        let conn = db_conn(&client);
+        assert_eq!(user.integrations(&*conn).unwrap().len(), 0);
+    }
+
+    #[test]
+    fn test_finish_integration() {
+        init_env();
+
+        let client = client();
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+        let session_cookie = signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
+
+        let mut session = session_from_cookie(&client, session_cookie.clone()).unwrap();
+
+        {
+            let conn = db_conn(&client);
+            session.insert("dropbox".to_string(), "test_csrf_token".into());
+            session.save(&*conn).unwrap();
+        }
+
+        let req = client
+            .get("/integration/finish?provider=dropbox&state=test_csrf_token&code=test_oauth_token")
+            .header(Header::new("Cookie", session_cookie.clone()));
+
+        let response = req.dispatch();
+
+        assert_eq!(response.status(), Status::SeeOther);
+        assert_eq!(response.headers().get_one("Location"), Some("/"));
+
+        let conn = db_conn(&client);
+
+        assert_eq!(
+            user.integrations(&*conn)
+                .unwrap()
+                .first()
+                .unwrap()
+                .access_token,
+            "test_oauth_token"
+        );
+    }
+
+    #[test]
+    fn test_connect_integration_doesnt_stomp_on_sessions() {
+        init_env();
+
+        let client1 = client();
+        let client2 = client();
+        let _u1 = create_user(&client1, "test1@email.com", "p@55w0rd");
+        let _u2 = create_user(&client2, "test2@email.com", "p@55w0rd");
+
+        let s1 = signin(&client1, "test1%40email.com", "p%4055w0rd").unwrap();
+        let s2 = signin(&client2, "test2%40email.com", "p%4055w0rd").unwrap();
+
+        let session1 = session_from_cookie(&client1, s1.clone()).unwrap();
+        let session2 = session_from_cookie(&client2, s2.clone()).unwrap();
+
+        assert!(
+            session1.user_id != session2.user_id,
+            "User IDs have been tampered with"
+        );
+
+        let req = client1
+            .post("/integration")
+            .header(ContentType::Form)
+            .body(r"provider=dropbox");
+
+        let response = req.dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
+
+        assert!(response
+            .headers()
+            .get_one("Location")
+            .unwrap()
+            .starts_with(Oauth2Config::dropbox().auth_url.as_str()));
+
+        let session1 = session_from_cookie(&client1, s1.clone()).unwrap();
+        let session2 = session_from_cookie(&client2, s2.clone()).unwrap();
+
+        assert!(session1.data.get("dropbox").unwrap().is_string());
+        assert!(session2.data.get("dropbox").is_none());
+        assert!(
+            session1.user_id != session2.user_id,
+            "User IDs have been tampered with"
+        );
+    }
+}

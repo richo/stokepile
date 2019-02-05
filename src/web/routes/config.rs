@@ -63,3 +63,175 @@ pub fn get_config(user: AuthenticatedUser, conn: DbConn) -> Result<Content<Strin
         )),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::web::test_helpers::*;
+
+    use rocket::http::{Header, Status};
+    use crate::web::models::NewIntegration;
+    use crate::web::models::NewKey;
+    use crate::web::models::NewDevice;
+
+    use crate::config::{Config, FlysightConfig};
+
+    client_for_routes!(get_config => client);
+
+    #[test]
+    fn test_anon_get_config() {
+        let client = client();
+        let req = client.get("/config");
+
+        let response = req.dispatch();
+        assert_eq!(response.status(), Status::Unauthorized);
+    }
+
+    #[test]
+    fn test_get_config_with_no_integrations() {
+        let client = client();
+
+        create_user(&client, "test@email.com", "p@55w0rd");
+        signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
+
+        let req = client.get("/config");
+
+        let response = req.dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
+    }
+
+    #[test]
+    fn test_get_config() {
+        let client = client();
+
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+        signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
+
+        {
+            let conn = db_conn(&client);
+
+            NewIntegration::new(&user, "dropbox", "test_oauth_token")
+                .create(&*conn)
+                .unwrap();
+        }
+
+        let req = client.get("/config");
+
+        let mut response = req.dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        let config =
+            Config::from_str(&response.body_string().expect("Didn't recieve a body")).unwrap();
+        let backend_names: Vec<_> = config.backends().iter().map(|b| b.name()).collect();
+        assert_eq!(&backend_names, &["dropbox"]);
+    }
+
+    #[test]
+    fn test_get_config_with_api_token() {
+        let client = client();
+
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+
+        {
+            let conn = db_conn(&client);
+
+            NewIntegration::new(&user, "dropbox", "test_oauth_token")
+                .create(&*conn)
+                .unwrap();
+        }
+
+        let token = {
+            let conn = db_conn(&client);
+
+            NewKey::new(&user).create(&*conn).unwrap().token
+        };
+
+        let req = client
+            .get("/config")
+            .header(Header::new("Authorization", format!("Bearer: {}", token)));
+
+        let mut response = req.dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        let config =
+            Config::from_str(&response.body_string().expect("Didn't recieve a body")).unwrap();
+        let backend_names: Vec<_> = config.backends().iter().map(|b| b.name()).collect();
+        assert_eq!(&backend_names, &["dropbox"]);
+    }
+
+    #[test]
+    fn test_get_config_with_invalid_api_token() {
+        let client = client();
+
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+
+        {
+            let conn = db_conn(&client);
+
+            NewIntegration::new(&user, "dropbox", "test_oauth_token")
+                .create(&*conn)
+                .unwrap();
+        }
+
+        let token = {
+            let conn = db_conn(&client);
+
+            NewKey::new(&user).create(&*conn).unwrap()
+        };
+
+        {
+            let conn = db_conn(&client);
+            token.expire(&*conn).unwrap();
+        }
+
+        let req = client.get("/config").header(Header::new(
+            "Authorization",
+            format!("Bearer: {}", token.token),
+        ));
+
+        let response = req.dispatch();
+        assert_eq!(response.status(), Status::Unauthorized);
+    }
+
+    #[test]
+    fn test_get_config_with_devices() {
+        let client = client();
+
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+        signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
+
+        {
+            let conn = db_conn(&client);
+
+            NewIntegration::new(&user, "dropbox", "test_oauth_token")
+                .create(&*conn)
+                .unwrap();
+        }
+
+        {
+            let conn = db_conn(&client);
+
+            NewDevice::new(&user, "gopro", "ptp", "serial")
+                .create(&*conn)
+                .unwrap();
+            NewDevice::new(&user, "fake", "bogus", "serial")
+                .create(&*conn)
+                .unwrap();
+            NewDevice::new(&user, "sd card", "mass_storage", "serial")
+                .create(&*conn)
+                .unwrap();
+        }
+
+        let req = client.get("/config");
+
+        let mut response = req.dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        let config =
+            Config::from_str(&response.body_string().expect("Didn't recieve a body")).unwrap();
+        let backend_names: Vec<_> = config.backends().iter().map(|b| b.name()).collect();
+        assert_eq!(&backend_names, &["dropbox"]);
+
+        let empty_flysights: Vec<FlysightConfig> = vec![];
+        assert_eq!(config.flysights(), &empty_flysights);
+        assert_eq!(config.mass_storages().len(), 1);
+        assert_eq!(config.gopros().len(), 1);
+    }
+}

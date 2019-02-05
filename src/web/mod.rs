@@ -17,16 +17,16 @@ lazy_static! {
     pub static ref ROCKET_ENV: Environment = Environment::active().expect("Could not get ROCKET_ENV.");
 }
 
-pub fn configure_rocket(test_transactions: bool) -> Rocket {
+pub fn configure_rocket() -> Rocket {
     rocket::ignite()
-        .manage(init_pool(test_transactions))
+        .manage(init_pool(false))
         .mount(
             "/",
             routes![
                 routes::config::get_config,
 
                 routes::sessions::get_signin,
-                routes::sessions::signin,
+                routes::sessions::post_signin,
                 routes::sessions::signin_json,
                 routes::sessions::signout,
                 routes::sessions::expire_key,
@@ -47,3 +47,15 @@ pub fn configure_rocket(test_transactions: bool) -> Rocket {
         .mount("/static", StaticFiles::from("web/static"))
         .attach(Template::fairing())
 }
+
+pub fn create_test_rocket(routes: Vec<rocket::Route>) -> Rocket {
+    rocket::ignite()
+        .manage(init_pool(true))
+        .mount(
+            "/",
+            routes,
+        )
+}
+
+#[cfg(test)]
+pub mod test_helpers;

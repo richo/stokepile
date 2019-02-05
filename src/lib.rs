@@ -29,6 +29,23 @@ macro_rules! sensitive_fmt {
     };
 }
 
+#[cfg(test)]
+macro_rules! client_for_routes {
+    ($($route:ident),+ => $client:ident) => {
+        fn $client() -> rocket::local::Client {
+            let routes = routes![
+                // We always implicitly allow signin since there isn't currently another way to get
+                // an authenticated session
+                crate::web::routes::sessions::post_signin,
+
+                $($route),+
+            ];
+            let rocket = crate::web::create_test_rocket(routes);
+            rocket::local::Client::new(rocket).expect("valid rocket instance")
+        }
+    };
+}
+
 /// A client to the web interface.
 pub mod client;
 

@@ -55,7 +55,7 @@ impl<'v> FromFormValue<'v> for UserAction {
 
 // TODO: CSRF.
 #[post("/signin", data = "<signin>")]
-pub fn signin(
+pub fn post_signin(
     conn: DbConn,
     signin: Form<SignInUpForm>,
     mut cookies: Cookies<'_>,
@@ -134,4 +134,187 @@ pub fn expire_key(
             warn!("{}", e);
             Flash::error(Redirect::to("/"), format!("the key could not be expired."))
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::web::test_helpers::*;
+
+    use rocket::http::{ContentType, Status};
+
+    client_for_routes!(get_signin, signout, expire_key, signin_json => client);
+
+    #[test]
+    fn test_signin() {
+        let client = client();
+
+        create_user(&client, "test@email.com", "p@55w0rd");
+
+        let req = client
+            .post("/signin")
+            .header(ContentType::Form)
+            .body(r"email=test%40email.com&password=p%4055w0rd&action=signin");
+
+        let response = req.dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
+        assert_eq!(response.headers().get_one("Location"), Some("/"));
+        assert!(get_set_cookie(response, "sid").is_some())
+    }
+
+    #[test]
+    fn test_signup() {
+        let client = client();
+        let req = client
+            .post("/signin")
+            .header(ContentType::Form)
+            .body(r"email=test%40email.com&password=p%4055w0rd&action=signup");
+
+        let response = req.dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
+        assert_eq!(response.headers().get_one("Location"), Some("/"));
+        assert!(get_set_cookie(response, "sid").is_some())
+    }
+
+    #[test]
+    fn test_failed_signin() {
+        let client = client();
+        let req = client
+            .post("/signin")
+            .header(ContentType::Form)
+            .body(r"email=test%40email.com&password=p%4055w0rd&action=signin");
+
+        let response = req.dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
+        assert_eq!(response.headers().get_one("Location"), Some("/signin"));
+        assert_eq!(
+            get_set_cookie(response, "_flash").unwrap(),
+            "_flash=5errorIncorrect%20username%20or%20password.; Path=/; Max-Age=300"
+        )
+    }
+
+    #[test]
+    fn test_revoke_api_token() {
+        let client = client();
+
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+
+        let token = {
+            let conn = db_conn(&client);
+
+            NewKey::new(&user).create(&*conn).unwrap()
+        };
+
+        signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
+        let req = client
+            .post("/key/expire")
+            .header(ContentType::Form)
+            .body(&format!("key_id={}", token.id));
+
+        let response = req.dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
+
+        let conn = db_conn(&client);
+        assert!(
+            user.key_by_id(token.id, &*conn).unwrap().expired.is_some(),
+            "Didn't expire token"
+        );
+    }
+
+    #[test]
+    fn test_cannot_revoke_other_users_api_token() {
+        let client = client();
+
+        let user1 = create_user(&client, "ohno", "badpw");
+        let _user2 = create_user(&client, "lolwat", "worse");
+
+        let token = {
+            let conn = db_conn(&client);
+
+            NewKey::new(&user1).create(&*conn).unwrap()
+        };
+
+        signin(&client, "lolwat", "worse").unwrap();
+        let req = client
+            .post("/key/expire")
+            .header(ContentType::Form)
+            .body(&format!("key_id={}", token.id));
+
+        let response = req.dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
+
+        let conn = db_conn(&client);
+        assert!(
+            user1.key_by_id(token.id, &*conn).unwrap().expired.is_none(),
+            "Expired another user's token"
+        );
+    }
+
+    #[test]
+    fn test_signout() {
+        let client = client();
+
+        create_user(&client, "test@email.com", "p@55w0rd");
+        let session_cookie = signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
+
+        let req = client.post("/signout");
+
+        let response = req.dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
+        assert!(get_set_cookie(response, "sid")
+            .unwrap()
+            .starts_with("sid=;"));
+
+        assert_eq!(session_from_cookie(&client, session_cookie), None);
+    }
+
+    #[test]
+    fn test_json_signin() {
+        let client = client();
+
+        let _user = create_user(&client, "test@email.com", "p@55w0rd");
+
+        let req = client
+            .post("/json/signin")
+            .header(ContentType::JSON)
+            .body("{\"email\": \"test@email.com\", \"password\": \"p@55w0rd\"}");
+
+        let mut response = req.dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        let message =
+            serde_json::from_str::<messages::JsonSignInResp>(&response.body_string().unwrap())
+                .unwrap();
+        assert!(
+            match message {
+                messages::JsonSignInResp::Token(_) => true,
+                messages::JsonSignInResp::Error(_) => false,
+            },
+            "Didn't get a token"
+        );
+    }
+
+    #[test]
+    fn test_json_signin_invalid_credentials() {
+        let client = client();
+
+        let _user = create_user(&client, "test@email.com", "p@55w0rd");
+
+        let req = client
+            .post("/json/signin")
+            .header(ContentType::JSON)
+            .body("{\"email\": \"test@email.com\", \"password\": \"buttsbutts\"}");
+
+        let mut response = req.dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        let message =
+            serde_json::from_str::<messages::JsonSignInResp>(&response.body_string().unwrap())
+                .unwrap();
+        assert!(
+            match message {
+                messages::JsonSignInResp::Token(_) => false,
+                messages::JsonSignInResp::Error(_) => true,
+            },
+            "Didn't get an error"
+        );
+    }
 }
