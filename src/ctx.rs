@@ -70,6 +70,7 @@ impl Ctx {
             // TODO(richo) for now we just stash this in the user's home directory.
             let home = dirs::home_dir().ok_or(format_err!("Couldn't open HOME"))?;
             let lock_path = home.join(".archiver.lock");
+            info!("Acquiring the archiver lock at {:?}", &lock_path);
             Some(lockfile::Lockfile::create(lock_path)?)
         } else {
             None
