@@ -38,13 +38,17 @@ fn main() {
 
         let devices = device::attached_devices(&ctx)?;
 
+        let work_to_be_done = devices.len() > 0;
+        let maybe_notify = |msg: &str| {
+            if work_to_be_done {
+                if let Err(e) = ctx.notifier.notify(msg) {
+                    error!("Failed to send push notification: {:?}", e);
+                }
+            }
+        };
 
         // Send a notification if we're running in cron mode and we're starting an upload
-        if devices.len() > 0 && is_cron {
-            if let Err(e) = ctx.notifier.notify("Starting cron upload") {
-                error!("Failed to send push notification: {:?}", e);
-            }
-        }
+        maybe_notify("Starting cron upload");
 
         info!("Attached devices:");
         for device in &devices {
@@ -62,7 +66,7 @@ fn main() {
         for device in devices {
             let msg = format!("Finished staging: {}", device.name());
             device.stage_files(&ctx.staging)?;
-            ctx.notifier.notify(&msg)?;
+            maybe_notify(&msg);
         }
 
         // Run the uploader thread syncronously as a smoketest for the daemon mode
@@ -71,9 +75,7 @@ fn main() {
             .join()
             .expect("Upload thread panicked")?;
 
-        if let Err(e) = ctx.notifier.notify("Finished uploading media") {
-            error!("Failed to send push notification: {:?}", e);
-        }
+        maybe_notify("Finished uploading media");
 
         let plaintext = report.to_plaintext()?;
         println!("{}", plaintext);
