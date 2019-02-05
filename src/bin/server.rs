@@ -1,127 +1,16 @@
 #![feature(decl_macro, proc_macro_hygiene)]
 
-#[macro_use]
-extern crate log;
-
 use dotenv;
 
 #[macro_use]
 extern crate rocket;
 
-use rocket::http::RawStr;
-use rocket::request::{Form, FromFormValue};
-use rocket::response::{Flash, Redirect};
 use rocket::Rocket;
 use rocket_contrib::serve::StaticFiles;
 use rocket_contrib::templates::Template;
 
-use archiver::web::auth::WebUser;
-use archiver::web::db::{init_pool, DbConn};
-use archiver::web::models::{
-    NewDevice,
-};
+use archiver::web::db::init_pool;
 use archiver::web::routes;
-
-
-#[derive(Debug)]
-enum DeviceKind {
-    Ptp,
-    Flysight,
-    MassStorage,
-}
-
-impl<'v> FromFormValue<'v> for DeviceKind {
-    type Error = String;
-
-    fn from_form_value(form_value: &'v RawStr) -> Result<DeviceKind, Self::Error> {
-        let decoded = form_value.url_decode();
-        match decoded {
-            Ok(ref kind) if kind == "ptp" => Ok(DeviceKind::Ptp),
-            Ok(ref kind) if kind == "flysight" => Ok(DeviceKind::Flysight),
-            Ok(ref kind) if kind == "mass_storage" => Ok(DeviceKind::MassStorage),
-            _ => Err(format!("unknown provider {}", form_value)),
-        }
-    }
-}
-
-impl DeviceKind {
-    pub fn name(&self) -> &'static str {
-        match self {
-            DeviceKind::Ptp => "ptp",
-            DeviceKind::Flysight => "flysight",
-            DeviceKind::MassStorage => "mass_storage",
-        }
-    }
-}
-
-#[derive(Debug, FromForm)]
-struct DeviceForm {
-    name: String,
-    kind: DeviceKind,
-    identifier: String,
-}
-
-#[post("/device", data = "<device>")]
-fn create_device(
-    user: WebUser,
-    conn: DbConn,
-    device: Form<DeviceForm>,
-) -> Result<Flash<Redirect>, Flash<Redirect>> {
-    let row = NewDevice::new(
-        &user.user,
-        &device.name,
-        device.kind.name(),
-        &device.identifier,
-    )
-    .create(&*conn)
-    .ok();
-    match row {
-        Some(_) => Ok(Flash::success(
-            Redirect::to("/"),
-            format!("{} was added to your configuration.", device.kind.name()),
-        )),
-        None => Err(Flash::error(
-            Redirect::to("/"),
-            format!(
-                "There was a problem adding {} to your configuration.",
-                device.kind.name()
-            ),
-        )),
-    }
-}
-
-#[derive(Debug, FromForm)]
-struct DeleteDeviceForm {
-    device_id: i32,
-    kind: DeviceKind,
-}
-
-#[post("/device/delete", data = "<device>")]
-fn delete_device(
-    user: WebUser,
-    conn: DbConn,
-    device: Form<DeleteDeviceForm>,
-) -> Result<Flash<Redirect>, Flash<Redirect>> {
-    user.user
-        .device_by_id(device.device_id, &*conn)
-        .map(|i| i.delete(&*conn))
-        .map(|_| {
-            Flash::success(
-                Redirect::to("/"),
-                format!("{} has been removed from your account.", device.kind.name()),
-            )
-        })
-        .map_err(|e| {
-            warn!("{}", e);
-            Flash::error(
-                Redirect::to("/"),
-                format!(
-                    "{} could not be removed from your account.",
-                    device.kind.name()
-                ),
-            )
-        })
-}
 
 fn configure_rocket(test_transactions: bool) -> Rocket {
     rocket::ignite()
@@ -146,8 +35,8 @@ fn configure_rocket(test_transactions: bool) -> Rocket {
                 routes::integrations::disconnect_integration,
                 routes::integrations::finish_integration,
 
-                create_device,
-                delete_device
+                routes::devices::create_device,
+                routes::devices::delete_device,
             ],
         )
         .mount("/static", StaticFiles::from("web/static"))
