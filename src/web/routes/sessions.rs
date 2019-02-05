@@ -114,3 +114,24 @@ pub fn signin_json(
         )),
     }
 }
+
+#[derive(Debug, FromForm)]
+pub struct ExpireKeyForm {
+    key_id: i32,
+}
+
+#[post("/key/expire", data = "<key>")]
+pub fn expire_key(
+    user: WebUser,
+    conn: DbConn,
+    key: Form<ExpireKeyForm>,
+) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    user.user
+        .key_by_id(key.key_id, &*conn)
+        .map(|i| i.expire(&*conn))
+        .map(|_| Flash::success(Redirect::to("/"), format!("key has been expired.")))
+        .map_err(|e| {
+            warn!("{}", e);
+            Flash::error(Redirect::to("/"), format!("the key could not be expired."))
+        })
+}

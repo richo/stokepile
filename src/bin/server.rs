@@ -123,28 +123,6 @@ fn delete_device(
         })
 }
 
-#[derive(Debug, FromForm)]
-struct ExpireKeyForm {
-    key_id: i32,
-}
-
-#[post("/key/expire", data = "<key>")]
-fn expire_key(
-    user: WebUser,
-    conn: DbConn,
-    key: Form<ExpireKeyForm>,
-) -> Result<Flash<Redirect>, Flash<Redirect>> {
-    user.user
-        .key_by_id(key.key_id, &*conn)
-        .map(|i| i.expire(&*conn))
-        .map(|_| Flash::success(Redirect::to("/"), format!("key has been expired.")))
-        .map_err(|e| {
-            warn!("{}", e);
-            Flash::error(Redirect::to("/"), format!("the key could not be expired."))
-        })
-}
-
-
 fn configure_rocket(test_transactions: bool) -> Rocket {
     rocket::ignite()
         .manage(init_pool(test_transactions))
@@ -157,6 +135,7 @@ fn configure_rocket(test_transactions: bool) -> Rocket {
                 routes::sessions::signin,
                 routes::sessions::signin_json,
                 routes::sessions::signout,
+                routes::sessions::expire_key,
 
                 routes::settings::get_settings,
                 routes::settings::post_settings,
@@ -167,7 +146,6 @@ fn configure_rocket(test_transactions: bool) -> Rocket {
                 routes::integrations::disconnect_integration,
                 routes::integrations::finish_integration,
 
-                expire_key,
                 create_device,
                 delete_device
             ],
