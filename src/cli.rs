@@ -1,7 +1,6 @@
 use crate::{AUTHOR, VERSION};
 
 use clap::{App, Arg};
-use lockfile;
 
 /// Create the base set of clap options common to all cli commands
 pub fn base_opts<'a, 'b>() -> App<'a, 'b> {

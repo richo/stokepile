@@ -3,132 +3,29 @@
 #[macro_use]
 extern crate log;
 
-use pretty_env_logger;
-
 use dotenv;
-
-#[macro_use]
-extern crate lazy_static;
 
 #[macro_use]
 extern crate rocket;
 
-use rocket::config::Environment;
 use rocket::http::RawStr;
-use rocket::http::{Cookie, Cookies, SameSite};
 use rocket::request::{FlashMessage, Form, FromFormValue};
 use rocket::response::{Flash, Redirect};
 use rocket::Rocket;
-use rocket_contrib::json::Json;
 use rocket_contrib::serve::StaticFiles;
 use rocket_contrib::templates::Template;
-
-use std::env;
 
 use oauth2::prelude::*;
 use oauth2::CsrfToken;
 
-use archiver::messages;
 use archiver::web::auth::WebUser;
 use archiver::web::context::{Context, PossibleIntegration};
 use archiver::web::db::{init_pool, DbConn};
 use archiver::web::models::{
-    Integration, NewDevice, NewIntegration, NewKey, NewSession, NewUser, User,
+    Integration, NewDevice, NewIntegration,
 };
 use archiver::web::oauth::Oauth2Provider;
 use archiver::web::routes;
-
-lazy_static! {
-    static ref ROCKET_ENV: Environment = Environment::active().expect("Could not get ROCKET_ENV.");
-}
-
-enum UserAction {
-    SignIn,
-    SignUp,
-}
-
-impl<'v> FromFormValue<'v> for UserAction {
-    type Error = String;
-
-    fn from_form_value(form_value: &'v RawStr) -> Result<UserAction, Self::Error> {
-        let decoded = form_value.url_decode();
-        match decoded {
-            Ok(ref action) if action == "signin" => Ok(UserAction::SignIn),
-            Ok(ref action) if action == "signup" => Ok(UserAction::SignUp),
-            _ => Err(format!("expected signin/signup not {}", form_value)),
-        }
-    }
-}
-
-#[derive(FromForm)]
-struct SignInUpForm {
-    email: String,
-    password: String,
-    action: UserAction,
-}
-
-#[post("/json/signin", format = "json", data = "<signin>")]
-fn signin_json(
-    conn: DbConn,
-    signin: Json<messages::JsonSignIn>,
-) -> Json<messages::JsonSignInResp> {
-    match User::by_credentials(&*conn, &signin.0.email, &signin.0.password) {
-        Some(user) => {
-            let key = NewKey::new(&user).create(&*conn).unwrap();
-            Json(messages::JsonSignInResp::Token(key.token))
-        }
-        None => Json(messages::JsonSignInResp::Error(
-            "Incorrect username or password.".to_string(),
-        )),
-    }
-}
-
-// TODO: CSRF.
-#[post("/signin", data = "<signin>")]
-fn signin(
-    conn: DbConn,
-    signin: Form<SignInUpForm>,
-    mut cookies: Cookies<'_>,
-) -> Result<Redirect, Flash<Redirect>> {
-    let user: Result<User, &str> = match signin.action {
-        UserAction::SignIn => User::by_credentials(&*conn, &signin.email, &signin.password)
-            .ok_or("Incorrect username or password."),
-        UserAction::SignUp => NewUser::new(&signin.email, &signin.password)
-            .create(&*conn)
-            .map_err(|_| "Unable to signup"),
-    };
-
-    match user {
-        Ok(user) => {
-            let session = NewSession::new(&user).create(&*conn).unwrap();
-            cookies.add(
-                Cookie::build("sid", session.id)
-                    .secure(!ROCKET_ENV.is_dev())
-                    .http_only(true)
-                    .same_site(SameSite::Lax)
-                    .finish(),
-            );
-            Ok(Redirect::to("/"))
-        }
-        Err(message) => Err(Flash::error(Redirect::to("/signin"), message)),
-    }
-}
-
-#[get("/signin")]
-fn get_signin<'r>(flash: Option<FlashMessage<'_, '_>>) -> Template {
-    let context = Context::default().set_signin_error(flash.map(|msg| msg.msg().into()));
-    Template::render("signin", context)
-}
-
-#[post("/signout")]
-fn signout(user: WebUser, conn: DbConn, mut cookies: Cookies<'_>) -> Redirect {
-    user.session
-        .delete(&*conn)
-        .expect("Could not delete session.");
-    cookies.remove(Cookie::named("sid"));
-    Redirect::to("/")
-}
-
 
 #[derive(FromForm)]
 struct DisconnectForm {
@@ -405,10 +302,12 @@ fn configure_rocket(test_transactions: bool) -> Rocket {
             "/",
             routes![
                 routes::config::get_config,
-                get_signin,
-                signin,
-                signin_json,
-                signout,
+
+                routes::sessions::get_signin,
+                routes::sessions::signin,
+                routes::sessions::signin_json,
+                routes::sessions::signout,
+
                 routes::settings::get_settings,
                 routes::settings::post_settings,
                 index,

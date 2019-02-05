@@ -6,6 +6,9 @@ use std::path::PathBuf;
 use dirs;
 use failure::Error;
 use libusb;
+
+// This is used, I guess maybe I should make it a phantomdata or whatever?
+#[allow(unused_imports)]
 use lockfile::Lockfile;
 
 use crate::config;

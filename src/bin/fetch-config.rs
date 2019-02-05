@@ -2,7 +2,6 @@
 extern crate log;
 
 use clap::App;
-use rpassword;
 
 use archiver::cli;
 use archiver::config;
