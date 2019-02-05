@@ -15,127 +15,13 @@ use rocket::Rocket;
 use rocket_contrib::serve::StaticFiles;
 use rocket_contrib::templates::Template;
 
-use oauth2::prelude::*;
-use oauth2::CsrfToken;
-
 use archiver::web::auth::WebUser;
 use archiver::web::db::{init_pool, DbConn};
 use archiver::web::models::{
-    Integration, NewDevice, NewIntegration,
+    NewDevice,
 };
-use archiver::web::oauth::Oauth2Provider;
 use archiver::web::routes;
 
-#[derive(FromForm)]
-struct DisconnectForm {
-    integration_id: i32,
-    provider: Oauth2Provider,
-}
-
-#[post("/integration/disconnect", data = "<disconnect>")]
-fn disconnect_integration(
-    user: WebUser,
-    disconnect: Form<DisconnectForm>,
-    conn: DbConn,
-) -> Result<Flash<Redirect>, Flash<Redirect>> {
-    user.user
-        .integration_by_id(disconnect.integration_id, &*conn)
-        .map(|i| i.delete(&*conn))
-        .map(|_| {
-            Flash::success(
-                Redirect::to("/"),
-                format!(
-                    "{} has been disconnected from your account.",
-                    disconnect.provider.display_name()
-                ),
-            )
-        })
-        .map_err(|e| {
-            warn!("{}", e);
-            Flash::error(
-                Redirect::to("/"),
-                format!(
-                    "{} could not be disconnected from your account.",
-                    disconnect.provider.display_name()
-                ),
-            )
-        })
-}
-
-#[derive(FromForm)]
-struct ConnectForm {
-    provider: Oauth2Provider,
-}
-
-#[post("/integration", data = "<connect>")]
-fn connect_integration(
-    mut user: WebUser,
-    conn: DbConn,
-    connect: Form<ConnectForm>,
-) -> Redirect {
-    let client = connect.provider.client();
-
-    let (authorize_url, csrf_state) = client.authorize_url(CsrfToken::new_random);
-
-    user.session.insert(
-        connect.provider.name().into(),
-        csrf_state.secret().to_string().into(),
-    );
-
-    user.session.save(&*conn).unwrap();
-
-    Redirect::to(authorize_url.as_str().to_string())
-}
-
-#[derive(FromForm, Debug)]
-pub struct Oauth2Response {
-    pub provider: Oauth2Provider,
-    pub state: String,
-    pub code: String,
-    pub scope: Option<String>,
-}
-
-#[get("/integration/finish?<resp..>")]
-fn finish_integration(
-    user: WebUser,
-    resp: Form<Oauth2Response>,
-    conn: DbConn,
-) -> Result<Flash<Redirect>, Flash<Redirect>> {
-    let integration: Option<Integration> = if user
-        .session
-        .data
-        .get(resp.provider.name())
-        .map(|state| state.as_str())
-        != Some(Some(&resp.state))
-    {
-        warn!(
-            "user {:?} oauth state didn't match for provider: {:?}",
-            user.user.id, resp.provider
-        );
-        None
-    } else {
-        NewIntegration::new(&user.user, resp.provider.name(), &resp.code)
-            .create(&*conn)
-            .ok()
-    };
-
-    match integration {
-        Some(_) => Ok(Flash::success(
-            Redirect::to("/"),
-            format!(
-                "{} has been connected to your account.",
-                resp.provider.display_name()
-            ),
-        )),
-        None => Err(Flash::error(
-            Redirect::to("/"),
-            format!(
-                "There was a problem connecting {} to your account.",
-                resp.provider.display_name()
-            ),
-        )),
-    }
-}
 
 #[derive(Debug)]
 enum DeviceKind {
@@ -277,9 +163,10 @@ fn configure_rocket(test_transactions: bool) -> Rocket {
 
                 routes::index::index,
 
-                connect_integration,
-                disconnect_integration,
-                finish_integration,
+                routes::integrations::connect_integration,
+                routes::integrations::disconnect_integration,
+                routes::integrations::finish_integration,
+
                 expire_key,
                 create_device,
                 delete_device
