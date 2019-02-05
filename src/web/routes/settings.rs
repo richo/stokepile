@@ -1,7 +1,7 @@
 use rocket::{get, post};
 use rocket_contrib::templates::Template;
 use rocket::response::{Flash, Redirect};
-use rocket::request::{Form, FromFormValue};
+use rocket::request::Form;
 
 use crate::web::auth::WebUser;
 use crate::web::context::Context;

@@ -1,7 +1,6 @@
 #[macro_use]
 extern crate log;
 
-use libusb;
 use failure::Error;
 use lazy_static::lazy_static;
 
