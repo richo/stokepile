@@ -16,12 +16,21 @@ pub fn get_settings(user: WebUser) -> Template {
 
 #[post("/settings",  data = "<settings>")]
 pub fn post_settings(user: WebUser, conn: DbConn, settings: Form<SettingsForm>) -> Flash<Redirect> {
-    info!("{:?}", &settings);
 
-    Flash::success(
-        Redirect::to("/"),
-        "Settings updated.",
-        )
+    match user.user.update_settings(&settings, &conn) {
+        Ok(_) => {
+            Flash::success(
+                Redirect::to("/"),
+                "Settings updated.",
+                )
+        },
+        Err(e) => {
+            Flash::error(
+                Redirect::to("/settings"),
+                format!("Error updating settings, {:?}", e),
+                )
+        }
+    }
 }
 
 #[derive(FromForm, Debug)]

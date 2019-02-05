@@ -3,8 +3,9 @@ use diesel::prelude::*;
 
 use super::*;
 use crate::web::schema::users;
+use crate::web::routes::settings::SettingsForm;
 
-#[derive(Queryable, Debug, Serialize)]
+#[derive(Identifiable, Queryable, Debug, Serialize)]
 pub struct User {
     pub id: i32,
     pub email: String,
@@ -74,6 +75,17 @@ impl User {
 
         keys.filter(user_id.eq(self.id).and(id.eq(key_id)))
             .get_result(conn)
+    }
+
+    pub fn update_settings(&self, settings: &SettingsForm, conn: &PgConnection) -> QueryResult<usize> {
+        use diesel::update;
+        use crate::web::schema::users::dsl::*;
+
+        update(self)
+            .set((
+                    notify_email.eq(settings.notification_email()),
+                    notify_pushover.eq(settings.notification_pushover())))
+            .execute(conn)
     }
 }
 
