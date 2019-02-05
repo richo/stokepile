@@ -44,6 +44,8 @@ fn main() {
                 if let Err(e) = ctx.notifier.notify(msg) {
                     error!("Failed to send push notification: {:?}", e);
                 }
+            } else {
+                info!("Not sending push notification as there is no work planned");
             }
         };
 
@@ -80,8 +82,12 @@ fn main() {
         let plaintext = report.to_plaintext()?;
         println!("{}", plaintext);
 
-        if let Err(e) = ctx.mailer.send_report(&plaintext) {
-            error!("Failed to send upload report: {:?}", e);
+        if work_to_be_done {
+            if let Err(e) = ctx.mailer.send_report(&plaintext) {
+                error!("Failed to send upload report: {:?}", e);
+            }
+        } else {
+            info!("Not mailing report as no work was scheduled");
         }
 
         Ok(())
