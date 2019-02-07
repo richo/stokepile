@@ -1,5 +1,3 @@
-use std::fmt;
-
 use rocket::request::Form;
 use rocket::response::{Flash, Redirect};
 

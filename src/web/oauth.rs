@@ -6,7 +6,6 @@ use rocket::http::RawStr;
 use rocket::request::FromFormValue;
 
 use std::env;
-use std::fmt;
 use url::Url;
 
 lazy_static! {

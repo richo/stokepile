@@ -1,5 +1,3 @@
-use std::fmt;
-
 use crate::web::db::DbConn;
 use crate::web::auth::WebUser;
 use crate::web::ROCKET_ENV;
