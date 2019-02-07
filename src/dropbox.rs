@@ -203,7 +203,7 @@ impl DropboxFilesClient {
         }
     }
 
-    pub fn new_session<'a>(&'a self) -> Result<UploadSession<'a>, Error> {
+    pub fn new_session(&self) -> Result<UploadSession<'_>, Error> {
         let id = self.start_upload_session()?.session_id;
         let cursor = Cursor {
             session_id: id,
@@ -216,7 +216,7 @@ impl DropboxFilesClient {
         })
     }
 
-    fn start_upload_session<'a>(&self) -> Result<StartUploadSessionResponse, Error> {
+    fn start_upload_session(&self) -> Result<StartUploadSessionResponse, Error> {
         use self::DropboxBody::*;
         let headers = HeaderMap::new();
         let mut res = self.request(
@@ -231,7 +231,7 @@ impl DropboxFilesClient {
         }
     }
 
-    fn upload_session_append<'a>(&self, data: &[u8], cursor: &Cursor) -> Result<(), Error> {
+    fn upload_session_append(&self, data: &[u8], cursor: &Cursor) -> Result<(), Error> {
         use self::DropboxBody::*;
         let req = serde_json::to_vec(&UploadSessionAppendRequest { cursor })?;
         let mut headers = HeaderMap::new();

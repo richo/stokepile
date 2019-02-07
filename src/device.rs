@@ -23,7 +23,7 @@ pub enum Device<'a> {
     Flysight(DeviceDescription, flysight::Flysight),
 }
 
-impl<'a> Device<'a> {
+impl Device<'_> {
     pub fn stage_files<T>(self, destination: T) -> Result<(), Error>
     where
         T: AsRef<Path>,
@@ -57,7 +57,7 @@ pub fn attached_devices(ctx: &ctx::Ctx) -> Result<Vec<Device<'_>>, Error> {
     Ok(devices)
 }
 
-fn locate_gopros<'a>(ctx: &'a ctx::Ctx) -> Result<impl Iterator<Item = Device<'a>>, Error> {
+fn locate_gopros(ctx: &ctx::Ctx) -> Result<impl Iterator<Item = Device<'_>>, Error> {
     let gopro_serials: HashMap<_, _> = ctx
         .cfg
         .gopros()
@@ -79,9 +79,9 @@ fn locate_gopros<'a>(ctx: &'a ctx::Ctx) -> Result<impl Iterator<Item = Device<'a
         }))
 }
 
-fn locate_flysights<'a>(
-    cfg: &'a config::Config,
-) -> Result<impl Iterator<Item = Device<'a>>, Error> {
+fn locate_flysights(
+    cfg: &config::Config,
+) -> Result<impl Iterator<Item = Device<'_>>, Error> {
     Ok(cfg.flysights().iter().filter_map(|cfg| {
         cfg.flysight().get().map(|fs| {
             Device::Flysight(
@@ -94,9 +94,9 @@ fn locate_flysights<'a>(
     }))
 }
 
-fn locate_mass_storages<'a>(
-    cfg: &'a config::Config,
-) -> Result<impl Iterator<Item = Device<'a>>, Error> {
+fn locate_mass_storages(
+    cfg: &config::Config,
+) -> Result<impl Iterator<Item = Device<'_>>, Error> {
     Ok(cfg.mass_storages().iter().filter_map(|cfg| {
         cfg.mass_storage().get().map(|ms| {
             Device::MassStorage(
