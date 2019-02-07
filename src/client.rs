@@ -28,6 +28,7 @@ pub struct ArchiverClient {
 }
 
 impl ArchiverClient {
+    #[allow(clippy::collapsible_if)]
     pub fn new(base: &str) -> Result<Self, Error> {
         let base = Url::parse(base)?;
 
@@ -64,7 +65,7 @@ impl ArchiverClient {
             Err(ClientError::ServerError(resp.text()?))?;
         }
 
-        config::Config::from_str(&resp.text()?)
+        resp.text()?.parse()
     }
 
     pub fn login(&self, email: &str, password: &str) -> Result<SessionToken, Error> {

@@ -3,7 +3,6 @@ use std::fs;
 use std::io;
 use std::path::PathBuf;
 
-use dirs;
 use failure::Error;
 use libusb;
 
@@ -71,7 +70,7 @@ impl Ctx {
 
         let _lock = if should_lock {
             // TODO(richo) for now we just stash this in the user's home directory.
-            let home = dirs::home_dir().ok_or(format_err!("Couldn't open HOME"))?;
+            let home = config::get_home()?;
             let lock_path = home.join(".archiver.lock");
             info!("Acquiring the archiver lock at {:?}", &lock_path);
             Some(lockfile::Lockfile::create(lock_path)?)

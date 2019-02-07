@@ -2,7 +2,6 @@
 ///
 /// If this library is useful, I'll consider fleshing it out into a whole thing
 use serde::{Deserialize, Deserializer};
-use std::fmt;
 use std::io::Read;
 use std::path::Path;
 
@@ -213,7 +212,7 @@ impl DropboxFilesClient {
 
         Ok(UploadSession {
             client: self,
-            cursor: cursor,
+            cursor,
         })
     }
 
@@ -285,9 +284,9 @@ where
     fn already_uploaded(&self, manifest: &staging::UploadDescriptor) -> bool {
         match self.get_metadata(&manifest.remote_path()) {
             Ok(ref metadata) if metadata.content_hash() == &manifest.content_hash => {
-                return true;
+                true
             }
-            _ => return false,
+            _ => false,
         }
     }
 

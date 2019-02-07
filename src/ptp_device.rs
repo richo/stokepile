@@ -54,16 +54,15 @@ impl<'c> UploadableFile for GoproFile<'c> {
 
     fn delete(&mut self) -> Result<(), Error> {
         // lol how even does into
-        let ret = self
+        Ok(self
             .camera
             .lock()
             .unwrap()
-            .delete_object(self.handle, None)?;
-        Ok(ret)
+            .delete_object(self.handle, None)?)
     }
 
     fn size(&self) -> Result<u64, Error> {
-        Ok(self.size as u64)
+        Ok(u64::from(self.size))
     }
 }
 
@@ -81,9 +80,9 @@ impl<'b> Read for GoproFile<'b> {
             .unwrap()
             .get_partialobject(self.handle, self.offset, size as u32, None)
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-        &buf[..vec.len()].copy_from_slice(&vec[..]);
+        buf[..vec.len()].copy_from_slice(&vec[..]);
         self.offset += vec.len() as u32;
-        return Ok(vec.len());
+        Ok(vec.len())
     }
 }
 
@@ -108,7 +107,7 @@ impl GoproObjectFormat {
 }
 
 const GOPRO_VENDOR: u16 = 0x2672;
-const GOPRO_MANUFACTURER: &'static str = "GoPro";
+const GOPRO_MANUFACTURER: &str = "GoPro";
 
 #[repr(u16)]
 #[derive(Eq, PartialEq, Debug, Hash)]
@@ -170,7 +169,7 @@ impl<'c> Staging for GoproConnection<'c> where {
         // TODO(richo) Encapsulate this into some object that actually lets you poke around in the
         // libusb::Device and won't let you not close your session, etc.
         let filehandles = self.camera.lock().unwrap().get_objecthandles_all(
-            0xFFFFFFFF,
+            0xFFFF_FFFF,
             Some(GoproObjectFormat::Video as u32),
             timeout,
         )?;
@@ -223,9 +222,9 @@ impl<'c> Drop for GoproConnection<'c> {
 impl<'a> Gopro<'a> {
     pub fn new(kind: GoproKind, serial: String, device: libusb::Device<'_>) -> Result<Gopro<'_>, Error> {
         Ok(Gopro {
-            kind: kind,
-            serial: serial,
-            device: device,
+            kind,
+            serial,
+            device,
         })
     }
 

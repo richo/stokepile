@@ -1,5 +1,4 @@
 use failure::Error;
-use std::fmt;
 
 use crate::pushover::Pushover;
 

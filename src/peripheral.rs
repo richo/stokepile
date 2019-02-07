@@ -25,7 +25,7 @@ impl<T: MountablePeripheral> Peripheral for T {
             return false;
         }
         let files: Vec<_> = fs::read_dir(self.path()).unwrap().collect();
-        if files.len() == 0 {
+        if files.is_empty() {
             return false;
         }
 
@@ -38,6 +38,6 @@ impl<T: MountablePeripheral> Peripheral for T {
             }
         }
 
-        return true;
+        true
     }
 }

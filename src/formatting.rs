@@ -51,8 +51,7 @@ pub fn human_readable_time(time: Duration) -> String {
         }
         out = format!("{}{}m", out, mins);
     }
-    out = format!("{}{}s", out, secs);
-    return out;
+    format!("{}{}s", out, secs)
 }
 
 #[cfg(test)]

@@ -2,6 +2,7 @@ use std::env;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 use dirs;
 use failure::Error;
@@ -24,11 +25,11 @@ pub static TOKEN_FILE_NAME: &'static str = ".archiver-token";
 #[derive(Debug)]
 pub struct AccessToken(String);
 
-fn get_home() -> Result<PathBuf, Error> {
+pub fn get_home() -> Result<PathBuf, Error> {
     match dirs::home_dir() {
         Some(home) => Ok(home),
         None => {
-            return Err(format_err!(
+            Err(format_err!(
                 "Couldn't find your home directory. Is HOME set?"
             ))
         }
@@ -46,7 +47,7 @@ impl AccessToken {
         T: AsRef<Path>,
     {
         let mut file = File::create(home()?.as_ref().join(TOKEN_FILE_NAME))?;
-        file.write(token.as_bytes())?;
+        file.write_all(token.as_bytes())?;
         Ok(())
     }
 
@@ -207,20 +208,25 @@ pub enum ConfigError {
     NoTokenFile,
 }
 
+impl FromStr for Config {
+    type Err = Error;
+
+    fn from_str(body: &str) -> Result<Self, Self::Err> {
+        match toml::from_str(body) {
+            Ok(config) => Self::check_config(config),
+            Err(e) => bail!(ConfigError::ParseError(e)),
+        }
+    }
+}
+
+
 impl Config {
     pub fn from_file(path: &str) -> Result<Config, Error> {
         let mut fh = File::open(path)?;
         let mut contents = String::new();
         fh.read_to_string(&mut contents)?;
 
-        Config::from_str(&contents)
-    }
-
-    pub fn from_str(body: &str) -> Result<Config, Error> {
-        match toml::from_str(body) {
-            Ok(config) => Self::check_config(config),
-            Err(e) => Err(ConfigError::ParseError(e))?,
-        }
+        contents.parse()
     }
 
     /// Get a ConfigBuilder with which you can construct a Config object
@@ -355,7 +361,7 @@ impl ConfigBuilder {
 
     /// Add this flysight to the config object
     pub fn flysight(mut self, flysight: FlysightConfig) -> Self {
-        let mut flysights = self.flysight.unwrap_or(vec![]);
+        let mut flysights = self.flysight.unwrap_or_else(|| vec![]);
         flysights.push(flysight);
         self.flysight = Some(flysights);
         self
@@ -370,7 +376,7 @@ impl ConfigBuilder {
 
     /// Add this mass_storage to the config object
     pub fn mass_storage(mut self, mass_storage: MassStorageConfig) -> Self {
-        let mut mass_storages = self.mass_storage.unwrap_or(vec![]);
+        let mut mass_storages = self.mass_storage.unwrap_or_else(|| vec![]);
         mass_storages.push(mass_storage);
         self.mass_storage = Some(mass_storages);
         self
@@ -385,7 +391,7 @@ impl ConfigBuilder {
 
     /// Add this gopro to the config object
     pub fn gopro(mut self, gopro: GoproConfig) -> Self {
-        let mut gopros = self.gopro.unwrap_or(vec![]);
+        let mut gopros = self.gopro.unwrap_or_else(|| vec![]);
         gopros.push(gopro);
         self.gopro = Some(gopros);
         self

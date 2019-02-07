@@ -37,7 +37,7 @@ fn main() {
 
         let devices = device::attached_devices(&ctx)?;
 
-        let work_to_be_done = devices.len() > 0;
+        let work_to_be_done = !devices.is_empty();
         let maybe_notify = |msg: &str| {
             if work_to_be_done {
                 if let Err(e) = ctx.notifier.notify(msg) {

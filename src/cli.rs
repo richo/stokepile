@@ -18,7 +18,7 @@ pub fn base_opts<'a, 'b>() -> App<'a, 'b> {
 /// Setup logging for archiver. This sets the log level to INFO if unset and configures the logging
 /// facade favoured by archiver's clis.
 pub fn init_logging() {
-    if let None = ::std::env::var_os("RUST_LOG") {
+    if ::std::env::var_os("RUST_LOG").is_none() {
         ::std::env::set_var("RUST_LOG", "INFO");
     }
     pretty_env_logger::init();
