@@ -198,11 +198,11 @@ pub struct GoproConfig {
 
 #[derive(Fail, Debug)]
 pub enum ConfigError {
-    #[fail(display = "Must have at least one of dropbox and vimeo configured")]
+    #[fail(display = "Must have at least one of dropbox and vimeo configured.")]
     MissingBackend,
-    #[fail(display = "Could not parse config: {}", _0)]
+    #[fail(display = "Must have either a `staging_path` or `staging_device` set".)]
     ParseError(#[cause] toml::de::Error),
-    #[fail(display = "Invalid url for api base: {}", _0)]
+    #[fail(display = "Invalid url for api base: {}.", _0)]
     InvalidApiBase(url::ParseError),
     #[fail(display = "The token file does not exist. Did you login?")]
     NoTokenFile,
@@ -241,11 +241,12 @@ impl Config {
 
     fn check_config(config: Config) -> Result<Config, Error> {
         if config.dropbox.is_none() && config.vimeo.is_none() {
-            Err(ConfigError::MissingBackend)?;
+            bail!(ConfigError::MissingBackend);
         }
+
         if let Some(base) = &config.archiver.api_base {
             if let Err(err) = url::Url::parse(&base) {
-                Err(ConfigError::InvalidApiBase(err))?;
+                bail!(ConfigError::InvalidApiBase(err));
             }
         }
 
