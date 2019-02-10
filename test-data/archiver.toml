@@ -2,6 +2,7 @@
 # Comment out any section to disable that feature.
 
 [archiver]
+staging_directory = "/test"
 
 storage_backend="dropbox"
 

@@ -3,7 +3,7 @@
 
 [archiver]
 
-staging_location="/test/staging/dir"
+staging_directory="/test/staging/dir"
 api_base="https://test-api.base"
 api_token="ARCHIVER_TOKEN_GOES_HERE"
 

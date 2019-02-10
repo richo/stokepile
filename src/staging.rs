@@ -1,6 +1,6 @@
 use std::fmt::Debug;
-use std::fs;
-use std::io::Read;
+use std::fs::{self, File};
+use std::io::{self, Read};
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -22,11 +22,18 @@ pub trait UploadableFile {
     fn size(&self) -> Result<u64, Error>;
 }
 
-pub trait StageableLocation: Debug + Sync {
+/// The contract of StageableLocation is a directory with a bunch of flat files under it. Doing
+/// things other than this will probably panic implementors.
+pub trait StageableLocation: Debug + Sync + Send {
     /// Return a path relative to this location for the given path.
     ///
     /// It's annoying that these can't be Path's with lifetime bounds that force them not to
     /// outlive their parents, parents
+    ///
+    /// This API is a little odd in that its consumers are largely responsible for figuring out how
+    /// to save things, but consumers of the retrieve API are helped out a lot. Potentially there
+    /// should be a single API that gives you a containing object for a file and a manifest, and
+    /// cleans them up if you don't commit it?
     fn relative_path(&self, path: &Path) -> PathBuf;
 
     fn file_path(&self, desc: &UploadDescriptor) -> PathBuf {
@@ -42,6 +49,62 @@ pub trait StageableLocation: Debug + Sync {
         assert!(path.is_relative());
         self.relative_path(path)
     }
+
+    fn read_dir(&self) -> Result<fs::ReadDir, io::Error>;
+
+    // TODO(richo) iterator
+    fn staged_files(&self) -> Result<Vec<(StagedFile, UploadDescriptor)>, Error> {
+        let mut out = vec![];
+        for entry in self.read_dir()? {
+            // Find manifests and work backward
+            let entry = entry?;
+            trace!("Looking at {:?}", entry.path());
+            if !is_manifest(&entry.path()) {
+                continue;
+            }
+            let manifest_path = entry.path();
+            let content_path = content_path_from_manifest(&manifest_path);
+
+            let manifest = File::open(&manifest_path)?;
+
+            let manifest: UploadDescriptor = serde_json::from_reader(manifest)?;
+            out.push((StagedFile {
+                content_path,
+                manifest_path,
+            }, manifest));
+        }
+        Ok(out)
+    }
+}
+
+impl<T: StageableLocation> StageableLocation for Box<T> {
+    fn relative_path(&self, path: &Path) -> PathBuf {
+        (**self).relative_path(path)
+    }
+
+    fn read_dir(&self) -> Result<fs::ReadDir, io::Error> {
+        (**self).read_dir()
+    }
+}
+
+#[derive(Debug)]
+pub struct StagedFile {
+    pub content_path: PathBuf,
+    manifest_path: PathBuf,
+}
+
+impl StagedFile {
+    pub fn delete(self) -> Result<(), io::Error> {
+        info!("removing {:?}", &self.manifest_path);
+        fs::remove_file(&self.manifest_path)?;
+        info!("removing {:?}", &self.content_path);
+        fs::remove_file(&self.content_path)?;
+        Ok(())
+    }
+
+    pub fn content_handle(&self) -> Result<File, io::Error> {
+        File::open(&self.content_path)
+    }
 }
 
 #[derive(Debug)]
@@ -53,6 +116,10 @@ impl StageableLocation for StagingDirectory {
     fn relative_path(&self, path: &Path) -> PathBuf {
         assert!(path.is_relative());
         self.path.join(&path)
+    }
+
+    fn read_dir(&self) -> Result<fs::ReadDir, io::Error> {
+        fs::read_dir(&self.path)
     }
 }
 
@@ -176,6 +243,27 @@ impl UploadDescriptor {
     }
 }
 
+fn is_manifest(path: &Path) -> bool {
+    path.to_str().unwrap().ends_with(".manifest")
+}
+
+/// Converts a manifest path back into the filename to set
+fn content_path_from_manifest(manifest: &Path) -> PathBuf {
+    // TODO(richo) oh god why does this not have tests
+    let mut content_path = manifest.to_path_buf();
+    let mut string = manifest
+        .file_name()
+        .unwrap()
+        .to_os_string()
+        .into_string()
+        .unwrap();
+    let len = string.len();
+    string.truncate(len - 9);
+
+    content_path.set_file_name(string);
+    content_path
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -233,6 +321,57 @@ mod tests {
 
         assert_eq!(&original, &hydrated);
     }
+
+    #[test]
+    fn test_absolute_manifest_conversion() {
+        let manifest = Path::new("/tmp/foo/bar/butts.manifest");
+        let content = content_path_from_manifest(&manifest);
+        assert_eq!(PathBuf::from("/tmp/foo/bar/butts".to_string()), content);
+    }
+
+    #[test]
+    fn test_relative_manifest_conversion() {
+        let manifest = Path::new("bar/butts.manifest");
+        let content = content_path_from_manifest(&manifest);
+        assert_eq!(PathBuf::from("bar/butts".to_string()), content);
+    }
+
+    #[test]
+    fn test_bare_manifest_conversion() {
+        let manifest = Path::new("butts.manifest");
+        let content = content_path_from_manifest(&manifest);
+        assert_eq!(PathBuf::from("butts".to_string()), content);
+    }
+
+    #[test]
+    fn test_absolute_manifest_detection() {
+        let manifest = Path::new("/tmp/foo/bar/butts.manifest");
+        assert_eq!(true, is_manifest(&manifest));
+        let manifest = Path::new("/tmp/foo/bar/buttsmanifest");
+        assert_eq!(false, is_manifest(&manifest));
+        let manifest = Path::new("/tmp/foo/bar/butts.manifes");
+        assert_eq!(false, is_manifest(&manifest));
+    }
+
+    #[test]
+    fn test_relative_manifest_detection() {
+        let manifest = Path::new("bar/butts.manifest");
+        assert_eq!(true, is_manifest(&manifest));
+        let manifest = Path::new("bar/buttsmanifest");
+        assert_eq!(false, is_manifest(&manifest));
+        let manifest = Path::new("bar/butts.manifes");
+        assert_eq!(false, is_manifest(&manifest));
+    }
+
+    #[test]
+    fn test_bare_manifest_detection() {
+        let manifest = Path::new("butts.manifest");
+        assert_eq!(true, is_manifest(&manifest));
+        let manifest = Path::new("buttsmanifest");
+        assert_eq!(false, is_manifest(&manifest));
+        let manifest = Path::new("butts.manifes");
+        assert_eq!(false, is_manifest(&manifest));
+    }
 }
 
 #[cfg(test)]
@@ -242,5 +381,9 @@ impl StageableLocation for tempfile::TempDir {
 
     fn relative_path(&self, path: &Path) -> PathBuf {
         self.path().join(path)
+    }
+
+    fn read_dir(&self) -> Result<fs::ReadDir, io::Error> {
+        fs::read_dir(self.path())
     }
 }

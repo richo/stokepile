@@ -84,6 +84,10 @@ impl Ctx {
             _lock,
         })
     }
+
+    pub fn staging(&self) -> &dyn StageableLocation {
+        &*self.staging
+    }
 }
 
 #[cfg(test)]
@@ -94,7 +98,7 @@ mod tests {
     fn test_locks_actually_lock() {
         let lock = acquire_lock();
         assert!(lock.is_ok());
-        let anoter_lock = acquire_lock();
-        assert!(lock.is_err());
+        let another_lock = acquire_lock();
+        assert!(another_lock.is_err());
     }
 }

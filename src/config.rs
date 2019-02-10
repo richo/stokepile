@@ -1,12 +1,12 @@
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+use std::ops::Deref;
 use std::str::FromStr;
 
 use failure::Error;
 use toml;
 use url;
-use std::ops::Deref;
 
 use crate::dropbox;
 use crate::flysight::Flysight;
@@ -138,6 +138,15 @@ pub enum StagingConfig {
     StagingDevice(PathBuf),
 }
 
+impl StagingConfig {
+    fn is_relative(&self) -> bool {
+        match &*self {
+            StagingConfig::StagingDirectory(path) |
+            StagingConfig::StagingDevice(path) => path.is_relative()
+        }
+    }
+}
+
 #[derive(Default, Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct ArchiverConfig {
     #[serde(flatten)]
@@ -241,7 +250,7 @@ impl FromStr for Config {
     fn from_str(body: &str) -> Result<Self, Self::Err> {
         match toml::from_str(body) {
             Ok(config) => Self::check_config(config),
-            Err(e) => bail!(ConfigError::ParseError(e)),
+            Err(e) => Err(ConfigError::ParseError(e))?,
         }
     }
 }
@@ -268,16 +277,22 @@ impl Config {
 
     fn check_config(config: Config) -> Result<Config, Error> {
         if config.dropbox.is_none() && config.vimeo.is_none() {
-            bail!(ConfigError::MissingBackend);
+            Err(ConfigError::MissingBackend)?;
         }
 
         if config.archiver.staging.is_none() {
             bail!(ConfigError::MissingStaging);
         }
 
+        if let Some(staging) = &config.archiver.staging {
+            if staging.is_relative() {
+                Err(ConfigError::RelativeStaging)?
+            }
+        }
+
         if let Some(base) = &config.archiver.api_base {
             if let Err(err) = url::Url::parse(&base) {
-                bail!(ConfigError::InvalidApiBase(err));
+                Err(ConfigError::InvalidApiBase(err))?;
             }
         }
 
@@ -551,14 +566,65 @@ mod tests {
         let cfg = Config::from_str(
             r#"
 [archiver]
-staging="test/dir"
+staging_directory="test/dir"
+
+[dropbox]
+token = "TOKEN"
+"#,
+        )
+        .unwrap_err();
+        let err = cfg.downcast::<ConfigError>().unwrap();
+        let formatted = format!("{:?}", err);
+        assert_eq!("RelativeStaging", &formatted);
+    }
+
+    #[test]
+    fn test_staging_directory() {
+        let cfg = Config::from_str(
+            r#"
+[archiver]
+staging_directory="/test/dir"
 
 [dropbox]
 token = "TOKEN"
 "#,
         )
         .unwrap();
-        assert_eq!(cfg.archiver.staging, Some(StagingConfig::StagingDirectory(PathBuf::from("test/dir"))));
+        assert_eq!(cfg.archiver.staging, Some(StagingConfig::StagingDirectory(PathBuf::from("/test/dir"))));
+    }
+
+    #[test]
+    fn test_staging_device() {
+        let cfg = Config::from_str(
+            r#"
+[archiver]
+staging_device="/dev/staging"
+
+[dropbox]
+token = "TOKEN"
+"#,
+        )
+        .unwrap();
+        assert_eq!(cfg.archiver.staging, Some(StagingConfig::StagingDevice(PathBuf::from("/dev/staging"))));
+    }
+
+    #[test]
+    // This is a lie, it shouldn't fail. This is a bug.
+    // TODO(richo)
+    #[should_panic]
+    fn test_staging_cannot_be_both() {
+        let cfg = Config::from_str(
+            r#"
+[archiver]
+staging_device="/dev/staging"
+staging_directory="/test/dir"
+
+[dropbox]
+token = "TOKEN"
+"#,
+        )
+        .unwrap_err();
+        let err = cfg.downcast::<ConfigError>().unwrap();
     }
 
     #[test]
@@ -566,6 +632,7 @@ token = "TOKEN"
         let cfg = Config::from_str(
             r#"
 [archiver]
+staging_directory = "/test"
 api_base = "malformed"
 
 [dropbox]
@@ -583,6 +650,7 @@ token = "TOKEN"
         let cfg = Config::from_str(
             r#"
 [archiver]
+staging_directory = "/test"
 
 [dropbox]
 token = "TOKEN"
@@ -597,6 +665,7 @@ token = "TOKEN"
         let cfg = Config::from_str(
             r#"
 [archiver]
+staging_directory = "/test"
 
 [dropbox]
 token = "TOKEN"
@@ -614,7 +683,7 @@ token = "TOKEN"
         let cfg = Config::from_str(
             r#"
 [archiver]
-staging="test/dir"
+staging_directory="/test/dir"
 
 [dropbox]
 token = "TOKEN"
@@ -633,10 +702,12 @@ recipient = "RECIPIENT_TOKEN"
         let error = Config::from_str(
             r#"
 [archiver]
+staging_directory = "/test"
 "#,
         )
         .unwrap_err();
-        let error = error.downcast::<ConfigError>().unwrap();
+        println!("{:?}", &error);
+        let error = error.downcast::<ConfigError>().unwrap_or_else(|e| panic!("{:?}", e));
         assert!(match error {
             ConfigError::MissingBackend => true,
             _ => false,
@@ -648,6 +719,7 @@ recipient = "RECIPIENT_TOKEN"
         let config = Config::from_str(
             r#"
 [archiver]
+staging_directory = "/test"
 [dropbox]
 token="DROPBOX_TOKEN_GOES_HERE"
 "#,
@@ -722,6 +794,7 @@ token="DROPBOX_TOKEN_GOES_HERE"
         let config = Config::from_str(
             r#"
 [archiver]
+staging_directory = "/test"
 [dropbox]
 token="DROPBOX_TOKEN_GOES_HERE"
 
@@ -746,6 +819,7 @@ extensions = ["mov"]
         let config = Config::from_str(
             r#"
 [archiver]
+staging_directory = "/test"
 [dropbox]
 token="DROPBOX_TOKEN_GOES_HERE"
 
@@ -769,6 +843,7 @@ serial = "C3131127500001"
         let config = Config::from_str(
             r#"
 [archiver]
+staging_directory = "/test"
 [dropbox]
 token="DROPBOX_TOKEN_GOES_HERE"
 
@@ -791,6 +866,7 @@ mountpoint="/mnt/archiver/comp"
         let config = Config::from_str(
             r#"
 [archiver]
+staging_directory = "/test"
 [dropbox]
 token="DROPBOX_TOKEN_GOES_HERE"
 
