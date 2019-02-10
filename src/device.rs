@@ -23,10 +23,7 @@ pub enum Device<'a> {
 }
 
 impl Device<'_> {
-    pub fn stage_files<T>(self, destination: T) -> Result<(), Error>
-    where
-        T: StageableLocation
-    {
+    pub fn stage_files(self, destination: &dyn StageableLocation) -> Result<(), Error> {
         match self {
             Device::Gopro(desc, gopro) => gopro.connect()?.stage_files(&desc.name, destination),
             Device::MassStorage(desc, mass_storage) => {

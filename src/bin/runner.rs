@@ -71,6 +71,7 @@ fn main() {
         }
 
         // Run the uploader thread syncronously as a smoketest for the daemon mode
+        // This is fine for now, we have to lift this into the trait
         let report = thread::spawn(|| storage::upload_from_staged(&ctx.staging, &backends))
             .join()
             .expect("Upload thread panicked")?;

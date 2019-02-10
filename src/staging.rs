@@ -83,10 +83,7 @@ pub trait Staging: Sized {
     fn files(&self) -> Result<Vec<Self::FileType>, Error>;
 
     /// Stage all available files on this device, erasing the device copies as they are staged.
-    fn stage_files<T>(self, name: &str, destination: T) -> Result<(), Error>
-    where
-        T: StageableLocation
-    {
+    fn stage_files(self, name: &str, destination: &dyn StageableLocation) -> Result<(), Error> {
         for mut file in self.files()? {
             let mut desc = UploadDescriptor {
                 capture_time: file.capture_datetime()?,
@@ -239,7 +236,7 @@ mod tests {
 }
 
 #[cfg(test)]
-impl StageableLocation for &tempfile::TempDir {
+impl StageableLocation for tempfile::TempDir {
     // For tests we allow using TempDirs for staging, although for fairly obvious reasons you're
     // unlikely to want to do this in production
 
