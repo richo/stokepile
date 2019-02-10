@@ -37,7 +37,7 @@ fn main() {
         let config = client.fetch_config(token)?;
         let filename = matches.value_of("config").unwrap_or("archiver.toml");
         let mut fh = File::create(&filename)?;
-        fh.write_all(config.to_toml().as_bytes())?;
+        fh.write_all(config.to_toml()?.as_bytes())?;
         info!("Wrote config to {}", &filename);
 
         Ok(())

@@ -49,11 +49,12 @@ pub fn get_config(user: AuthenticatedUser, conn: DbConn) -> Result<Content<Strin
         }
     }
 
-    match config.finish() {
-        Ok(config) => Ok(Content(
+    match config.finish().map(|c| c.to_toml()) {
+        Ok(Ok(config)) => Ok(Content(
             ContentType::new("application", "toml"),
-            config.to_toml(),
+            config,
         )),
+        Ok(Err(error)) |
         Err(error) => Err(Flash::error(
             Redirect::to("/"),
             format!(

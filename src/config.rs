@@ -238,6 +238,8 @@ pub enum ConfigError {
     RelativeStaging,
     #[fail(display = "Could not parse config: {}.", _0)]
     ParseError(#[cause] toml::de::Error),
+    #[fail(display = "Could not generate config: {}.", _0)]
+    GenerateError(#[cause] toml::ser::Error),
     #[fail(display = "Invalid url for api base: {}.", _0)]
     InvalidApiBase(url::ParseError),
     #[fail(display = "The token file does not exist. Did you login?")]
@@ -271,8 +273,8 @@ impl Config {
     }
 
     /// Serializes this config option into TOML
-    pub fn to_toml(&self) -> String {
-        toml::to_string(self).unwrap()
+    pub fn to_toml(&self) -> Result<String, Error> {
+        toml::to_string(self).map_err(|e| ConfigError::GenerateError(e).into())
     }
 
     fn check_config(config: Config) -> Result<Config, Error> {
