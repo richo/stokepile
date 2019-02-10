@@ -146,7 +146,7 @@ mod tests {
             extensions: extensions(),
         };
 
-        mass_storage.stage_files("data", &dest.path()).unwrap();
+        mass_storage.stage_files("data", &dest).unwrap();
         // TODO(richo) test harder
         let iter = fs::read_dir(&dest.path()).unwrap();
         let files: Vec<_> = iter.collect();

@@ -66,13 +66,12 @@ fn main() {
 
         for device in devices {
             let msg = format!("Finished staging: {}", device.name());
-            device.stage_files(&ctx.staging)?;
+            device.stage_files(&*ctx.staging)?;
             maybe_notify(&msg);
         }
 
         // Run the uploader thread syncronously as a smoketest for the daemon mode
-        let staging = ctx.staging.clone();
-        let report = thread::spawn(move || storage::upload_from_staged(&staging, &backends))
+        let report = thread::spawn(|| storage::upload_from_staged(&ctx.staging, &backends))
             .join()
             .expect("Upload thread panicked")?;
 

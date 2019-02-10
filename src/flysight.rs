@@ -185,7 +185,7 @@ mod tests {
             name: "data".into(),
             path: source.path().to_path_buf(),
         };
-        flysight.stage_files("data", &dest.path()).unwrap();
+        flysight.stage_files("data", &dest).unwrap();
         // TODO(richo) test harder
         let iter = fs::read_dir(&dest.path()).unwrap();
         let files: Vec<_> = iter.collect();

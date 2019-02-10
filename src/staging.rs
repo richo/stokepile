@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::fs;
 use std::io::Read;
 use std::path::Path;
@@ -21,6 +22,60 @@ pub trait UploadableFile {
     fn size(&self) -> Result<u64, Error>;
 }
 
+pub trait StageableLocation: Debug + Sync {
+    /// Return a path relative to this location for the given path.
+    ///
+    /// It's annoying that these can't be Path's with lifetime bounds that force them not to
+    /// outlive their parents, parents
+    fn relative_path(&self, path: &Path) -> PathBuf;
+
+    fn file_path(&self, desc: &UploadDescriptor) -> PathBuf {
+        let name = desc.staging_name();
+        let path: &Path = Path::new(&name);
+        assert!(path.is_relative());
+        self.relative_path(path)
+    }
+
+    fn manifest_path(&self, desc: &UploadDescriptor) -> PathBuf {
+        let name = desc.manifest_name();
+        let path: &Path = Path::new(&name);
+        assert!(path.is_relative());
+        self.relative_path(path)
+    }
+}
+
+#[derive(Debug)]
+pub struct StagingDirectory {
+    path: PathBuf,
+}
+
+impl StageableLocation for StagingDirectory {
+    fn relative_path(&self, path: &Path) -> PathBuf {
+        assert!(path.is_relative());
+        self.path.join(&path)
+    }
+}
+
+impl StagingDirectory {
+    pub fn new(path: PathBuf) -> Self {
+        StagingDirectory {
+            path,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct StagingDevice {
+    device: PathBuf,
+    mountpoint: PathBuf,
+}
+
+impl Drop for StagingDevice {
+    fn drop(&mut self) {
+        // TODO(richo) unmount the device, clean up the tempdir.
+    }
+}
+
 pub trait Staging: Sized {
     type FileType: UploadableFile;
 
@@ -30,7 +85,7 @@ pub trait Staging: Sized {
     /// Stage all available files on this device, erasing the device copies as they are staged.
     fn stage_files<T>(self, name: &str, destination: T) -> Result<(), Error>
     where
-        T: AsRef<Path>,
+        T: StageableLocation
     {
         for mut file in self.files()? {
             let mut desc = UploadDescriptor {
@@ -41,30 +96,26 @@ pub trait Staging: Sized {
                 size: file.size()?,
             };
 
-            let staging_name = desc.staging_name();
-            let manifest_name = desc.manifest_name();
-
             let mut options = fs::OpenOptions::new();
             let options = options.write(true).create(true).truncate(true);
 
-            let staging_path = destination.as_ref().join(&staging_name);
-            let manifest_path = destination.as_ref().join(&manifest_name);
+            let file_path = destination.file_path(&desc);
+            let manifest_path = destination.manifest_path(&desc);
 
-            info!("Staging {} to {:?}", &staging_name, &staging_path);
+            info!("Staging {:?} to {:?}", &desc, &file_path);
             {
-                let mut staged = options.open(&staging_path)?;
+                let mut staged = options.open(&file_path)?;
                 let (size, hash) = hashing_copy::copy_and_hash::<_, _, DropboxContentHasher>(
                     file.reader(),
                     &mut staged,
                 )?;
                 assert_eq!(size, desc.size);
                 desc.content_hash.copy_from_slice(&hash);
-                info!("Staged {}: shasum={:x} size={}", &staging_name, &hash, formatting::human_readable_size(size as usize));
+                info!("Staged {:?}: shasum={:x} size={}", &file_path, &hash, formatting::human_readable_size(size as usize));
             } // Ensure that we've closed our staging file
 
             {
-                info!("Manifesting {}", &manifest_name);
-                trace!(" To {:?}", manifest_path);
+                info!("Manifesting {:?} to {:?}", &desc, &manifest_path);
                 let mut staged = options.open(&manifest_path)?;
                 serde_json::to_writer(&mut staged, &desc)?;
             }
@@ -184,5 +235,15 @@ mod tests {
         let hydrated = serde_json::from_str(&serialized).expect("Couldn't deserialize test data");
 
         assert_eq!(&original, &hydrated);
+    }
+}
+
+#[cfg(test)]
+impl StageableLocation for &tempfile::TempDir {
+    // For tests we allow using TempDirs for staging, although for fairly obvious reasons you're
+    // unlikely to want to do this in production
+
+    fn relative_path(&self, path: &Path) -> PathBuf {
+        self.path().join(path)
     }
 }

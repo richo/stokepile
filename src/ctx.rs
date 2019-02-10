@@ -1,7 +1,4 @@
 use std::fmt;
-use std::fs;
-use std::io;
-use std::path::PathBuf;
 
 use failure::Error;
 use libusb;
@@ -13,21 +10,19 @@ use lockfile::Lockfile;
 use crate::config;
 use crate::mailer;
 use crate::pushover_notifier;
+use crate::staging::StageableLocation;
 
 /// Ctx is the global context object. Constructed by consuming a `config::Config`.
 pub struct Ctx {
     /// a USB context, used for finding and interacting with PTP devices
     pub usb_ctx: libusb::Context,
     pub cfg: config::Config,
-    /// The directory that will be used for staging files before they're uploaded.
-    ///
-    /// This directory will be treated as durable! Do not set it to `/tmp` if you care about your
-    /// files.
-    pub staging: PathBuf,
     /// An optional notifier to call on changes to uploads.
     pub notifier: Option<pushover_notifier::PushoverNotifier>,
     /// An optional mailer that will be used to send reports when uploads finish or fail.
     pub mailer: Option<mailer::SendgridMailer>,
+    /// The staging adaptor that we'll be using.
+    pub staging: Box<dyn StageableLocation>,
     // This lock is optional, since we can opt into building it without, but by making the lock
     // part of this API we can't accidentally end up not having one.
     _lock: Option<lockfile::Lockfile>,
@@ -43,6 +38,13 @@ impl fmt::Debug for Ctx {
             .field("mailer", &self.mailer)
             .finish()
     }
+}
+
+fn acquire_lock() -> Result<lockfile::Lockfile, Error> {
+    let home = config::get_home()?;
+    let lock_path = home.as_ref().join(".archiver.lock");
+    info!("Acquiring the archiver lock at {:?}", &lock_path);
+    Ok(lockfile::Lockfile::create(lock_path)?)
 }
 
 impl Ctx {
@@ -63,17 +65,12 @@ impl Ctx {
     }
 
     fn create_ctx(cfg: config::Config, should_lock: bool) -> Result<Ctx, Error> {
-        let staging = create_or_find_staging(&cfg)?;
-        // TODO(richo) offload figuring out what notifier we should use to the config
         let notifier = cfg.notifier();
         let mailer = cfg.mailer();
+        let staging = Box::new(cfg.staging()?);
 
         let _lock = if should_lock {
-            // TODO(richo) for now we just stash this in the user's home directory.
-            let home = config::get_home()?;
-            let lock_path = home.join(".archiver.lock");
-            info!("Acquiring the archiver lock at {:?}", &lock_path);
-            Some(lockfile::Lockfile::create(lock_path)?)
+            Some(acquire_lock()?)
         } else {
             None
         };
@@ -81,28 +78,23 @@ impl Ctx {
         Ok(Ctx {
             usb_ctx: libusb::Context::new()?,
             cfg,
-            staging,
             notifier,
             mailer,
+            staging,
             _lock,
         })
     }
 }
 
-fn create_or_find_staging(cfg: &config::Config) -> Result<PathBuf, Error> {
-    let path = cfg.staging_dir()?.unwrap_or_else(|| {
-        info!("Staging dir not specified, falling back to `staging`");
-        PathBuf::from("staging")
-    });
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    if let Err(e) = fs::create_dir(&path) {
-        if e.kind() == io::ErrorKind::AlreadyExists {
-            info!("Reusing existing staging dir");
-        } else {
-            error!("{:?}", e);
-            panic!();
-        }
+    #[test]
+    fn test_locks_actually_lock() {
+        let lock = acquire_lock();
+        assert!(lock.is_ok());
+        let anoter_lock = acquire_lock();
+        assert!(lock.is_err());
     }
-
-    Ok(path)
 }

@@ -49,6 +49,7 @@ fn is_manifest(path: &Path) -> bool {
     path.to_str().unwrap().ends_with(".manifest")
 }
 
+// TODO(richo) Make this use StageableLocation to find the files.
 pub fn upload_from_staged<T>(
     staged: T,
     adaptors: &[Box<dyn StorageAdaptor<File>>],
