@@ -4,6 +4,7 @@ use diesel::prelude::*;
 use super::*;
 use crate::web::schema::users;
 use crate::web::routes::settings::SettingsForm;
+use crate::config::StagingConfig;
 
 use rocket::http::RawStr;
 use rocket::request::FromFormValue;
@@ -110,6 +111,18 @@ impl User {
             .set((
                     notify_email.eq(settings.notification_email()),
                     notify_pushover.eq(settings.notification_pushover()),
+                    staging_type.eq(staging.kind()),
+                    staging_location.eq(staging.location().to_string_lossy())
+            ))
+            .execute(conn)
+    }
+
+    pub fn update_staging(&self, staging: &StagingConfig, conn: &PgConnection) -> QueryResult<usize> {
+        use diesel::update;
+        use crate::web::schema::users::dsl::*;
+
+        update(self)
+            .set((
                     staging_type.eq(staging.kind()),
                     staging_location.eq(staging.location().to_string_lossy())
             ))

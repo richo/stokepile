@@ -101,7 +101,7 @@ mod tests {
         let req = client
             .post("/settings")
             .header(ContentType::Form)
-            .body(r"notification_email=test-value&notification_pushover=another%20test%20value")
+            .body(r"notification_email=test-value&notification_pushover=another%20test%20value&staging_type=device&staging_location=/butts")
             .dispatch();
 
         // Reload the user. There is probably a better way to do this.
@@ -126,14 +126,14 @@ mod tests {
         let u1 = create_user(&client1, "test1@email.com", "p@55w0rd");
         let u2 = create_user(&client2, "test2@email.com", "p@55w0rd");
 
-        let s1 = signin(&client1, "test1%40email.com", "p%4055w0rd").unwrap();
-        let s2 = signin(&client2, "test2%40email.com", "p%4055w0rd").unwrap();
+        let _s1 = signin(&client1, "test1%40email.com", "p%4055w0rd").unwrap();
+        let _s2 = signin(&client2, "test2%40email.com", "p%4055w0rd").unwrap();
 
         // Set some settings
         let req = client1
             .post("/settings")
             .header(ContentType::Form)
-            .body(r"notification_email=lol&notification_pushover=hithere")
+            .body(r"notification_email=lol&notification_pushover=hithere&staging_type=device&staging_location=/butts")
             .dispatch();
 
         let u1 = {
