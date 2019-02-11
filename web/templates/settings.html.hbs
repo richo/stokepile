@@ -25,6 +25,18 @@
               {{#if this.user.notify_pushover}}value="{{this.user.notify_pushover}}"{{/if}}
               /></td>
           </tr>
+          <tr>
+            <td>Staging</td>
+            <td>
+              <select id="staging_type">
+                <option value="directory">Directory</option>
+                <option value="device">Device</option>
+              </select>
+
+              <input class="settings-text-input" type="text" name="staging_location" form="settings_form" placeholder="/mnt/staging"
+              {{#if this.user.staging_location}}value="{{this.user.staging_location}}"{{/if}}
+              /></td>
+          </tr>
         </tbody>
       </table>
       </form>
