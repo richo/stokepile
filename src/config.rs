@@ -18,6 +18,7 @@ use crate::staging::{StagingDirectory, StagingDevice, StageableLocation};
 use crate::storage::StorageAdaptor;
 use crate::vimeo::VimeoClient;
 
+
 // TODO(richo) Change this once we have a canonical domain
 pub static DEFAULT_API_BASE: &'static str = "https://onatopp.psych0tik.net";
 pub static TOKEN_FILE_NAME: &'static str = ".archiver-token";
@@ -136,6 +137,27 @@ pub enum StagingConfig {
     StagingDirectory(PathBuf),
     #[serde(rename = "staging_device")]
     StagingDevice(PathBuf),
+}
+
+#[cfg(feature = "web")]
+use crate::web::models::extra::StagingKind;
+
+impl StagingConfig {
+    #[cfg(feature = "web")]
+    pub fn location(&self) -> &Path {
+        match self {
+            StagingConfig::StagingDirectory(buf) |
+            StagingConfig::StagingDevice(buf) => &buf
+        }
+    }
+
+    #[cfg(feature = "web")]
+    pub fn kind(&self) -> StagingKind {
+        match self {
+            StagingConfig::StagingDirectory(_) => StagingKind::Directory,
+            StagingConfig::StagingDevice(_) => StagingKind::Device,
+        }
+    }
 }
 
 impl StagingConfig {

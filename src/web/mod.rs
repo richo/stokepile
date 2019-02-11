@@ -17,6 +17,13 @@ lazy_static! {
     pub static ref ROCKET_ENV: Environment = Environment::active().expect("Could not get ROCKET_ENV.");
 }
 
+handlebars_helper!(maybe_selected: |field: str, active: str| {
+    if field== active {
+        format!("selected")
+    } else {
+        format!("")
+    }});
+
 pub fn configure_rocket() -> Rocket {
     rocket::ignite()
         .manage(init_pool(false))
@@ -45,7 +52,9 @@ pub fn configure_rocket() -> Rocket {
             ],
         )
         .mount("/static", StaticFiles::from("web/static"))
-        .attach(Template::fairing())
+        .attach(Template::custom(|engines| {
+            engines.handlebars.register_helper("maybe_selected", Box::new(maybe_selected));
+        }))
 }
 
 pub fn create_test_rocket(routes: Vec<rocket::Route>) -> Rocket {

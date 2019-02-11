@@ -1,11 +1,15 @@
+use std::path::PathBuf;
+
 use rocket::{get, post};
 use rocket_contrib::templates::Template;
 use rocket::response::{Flash, Redirect};
 use rocket::request::Form;
 
+use crate::config::StagingConfig;
 use crate::web::auth::WebUser;
 use crate::web::context::Context;
 use crate::web::db::DbConn;
+use crate::web::models::extra::StagingKind;
 
 #[get("/settings")]
 pub fn get_settings(user: WebUser) -> Template {
@@ -37,6 +41,19 @@ pub fn post_settings(user: WebUser, conn: DbConn, settings: Form<SettingsForm>) 
 pub struct SettingsForm {
     notification_email: String,
     notification_pushover: String,
+    staging_location: String,
+    staging_type: StagingKind,
+}
+
+impl SettingsForm {
+    /// Coerce the separate values given in the form back into a StagingConfig
+    pub fn staging(&self) -> StagingConfig {
+        let pathbuf = PathBuf::from(&self.staging_location);
+        match self.staging_type {
+            StagingKind::Device => StagingConfig::StagingDevice(pathbuf),
+            StagingKind::Directory => StagingConfig::StagingDirectory(pathbuf),
+        }
+    }
 }
 
 impl SettingsForm {
