@@ -1,7 +1,6 @@
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::ops::Deref;
 use std::str::FromStr;
 
 use failure::Error;
@@ -14,7 +13,7 @@ use crate::local_backup::LocalBackup;
 use crate::mailer::SendgridMailer;
 use crate::mass_storage::MassStorage;
 use crate::pushover_notifier::PushoverNotifier;
-use crate::staging::{StagingDirectory, StagingDevice, StageableLocation};
+use crate::staging::{StagingDirectory, StageableLocation};
 use crate::storage::StorageAdaptor;
 use crate::vimeo::VimeoClient;
 
@@ -38,7 +37,7 @@ pub fn get_home() -> Result<impl AsRef<Path>, Error> {
     #[cfg(not(test))]
     let home_func = dirs::home_dir;
     #[cfg(test)]
-    let home_func = || Some(HOME_DIR.deref());
+    let home_func = || Some(&*HOME_DIR);
 
     match home_func() {
         Some(home) => Ok(home),
@@ -649,6 +648,10 @@ token = "TOKEN"
         )
         .unwrap_err();
         let err = cfg.downcast::<ConfigError>().unwrap();
+        assert!(match err {
+            ConfigError::ParseError(_) => true,
+            _ => false,
+        });
     }
 
     #[test]

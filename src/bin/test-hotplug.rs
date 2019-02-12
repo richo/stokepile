@@ -52,7 +52,7 @@ fn poll_devices(state: &mut DeviceState) -> Result<(), Error> {
 
     // Look through all the attached devices, setting their state to Connected if they're new, or
     // unwrapping Indeterminate if that's what we find.
-    for device in device::attached_devices(&ctx)? {
+    for device in device::attached_devices(&CTX)? {
         info!("  {:?}", device);
         state.entry(device)
             .and_modify(|v| {
@@ -75,7 +75,7 @@ fn poll_devices(state: &mut DeviceState) -> Result<(), Error> {
     Ok(())
 }
 
-fn spawn_worker_threads(state: &mut DeviceState, work: fn(&device::Device)) {
+fn spawn_worker_threads(state: &mut DeviceState, _work: fn(&device::Device)) {
     for (device, state) in state.iter_mut() {
         let mut inner = state.lock().expect("Worker thread lock");
         if let AttachedDeviceState::Connected = inner.deref() {
@@ -99,7 +99,7 @@ fn spawn_worker_threads(state: &mut DeviceState, work: fn(&device::Device)) {
 }
 
 lazy_static! {
-    static ref ctx: Ctx = {
+    static ref CTX: Ctx = {
         let cfg = config::Config::from_file("archiver.toml").expect("Couldn't create config");
         Ctx::create(cfg).expect("Couldn't create config")
     };

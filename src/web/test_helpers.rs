@@ -7,7 +7,6 @@ use crate::web::db::DbConn;
 use crate::web::models::NewUser;
 use crate::web::models::Session;
 use crate::web::models::User;
-use crate::web::routes::settings::SettingsForm;
 
 use crate::config::StagingConfig;
 

@@ -2,7 +2,6 @@
 extern crate log;
 
 use clap::{App, Arg};
-use std::thread;
 
 use archiver::cli;
 use archiver::config;

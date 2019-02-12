@@ -81,7 +81,7 @@ mod tests {
     use crate::web::models::User;
     use diesel::prelude::*;
 
-    use rocket::http::{ContentType};
+    use rocket::http::{ContentType, Status};
 
     client_for_routes!(get_settings, post_settings => client);
 
@@ -98,11 +98,12 @@ mod tests {
         assert_eq!(None, user.notify_pushover);
 
         // Set some settings
-        let req = client
+        let response = client
             .post("/settings")
             .header(ContentType::Form)
             .body(r"notification_email=test-value&notification_pushover=another%20test%20value&staging_type=device&staging_location=/butts")
             .dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
 
         // Reload the user. There is probably a better way to do this.
         let user = {
@@ -130,11 +131,12 @@ mod tests {
         let _s2 = signin(&client2, "test2%40email.com", "p%4055w0rd").unwrap();
 
         // Set some settings
-        let req = client1
+        let response = client1
             .post("/settings")
             .header(ContentType::Form)
             .body(r"notification_email=lol&notification_pushover=hithere&staging_type=device&staging_location=/butts")
             .dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
 
         let u1 = {
             let conn = db_conn(&client1);
