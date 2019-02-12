@@ -49,6 +49,10 @@ pub fn get_config(user: AuthenticatedUser, conn: DbConn) -> Result<Content<Strin
         }
     }
 
+    if let Some(staging) = user.user().staging() {
+        config = config.staging(staging);
+    }
+
     match config.finish().map(|c| c.to_toml()) {
         Ok(Ok(config)) => Ok(Content(
             ContentType::new("application", "toml"),

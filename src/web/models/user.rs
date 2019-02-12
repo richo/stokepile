@@ -9,6 +9,8 @@ use crate::config::StagingConfig;
 use rocket::http::RawStr;
 use rocket::request::FromFormValue;
 
+use std::path::PathBuf;
+
 #[derive(Identifiable, Queryable, Debug, Serialize)]
 pub struct User {
     pub id: i32,
@@ -100,6 +102,20 @@ impl User {
 
         keys.filter(user_id.eq(self.id).and(id.eq(key_id)))
             .get_result(conn)
+    }
+
+    pub fn staging(&self) -> Option<StagingConfig> {
+        match &self.staging_location {
+            Some(location) => {
+                let location = PathBuf::from(location);
+                match self.staging_type {
+                    Some(StagingKind::Directory) => Some(StagingConfig::StagingDirectory(location)),
+                    Some(StagingKind::Device) => Some(StagingConfig::StagingDevice(location)),
+                    None => return None,
+                }
+            },
+            None => return None,
+        }
     }
 
     pub fn update_settings(&self, settings: &SettingsForm, conn: &PgConnection) -> QueryResult<usize> {
