@@ -1,17 +1,18 @@
 --- src/web/schema.rs.orig	2019-02-10 20:26:51.000000000 -0800
-+++ src/web/schema.rs	2019-02-10 20:29:16.000000000 -0800
++++ src/web/schema.rs	2019-02-11 19:19:33.000000000 -0800
 @@ -1,3 +1,5 @@
 +#![allow(proc_macro_derive_resolution_fallback)]
 +
  table! {
      devices (id) {
          id -> Int4,
-@@ -36,13 +38,15 @@
+@@ -36,13 +38,16 @@
  }
  
  table! {
 +    use diesel::sql_types::*;
-+    use crate::web::routes::settings::StagingkindMapping;
++    use crate::web::models::extra::StagingKindMapping;
++
      users (id) {
          id -> Int4,
          email -> Varchar,
@@ -19,7 +20,7 @@
          notify_email -> Nullable<Varchar>,
          notify_pushover -> Nullable<Varchar>,
 -        staging_type -> Nullable<Stagingkind>,
-+        staging_type -> Nullable<StagingkindMapping>,
++        staging_type -> Nullable<StagingKindMapping>,
          staging_location -> Nullable<Varchar>,
      }
  }
