@@ -137,7 +137,7 @@ pub enum MountError {
     #[fail(display = "Failed to create mountpoint: {}.", _0)]
     TempDir(io::Error),
     #[fail(display = "Failed to mount device: {}.", _0)]
-    Mount(io::Error),
+    Mount(Error),
 }
 
 #[derive(Debug)]
