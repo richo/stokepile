@@ -1,12 +1,11 @@
 use failure::Error;
 
-use crate::pushover::Pushover;
+use pshovr;
 
 #[derive(RedactedDebug)]
 pub struct PushoverNotifier {
-    #[redacted]
-    token: String,
     recipient: String,
+    client: pshovr::Client,
 }
 
 pub trait Notify {
@@ -15,17 +14,18 @@ pub trait Notify {
 
 impl PushoverNotifier {
     pub fn new(token: String, recipient: String) -> PushoverNotifier {
-        PushoverNotifier { token, recipient }
+        PushoverNotifier {
+           recipient,
+           client: pshovr::PushoverClient::new(token),
+        }
     }
 }
 
 impl Notify for PushoverNotifier {
     fn notify(&self, msg: &str) -> Result<(), Error> {
-        let client = Pushover::new(self.token.clone());
-        client
-            .request(&self.recipient, msg)
-            .send()
-            // We probably care about the return code or something, but we can deal with that later
+        let notification = self.client.build_notification(&self.recipient, msg);
+        self.client
+            .send(&notification)
             .map(|_| ())
     }
 }
