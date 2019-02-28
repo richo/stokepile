@@ -5,7 +5,7 @@ use pshovr;
 #[derive(RedactedDebug)]
 pub struct PushoverNotifier {
     recipient: String,
-    client: pshovr::Client,
+    client: pshovr::PushoverClient,
 }
 
 pub trait Notify {
