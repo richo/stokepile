@@ -14,11 +14,6 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
              .help("Path to upload from")
              .required(true)
              .index(1))
-        .arg(
-            Arg::with_name("preserve")
-            .long("preserve")
-            .help("Don't remove files after they are staged")
-            )
 }
 
 fn main() {
