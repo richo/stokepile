@@ -65,3 +65,24 @@ impl UploadableFile for ManualFile {
     }
 
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+    use crate::staging;
+    use crate::test_helpers;
+
+    #[test]
+    fn test_staging_works() {
+        let dest = test_helpers::tempdir();
+        let source = test_helpers::test_data("manual-files");
+
+        let path = source.path().join("test-file.ogv");
+        let mut test_data = File::create(&path).expect("Test file create");
+        assert!(test_data.write_all(b"This is some test data").is_ok());
+
+        let fh = ManualFile::from_path(path).expect("Couldn't create manualfile");
+        staging::stage_file(fh, &dest.path(), "manual").expect("Didn't stage correct");
+    }
+}
