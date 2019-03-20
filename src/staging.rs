@@ -21,6 +21,10 @@ pub trait UploadableFile {
     fn size(&self) -> Result<u64, Error>;
 }
 
+pub struct StagedFiles {
+    num: usize,
+}
+
 pub trait Staging: Sized {
     type FileType: UploadableFile;
 
@@ -28,10 +32,11 @@ pub trait Staging: Sized {
     fn files(&self) -> Result<Vec<Self::FileType>, Error>;
 
     /// Stage all available files on this device, erasing the device copies as they are staged.
-    fn stage_files<T>(self, name: &str, destination: T) -> Result<(), Error>
+    fn stage_files<T>(self, name: &str, destination: T) -> Result<StagedFiles, Error>
     where
         T: AsRef<Path>,
     {
+        let mut num = 0;
         for mut file in self.files()? {
             let mut desc = UploadDescriptor {
                 capture_time: file.capture_datetime()?,
@@ -69,10 +74,13 @@ pub trait Staging: Sized {
                 serde_json::to_writer(&mut staged, &desc)?;
             }
 
+            num += 1;
             file.delete()?;
         }
 
-        Ok(())
+        Ok(StagedFiles {
+            num,
+        })
     }
 }
 

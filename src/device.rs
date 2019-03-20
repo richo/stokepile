@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::path::Path;
+use std::fs::File;
 
 use failure::Error;
 
@@ -23,6 +24,10 @@ pub enum Device<'a> {
     Flysight(DeviceDescription, flysight::Flysight),
 }
 
+pub trait ConnectExt {
+    fn connect(self) -> Vec<Box<&dyn Staging<FileType = File>>>;
+}
+
 impl Device<'_> {
     pub fn stage_files<T>(self, destination: T) -> Result<(), Error>
     where
@@ -37,12 +42,29 @@ impl Device<'_> {
         }
     }
 
+    pub fn num_files(&self) -> Result<usize, Error> {
+        let res = match self {
+            Device::Gopro(desc, gopro) => gopro.connect()?.files()?.len(),
+            Device::MassStorage(desc, mass_storage) => {
+                mass_storage.files()?.len()
+            }
+            Device::Flysight(desc, flysight) => flysight.files()?.len(),
+        };
+
+        Ok(res)
+    }
+
     pub fn name(&self) -> &str {
         match self {
             Device::Gopro(ref desc, _)
             | Device::MassStorage(ref desc, _)
             | Device::Flysight(ref desc, _) => &desc.name[..],
         }
+    }
+}
+
+impl ConnectExt for Vec<Device<'_>> {
+    fn connect(self) -> Vec<Box<dyn Staging<FileType = File>>> {
     }
 }
 
