@@ -2,7 +2,7 @@ use std::fs::{self, File};
 use std::path::PathBuf;
 
 use super::peripheral::MountablePeripheral;
-use super::staging::{Staging, UploadableFile};
+use super::staging::{Staging, DateTimeUploadable};
 
 use chrono;
 use chrono::prelude::*;
@@ -25,7 +25,7 @@ pub struct MassStorageFile {
     source_path: PathBuf,
 }
 
-impl UploadableFile for MassStorageFile {
+impl DateTimeUploadable for MassStorageFile {
     type Reader = File;
 
     fn extension(&self) -> &str {

@@ -4,7 +4,7 @@ use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 
 use super::peripheral::MountablePeripheral;
-use super::staging::{Staging, UploadableFile};
+use super::staging::{Staging, DateTimeUploadable};
 
 use chrono;
 use chrono::prelude::*;
@@ -50,7 +50,7 @@ impl PartialEq for FlysightFile {
 
 impl Eq for FlysightFile {}
 
-impl UploadableFile for FlysightFile {
+impl DateTimeUploadable for FlysightFile {
     type Reader = File;
 
     fn extension(&self) -> &str {

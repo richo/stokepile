@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use crate::staging::UploadDescriptor;
+use crate::staging::{RemotePathDescriptor, UploadDescriptor};
+use crate::formatting::human_readable_size;
 
 use failure::Error;
 use handlebars::{Handlebars, TemplateRenderError};
@@ -61,9 +62,8 @@ fn format_report<S>(desc: &UploadDescriptor, serializer: S) -> Result<S::Ok, S::
     where S: Serializer,
 {
     let mut ser = serializer.serialize_struct("UploadDescriptor", 3)?;
-    ser.serialize_field("capture_time", &desc.capture_time.format("%Y-%m-%d %H:%M:%S").to_string())?;
-    ser.serialize_field("extension", &desc.extension)?;
-    ser.serialize_field("size", &desc.size)?;
+    ser.serialize_field("remote_path", &desc.remote_path())?;
+    ser.serialize_field("size", &human_readable_size(desc.size as usize))?;
     ser.end()
 
 }
@@ -107,38 +107,29 @@ mod tests {
 
     fn dummy_report() -> UploadReport {
         let mut report: UploadReport = Default::default();
+
+        let mut desc = UploadDescriptor::build("test-device".to_string())
+            .date_time(Local.ymd(2018, 8, 24).and_hms(9, 55, 30), "mp4".to_string());
+        desc.size = 15487;
         report.record_activity(ReportEntry::new(
-            UploadDescriptor {
-                capture_time: Local.ymd(2018, 8, 24).and_hms(9, 55, 30),
-                device_name: "test-device".to_string(),
-                extension: "mp4".to_string(),
-                content_hash: [66; 32],
-                size: 0,
-            },
-            vec![
-                ("vimeo".into(), UploadStatus::Succeeded),
-                ("youtube".into(), UploadStatus::Succeeded),
-            ],
+                desc,
+                vec![
+                    ("vimeo".into(), UploadStatus::Succeeded),
+                    ("youtube".into(), UploadStatus::Succeeded),
+                ],
         ));
+
+        let mut desc = UploadDescriptor::build("test-device".to_string())
+                .date_time(Local.ymd(2018, 8, 24).and_hms(12, 30, 30), "mp4".to_string());
+        desc.size = 2900000;
         report.record_activity(ReportEntry::new(
-            UploadDescriptor {
-                capture_time: Local.ymd(2018, 8, 24).and_hms(12, 30, 30),
-                device_name: "test-device".to_string(),
-                extension: "mp4".to_string(),
-                content_hash: [66; 32],
-                size: 0,
-            },
-            vec![
-                (
-                    "vimeo".into(),
-                     UploadStatus::Succeeded
-                ),
-                (
-                    "youtube".into(),
-                    UploadStatus::Errored(format_err!("Something bad happened")),
-                ),
-            ],
+                desc,
+                vec![
+                    ("vimeo".into(), UploadStatus::Succeeded),
+                    ("youtube".into(), UploadStatus::Errored(format_err!("Something bad happened"))),
+                ],
         ));
+
         report
     }
 
@@ -156,11 +147,11 @@ ARCHIVER UPLOAD REPORT
 test-device
 ===========
 
-    2018-08-24 09:55:30.mp4 (0b)
+    /18-08-24/test-device/09-55-30.mp4 (15kb)
     # vimeo: Succeeded
     # youtube: Succeeded
 
-    2018-08-24 12:30:30.mp4 (0b)
+    /18-08-24/test-device/12-30-30.mp4 (2.8mb)
     # vimeo: Succeeded
     # youtube: Upload failed: ErrorMessage {{ msg: &quot;Something bad happened&quot; }}
 ");
@@ -173,7 +164,7 @@ static UPLOAD_REPORT_TEMPLATE: &'static str = "\
 
 {{#each files}}{{header @key}}
 {{#each this}}
-    {{this.desc.capture_time}}.{{this.desc.extension}} ({{this.desc.size}}b)
+    {{this.desc.remote_path}} ({{this.desc.size}}b)
 {{#each this.results}}    # {{this.[0]}}: {{this.[1]}}
 {{/each}}\
 {{/each}}{{/each}}\

@@ -1,7 +1,6 @@
 use std::fs;
 use std::io::Read;
-use std::path::Path;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use chrono;
 use chrono::prelude::*;
@@ -9,25 +8,70 @@ use dropbox_content_hasher::DropboxContentHasher;
 use crate::formatting;
 use failure::Error;
 use hashing_copy;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json;
+
+#[derive(Eq, PartialEq, Debug, Serialize, Deserialize)]
+pub enum RemotePathDescriptor {
+    DateTime {
+        capture_time: DateTime<Local>,
+        extension: String,
+    },
+    SpecifiedPath {
+        path: PathBuf,
+    },
+}
+
 
 pub trait UploadableFile {
     type Reader: Read;
-    fn extension(&self) -> &str;
-    fn capture_datetime(&self) -> Result<DateTime<Local>, chrono::ParseError>;
-    fn reader(&mut self) -> &mut Self::Reader;
+
+    fn remote_path(&self) -> Result<RemotePathDescriptor, Error>;
     fn delete(&mut self) -> Result<(), Error>;
     fn size(&self) -> Result<u64, Error>;
+    fn reader(&mut self) -> &mut Self::Reader;
 
     fn descriptor(&self, name: &str) -> Result<UploadDescriptor, Error> {
         Ok(UploadDescriptor {
-            capture_time: self.capture_datetime()?,
-            device_name: name.to_string(),
-            extension: self.extension().to_string(),
+            path: self.remote_path()?,
             content_hash: [0; 32],
+            device_name: name.to_string(),
             size: self.size()?,
         })
+    }
+}
+
+pub trait DateTimeUploadable {
+    type Reader: Read;
+    fn extension(&self) -> &str;
+    fn capture_datetime(&self) -> Result<DateTime<Local>, chrono::ParseError>;
+
+    fn remote_path(&self) -> Result<RemotePathDescriptor, Error> {
+        Ok(RemotePathDescriptor::DateTime {
+            capture_time: self.capture_datetime()?,
+            extension: self.extension().to_string(),
+        })
+    }
+
+    fn delete(&mut self) -> Result<(), Error>;
+    fn size(&self) -> Result<u64, Error>;
+    fn reader(&mut self) -> &mut Self::Reader;
+}
+
+impl<T> UploadableFile for T where T: DateTimeUploadable {
+    type Reader = T::Reader;
+
+    fn remote_path(&self) -> Result<RemotePathDescriptor, Error> {
+        self.remote_path()
+    }
+    fn delete(&mut self) -> Result<(), Error> {
+        self.delete()
+    }
+    fn size(&self) -> Result<u64, Error> {
+        self.size()
+    }
+    fn reader(&mut self) -> &mut Self::Reader {
+        self.reader()
     }
 }
 
@@ -91,19 +135,58 @@ pub trait Staging: Sized {
 
 #[derive(PartialEq, Debug, Serialize, Deserialize)]
 pub struct UploadDescriptor {
-    pub capture_time: DateTime<Local>,
+    path: RemotePathDescriptor,
     pub device_name: String,
-    pub extension: String,
     pub content_hash: [u8; 32],
     pub size: u64,
 }
 
+#[derive(Debug)]
+pub struct UploadDescriptorBuilder {
+    device_name: String,
+}
+
+impl UploadDescriptorBuilder {
+    pub fn date_time(self, capture_time: DateTime<Local>, extension: String) -> UploadDescriptor {
+        UploadDescriptor {
+            path: RemotePathDescriptor::DateTime {
+                capture_time,
+                extension,
+            },
+            content_hash: Default::default(),
+            device_name: self.device_name,
+            size: 0,
+        }
+    }
+}
+
 impl UploadDescriptor {
+    pub fn build(device_name: String) -> UploadDescriptorBuilder {
+        UploadDescriptorBuilder {
+            device_name,
+        }
+    }
+
     pub fn staging_name(&self) -> String {
-        format!(
-            "{}-{}.{}",
-            self.device_name, self.capture_time, self.extension
-        )
+        match &self.path {
+            RemotePathDescriptor::DateTime {
+                capture_time, extension
+            } => {
+                format!(
+                    "{}-{}.{}",
+                    &self.device_name, capture_time, extension
+                )
+            },
+            RemotePathDescriptor::SpecifiedPath {
+                path
+            } => {
+                format!(
+                    "{}-{}",
+                    &self.device_name,
+                    path.to_str().expect("path wasn't valid utf8").replace("/", "-"),
+                )
+            }
+        }
     }
 
     pub fn manifest_name(&self) -> String {
@@ -111,30 +194,37 @@ impl UploadDescriptor {
     }
 
     pub fn remote_path(&self) -> PathBuf {
-        format!(
-            "/{}/{}/{}.{}",
-            self.date_component(),
-            self.device_name,
-            self.time_component(),
-            self.extension
-        )
-        .into()
-    }
-
-    fn date_component(&self) -> String {
-        self.capture_time.format("%y-%m-%d").to_string()
-    }
-
-    fn time_component(&self) -> String {
-        self.capture_time.format("%H-%M-%S").to_string()
+        match &self.path {
+            RemotePathDescriptor::DateTime {
+                capture_time, extension,
+            } => {
+                format!(
+                    "/{}/{}/{}.{}",
+                    capture_time.format("%y-%m-%d"),
+                    &self.device_name,
+                    capture_time.format("%H-%M-%S"),
+                    extension,
+                ).into()
+            },
+            RemotePathDescriptor::SpecifiedPath {
+                path
+            } => {
+                let mut buf = PathBuf::from("/");
+                assert!(!path.is_absolute());
+                buf.extend(path);
+                buf
+            }
+        }
     }
 
     #[cfg(test)]
     pub fn test_descriptor() -> Self {
         UploadDescriptor {
-            capture_time: Local.ymd(2018, 8, 26).and_hms(14, 30, 0),
+            path: RemotePathDescriptor::DateTime {
+                capture_time: Local.ymd(2018, 8, 26).and_hms(14, 30, 0),
+                extension: "mp4".into(),
+            },
             device_name: "test-device".into(),
-            extension: "mp4".into(),
             content_hash: Default::default(),
             size: 1024,
         }
@@ -150,9 +240,11 @@ mod tests {
         let datetime = Local.ymd(2017, 11, 22).and_hms(15, 36, 10);
 
         let upload = UploadDescriptor {
-            capture_time: datetime,
+            path: RemotePathDescriptor::DateTime {
+                capture_time: datetime,
+                extension: "mp4".to_string(),
+            },
             device_name: "test".to_string(),
-            extension: "mp4".to_string(),
             content_hash: [0; 32],
             size: 0,
         };
@@ -168,9 +260,11 @@ mod tests {
         let datetime = Local.ymd(2001, 1, 2).and_hms(3, 4, 5);
 
         let upload = UploadDescriptor {
-            capture_time: datetime,
+            path: RemotePathDescriptor::DateTime {
+                capture_time: datetime,
+                extension: "mp4".to_string(),
+            },
             device_name: "test".to_string(),
-            extension: "mp4".to_string(),
             content_hash: [0; 32],
             size: 0,
         };
@@ -186,9 +280,11 @@ mod tests {
         let datetime = Local.ymd(2001, 1, 2).and_hms(3, 4, 5);
 
         let original = UploadDescriptor {
-            capture_time: datetime,
+            path: RemotePathDescriptor::DateTime {
+                capture_time: datetime,
+                extension: "mp4".to_string(),
+            },
             device_name: "test".to_string(),
-            extension: "mp4".to_string(),
             content_hash: [0; 32],
             size: 0,
         };

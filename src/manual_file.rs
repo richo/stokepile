@@ -1,7 +1,7 @@
 use std::fs::{self, File};
 use std::path::{Path, PathBuf};
 use std::fmt::Debug;
-use super::staging::UploadableFile;
+use super::staging::{UploadableFile, RemotePathDescriptor};
 
 use chrono;
 use chrono::prelude::*;
@@ -43,12 +43,10 @@ impl ManualFile {
 impl UploadableFile for ManualFile {
     type Reader = File;
 
-    fn extension(&self) -> &str {
-        &self.extension
-    }
-
-    fn capture_datetime(&self) -> Result<DateTime<Local>, chrono::ParseError> {
-        Ok(self.captured)
+    fn remote_path(&self) -> Result<RemotePathDescriptor, Error> {
+        Ok(RemotePathDescriptor::SpecifiedPath {
+            path: PathBuf::new(), // TODO(richo) lol
+        })
     }
 
     fn reader(&mut self) -> &mut File {
@@ -76,13 +74,14 @@ mod tests {
     #[test]
     fn test_staging_works() {
         let dest = test_helpers::tempdir();
-        let source = test_helpers::test_data("manual-files");
+        let source = test_helpers::tempdir();
 
         let path = source.path().join("test-file.ogv");
         let mut test_data = File::create(&path).expect("Test file create");
         assert!(test_data.write_all(b"This is some test data").is_ok());
 
         let fh = ManualFile::from_path(path).expect("Couldn't create manualfile");
+        let desc = fh.descriptor("test-upload");
         staging::stage_file(fh, &dest.path(), "manual").expect("Didn't stage correct");
     }
 }

@@ -4,7 +4,7 @@ use std::rc::Rc;
 use std::sync::Mutex;
 
 use super::ctx;
-use super::staging::{Staging, UploadableFile};
+use super::staging::{Staging, DateTimeUploadable};
 
 use chrono;
 use chrono::prelude::*;
@@ -37,7 +37,7 @@ impl<'c> fmt::Debug for GoproFile<'c> {
     }
 }
 
-impl<'c> UploadableFile for GoproFile<'c> {
+impl<'c> DateTimeUploadable for GoproFile<'c> {
     type Reader = GoproFile<'c>;
 
     fn extension(&self) -> &str {
