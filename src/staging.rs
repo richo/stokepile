@@ -158,6 +158,17 @@ impl UploadDescriptorBuilder {
             size: 0,
         }
     }
+
+    pub fn manual_file(self, path: PathBuf) -> UploadDescriptor {
+        UploadDescriptor {
+            path: RemotePathDescriptor::SpecifiedPath {
+                path,
+            },
+            content_hash: Default::default(),
+            device_name: self.device_name,
+            size: 0,
+        }
+    }
 }
 
 impl UploadDescriptor {
@@ -210,6 +221,7 @@ impl UploadDescriptor {
                 path
             } => {
                 let mut buf = PathBuf::from("/");
+                buf.push(&self.device_name);
                 assert!(!path.is_absolute());
                 buf.extend(path);
                 buf

@@ -130,6 +130,17 @@ mod tests {
                 ],
         ));
 
+        let mut desc = UploadDescriptor::build("Flock n Dock".to_string())
+                .manual_file("richo/double sled.mp4".into());
+        desc.size = 16000000;
+        report.record_activity(ReportEntry::new(
+                desc,
+                vec![
+                    ("vimeo".into(), UploadStatus::Succeeded),
+                    ("youtube".into(), UploadStatus::Succeeded),
+                ],
+        ));
+
         report
     }
 
@@ -144,6 +155,13 @@ mod tests {
 ARCHIVER UPLOAD REPORT
 ======================
 
+Flock n Dock
+============
+
+    /Flock n Dock/richo/double sled.mp4 (15mb)
+    # vimeo: Succeeded
+    # youtube: Succeeded
+
 test-device
 ===========
 
@@ -154,6 +172,7 @@ test-device
     /18-08-24/test-device/12-30-30.mp4 (2.8mb)
     # vimeo: Succeeded
     # youtube: Upload failed: ErrorMessage {{ msg: &quot;Something bad happened&quot; }}
+
 ");
         assert_eq!(report.to_plaintext().unwrap(), expected);
     }
@@ -167,5 +186,5 @@ static UPLOAD_REPORT_TEMPLATE: &'static str = "\
     {{this.desc.remote_path}} ({{this.desc.size}}b)
 {{#each this.results}}    # {{this.[0]}}: {{this.[1]}}
 {{/each}}\
-{{/each}}{{/each}}\
-";
+{{/each}}
+{{/each}}";
