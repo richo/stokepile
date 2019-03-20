@@ -17,9 +17,9 @@ pub(crate) fn test_data(suffix: &str) -> tempfile::TempDir {
     }
 
     let source = tempfile::tempdir().unwrap();
-    let root = TEST_DATA.join(suffix);
+    let root = TEST_DATA.join(&suffix);
     for entry in walkdir::WalkDir::new(&root) {
-        let entry = entry.unwrap();
+        let entry = entry.expect(&format!("No test data for {:?}", &suffix));
         let target = source
             .path()
             .join(entry.path().strip_prefix(&root).unwrap());
