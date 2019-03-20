@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::staging::{RemotePathDescriptor, UploadDescriptor};
+use crate::staging::UploadDescriptor;
 use crate::formatting::human_readable_size;
 
 use failure::Error;

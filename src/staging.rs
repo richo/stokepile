@@ -135,7 +135,7 @@ pub trait Staging: Sized {
 
 #[derive(PartialEq, Debug, Serialize, Deserialize)]
 pub struct UploadDescriptor {
-    path: RemotePathDescriptor,
+    pub(crate) path: RemotePathDescriptor,
     pub device_name: String,
     pub content_hash: [u8; 32],
     pub size: u64,

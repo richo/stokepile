@@ -1,12 +1,11 @@
 use clap::{App, Arg};
+use std::path::PathBuf;
 
 use archiver::cli;
 use archiver::config;
 use archiver::ctx::Ctx;
 use archiver::manual_file::ManualFile;
 use archiver::staging;
-
-use walkdir;
 
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
     cli::base_opts()
@@ -29,16 +28,16 @@ fn main() {
         let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("archiver.toml"));
         let ctx = Ctx::create(cfg?)?;
 
-        let path = matches.value_of("PATH").expect("Couldn't get path");
+        let dir = matches.value_of("PATH").expect("Couldn't get path");
+        let path = PathBuf::from(dir);
+        let device_name = path.file_name()
+            .expect("Couldn't get file name")
+            .to_str()
+            .expect("Couldn't convert device name to str")
+            .to_string();
 
-        for entry in walkdir::WalkDir::new(path).into_iter() {
-            let entry = entry?;
-            if !entry.file_type().is_file() {
-                continue
-            }
-
-            let fh = ManualFile::from_path(entry.path())?;
-            staging::stage_file(fh, &ctx.staging, "manual")?;
+        for file in ManualFile::iter_from(path) {
+            staging::stage_file(file, &ctx.staging, &device_name)?;
         }
 
         Ok(())
