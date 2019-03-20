@@ -78,6 +78,10 @@ pub mod local_backup;
 /// specific glue for the `SGClient` object we use from the `sendgrid` crate.
 pub mod mailer;
 
+/// A struct useful for when you want to stage files more arbitrarily than those owned by a
+/// particular device.
+pub mod manual_file;
+
 /// Code relating to the `mass_storage` device type. This is any device that can be mounted to the
 /// local filesystem.
 mod mass_storage;
@@ -103,7 +107,7 @@ mod reporting;
 
 /// Machinry for locally staging files from attached devices. It includes the `Staging` trait,
 /// which when implemented allows for not implementing some of the heavy lifting.
-mod staging;
+pub mod staging;
 
 /// Contains the logic for consuming the locally staged files and uploading them to the selected
 /// storage backend. Also deals with deduping (Locally hashing files to ensure that we're not

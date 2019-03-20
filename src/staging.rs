@@ -19,6 +19,55 @@ pub trait UploadableFile {
     fn reader(&mut self) -> &mut Self::Reader;
     fn delete(&mut self) -> Result<(), Error>;
     fn size(&self) -> Result<u64, Error>;
+
+    fn descriptor(&self, name: &str) -> Result<UploadDescriptor, Error> {
+        Ok(UploadDescriptor {
+            capture_time: self.capture_datetime()?,
+            device_name: name.to_string(),
+            extension: self.extension().to_string(),
+            content_hash: [0; 32],
+            size: self.size()?,
+        })
+    }
+}
+
+pub fn stage_file<T, U>(mut file: T, destination: U, name: &str) -> Result<(), Error>
+where T: UploadableFile,
+      U: AsRef<Path>,
+{
+    let mut desc = file.descriptor(name)?;
+
+    let staging_name = desc.staging_name();
+    let manifest_name = desc.manifest_name();
+
+    let mut options = fs::OpenOptions::new();
+    let options = options.write(true).create(true).truncate(true);
+
+    let staging_path = destination.as_ref().join(&staging_name);
+    let manifest_path = destination.as_ref().join(&manifest_name);
+
+    info!("Staging {} to {:?}", &staging_name, &staging_path);
+    {
+        let mut staged = options.open(&staging_path)?;
+        let (size, hash) = hashing_copy::copy_and_hash::<_, _, DropboxContentHasher>(
+            file.reader(),
+            &mut staged,
+            )?;
+        assert_eq!(size, desc.size);
+        desc.content_hash.copy_from_slice(&hash);
+        info!("Staged {}: shasum={:x} size={}", &staging_name, &hash, formatting::human_readable_size(size as usize));
+    } // Ensure that we've closed our staging file
+
+    {
+        info!("Manifesting {}", &manifest_name);
+        trace!(" To {:?}", manifest_path);
+        let mut staged = options.open(&manifest_path)?;
+        serde_json::to_writer(&mut staged, &desc)?;
+    }
+
+    file.delete()?;
+
+    Ok(())
 }
 
 pub trait Staging: Sized {
@@ -32,44 +81,8 @@ pub trait Staging: Sized {
     where
         T: AsRef<Path>,
     {
-        for mut file in self.files()? {
-            let mut desc = UploadDescriptor {
-                capture_time: file.capture_datetime()?,
-                device_name: name.to_string(),
-                extension: file.extension().to_string(),
-                content_hash: [0; 32],
-                size: file.size()?,
-            };
-
-            let staging_name = desc.staging_name();
-            let manifest_name = desc.manifest_name();
-
-            let mut options = fs::OpenOptions::new();
-            let options = options.write(true).create(true).truncate(true);
-
-            let staging_path = destination.as_ref().join(&staging_name);
-            let manifest_path = destination.as_ref().join(&manifest_name);
-
-            info!("Staging {} to {:?}", &staging_name, &staging_path);
-            {
-                let mut staged = options.open(&staging_path)?;
-                let (size, hash) = hashing_copy::copy_and_hash::<_, _, DropboxContentHasher>(
-                    file.reader(),
-                    &mut staged,
-                )?;
-                assert_eq!(size, desc.size);
-                desc.content_hash.copy_from_slice(&hash);
-                info!("Staged {}: shasum={:x} size={}", &staging_name, &hash, formatting::human_readable_size(size as usize));
-            } // Ensure that we've closed our staging file
-
-            {
-                info!("Manifesting {}", &manifest_name);
-                trace!(" To {:?}", manifest_path);
-                let mut staged = options.open(&manifest_path)?;
-                serde_json::to_writer(&mut staged, &desc)?;
-            }
-
-            file.delete()?;
+        for file in self.files()? {
+            stage_file(file, &destination, name)?;
         }
 
         Ok(())
