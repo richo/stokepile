@@ -8,10 +8,12 @@ use handlebars::{Handlebars, TemplateRenderError};
 use serde::ser::{Serialize, Serializer, SerializeStruct};
 
 handlebars_helper!(header: |v: str| format!("{}\n{}", v, str::repeat("=", v.len())));
+handlebars_helper!(human_size: |v: u64| format!("{}b", human_readable_size(v as usize)));
 
 fn handlebars() -> Handlebars {
     let mut handlebars = Handlebars::new();
     handlebars.register_helper("header", Box::new(header));
+    handlebars.register_helper("human_readable_size", Box::new(human_size));
     handlebars.set_strict_mode(true);
     handlebars
 }
@@ -41,6 +43,7 @@ impl Serialize for UploadStatus {
 #[derive(Debug, Default, Serialize)]
 pub struct UploadReport {
     files: HashMap<String, Vec<ReportEntry>>,
+    uploaded_tally: HashMap<String, u64>,
 }
 
 /// An entry in the report.
@@ -88,6 +91,17 @@ impl ReportEntry {
 impl UploadReport {
     /// Attach a ReportEntry to this report.
     pub fn record_activity(&mut self, entry: ReportEntry) {
+        // First we figure out which providers were successful and add that much data to them:
+        let size = entry.desc.size;
+        for (provider, status) in &entry.results {
+            let entry = self.uploaded_tally
+                .entry(provider.to_string())
+                .or_insert_with(|| 0);
+            if let UploadStatus::Succeeded = status {
+                *entry += size;
+            }
+        }
+
         let uploads = self
             .files
             .entry(entry.desc.device_name.clone())
@@ -173,6 +187,11 @@ test-device
     # vimeo: Succeeded
     # youtube: Upload failed: ErrorMessage {{ msg: &quot;Something bad happened&quot; }}
 
+Uploaded Data
+=============
+
+vimeo: 18mb
+youtube: 15mb
 ");
         assert_eq!(report.to_plaintext().unwrap(), expected);
     }
@@ -187,4 +206,10 @@ static UPLOAD_REPORT_TEMPLATE: &'static str = "\
 {{#each this.results}}    # {{this.[0]}}: {{this.[1]}}
 {{/each}}\
 {{/each}}
-{{/each}}";
+{{/each}}\
+
+{{header \"Uploaded Data\"}}
+{{#each uploaded_tally}}
+{{@key}}: {{human_readable_size this}}\
+{{/each}}
+";
