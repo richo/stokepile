@@ -10,32 +10,32 @@ archiver is a tool for archiving footage and GPS data. My usecase is skydiving,
 but really any sport where vainly recording every last thing you do, and
 potentially supplementing that with a datalogger could use it.
 
+### Runner
+
 The main tool is called the `runner`, and is easiest to invoke as:
 
     cargo run --bin runner
 
-It supports a few options, but for now the interesting ones are:
+The runner will poll for any configured devices, fetch any content from them,
+store it locally in the staging area, and then upload it.
 
-`scan` Which will scan for PTP devices it could manage
+### Login and Fetch Config
 
-and
+Two additional binaries ship with archiver, `login` and `fetch-config`. They
+interact with the [web interface][web-interface], which can streamline getting
+the API keys you need to interact with the backend storage engines.
 
-`run` Which will upload and archiver media on any configured devices it finds
+Invoking `login` as:
 
-`daemon` is a work in progress, but will eventually support a persistent mode
-that will wait to see a device it could archive and then act.
+    cargo run --bin login
 
-Configuration
--------------
+Will prompt you for the credentials you used to sign up for the web interface,
+and will store the resulting token in your home directory. Then, `fetch-config`
+invoked as:
 
-Configuring archiver is a little annoying, since most of the storage engines
-use oauth. There is a web application in progress which can automate this
-process for you, but the tl;dr version is that you just need to populate the
-values in `archiver.toml.example` and name it `archiver.toml`.
+    cargo run --bin fetch-config
 
-Some of the sections, like `pushover` and `sendgrid` are optional. Remove them
-if you don't need them, but by configuring them you can get push notifications
-and emails telling you the status of your uploads.
+Will fetch the config from upstream and save it in the current directory.
 
 Contributing
 ------------
@@ -53,3 +53,4 @@ Increasingly, documentation is getting added to the code, compatible with rustdo
 
 Documentation is periodically rebuilt and uploaded to [https://richo.github.com/archiver](https://richo.github.com/archiver).
 
+[web-interface]: https://onatopp.psych0tik.net/
