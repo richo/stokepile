@@ -20,24 +20,60 @@ pub enum MountResponse {
 
 impl MountRequest {
     pub fn process(self) -> Result<(), Error> {
-        // TODO(richo) Find the helper properly.
-        let mut child = Command::new("mount-helper")
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .spawn()?;
-
-        {
-            let json = serde_json::to_string(&self)?;
-            let stdin = child.stdin.as_mut().expect("Couldn't get child stdio");
-            stdin.write_all(json.as_bytes())?;
-        }
-
-        let output = child.wait_with_output()?;
-        println!("OUTPUTOUTPUT: {:?}", &output);
 
         Ok(())
     }
 }
+
+#[derive(Debug)]
+pub struct CmdMounter {
+}
+
+impl CmdMounter {
+    pub fn mount<U, T>(device: U, mountpoint: T) -> Result<MountResponse, Error>
+    where U: AsRef<Path>,
+          T: AsRef<Path>
+    {
+        // TODO(richo) Find the helper properly.
+        let child = Command::new("mount")
+            .arg(device.as_ref())
+            .arg(mountpoint.as_ref())
+            .spawn()?;
+
+        let ret = child.wait_with_output()?;
+        if ret.status.success() {
+            Ok(MountResponse::Success)
+        } else {
+            Ok(MountResponse::Failure(String::from_utf8(ret.stderr)?))
+        }
+    }
+}
+
+// pub struct HelperMounter {
+// }
+
+// impl HelperMounter {
+//     pub fn mount<U, T>(device: U, mountpoint: T) -> Result<MountResponse, Error>
+//     where U: AsRef<Path>,
+//           T: AsRef<Path>
+//     {
+//         // TODO(richo) Find the helper properly.
+//         let mut child = Command::new("mount-helper")
+//             .stdin(Stdio::piped())
+//             .stdout(Stdio::piped())
+//             .spawn()?;
+
+//         {
+//             let json = serde_json::to_string(&self)?;
+//             let stdin = child.stdin.as_mut().expect("Couldn't get child stdio");
+//             stdin.write_all(json.as_bytes())?;
+//         }
+
+//         let output = child.wait_with_output()?;
+//         println!("OUTPUTOUTPUT: {:?}", &output);
+//         Ok(())
+//     }
+// }
 
 pub trait Mountable {
     type Mountpoint: AsRef<Path>;
