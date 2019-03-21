@@ -58,7 +58,8 @@ impl ManualFile {
         walkdir::WalkDir::new(&path)
             .into_iter()
             .filter(|e| if let Ok(e) = e {
-                e.file_type().is_file()
+                e.file_type().is_file() &&
+                    !e.file_name().to_string_lossy().starts_with("._")
             } else {
                 false
             })
@@ -69,7 +70,7 @@ impl ManualFile {
                 let dest = entry.path().strip_prefix(&path)
                     .expect("Couldn't remove prefix");
                 ManualFile::from_paths(entry.path(), dest)
-                    .expect("Couldn't create manualfile")
+                    .unwrap_or_else(|e| panic!("Couldn't get ManualFile: {:?}, {:?}, {:?}", e, entry.path(), &dest))
             })
     }
 }
