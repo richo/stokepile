@@ -141,7 +141,7 @@ pub enum MountError {
 
 #[derive(Debug)]
 pub struct StagingDevice {
-    device: PathBuf,
+    location: MountableDeviceLocation,
     mountpoint: Option<tempfile::TempDir>,
 }
 

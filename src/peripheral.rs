@@ -64,10 +64,10 @@ pub trait MountablePeripheral: Sized {
             },
             MountableDeviceLocation::Mountpoint(path) => {
                 // Hopefully empty means nothing was written there in the meantime
-                if !self.path().exists() {
+                if !path.exists() {
                     return false;
                 }
-                let files: Vec<_> = fs::read_dir(self.path()).unwrap().collect();
+                let files: Vec<_> = fs::read_dir(path).unwrap().collect();
                 if files.is_empty() {
                     return false;
                 }
