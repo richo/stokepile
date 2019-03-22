@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 
 use super::peripheral::MountablePeripheral;
 use super::staging::{Staging, DateTimeUploadable};
+use crate::mountable::{self, MountedFilesystem};
 
 use chrono;
 use chrono::prelude::*;
@@ -15,6 +16,12 @@ use regex;
 pub struct Flysight {
     name: String,
     path: PathBuf,
+}
+
+#[derive(Debug)]
+pub struct MountedFlysight {
+    flysight: Flysight,
+    mount: MountedFilesystem,
 }
 
 #[derive(Debug)]
@@ -92,9 +99,17 @@ impl Flysight {
     pub fn name(&self) -> &String {
         &self.name
     }
+
+    pub fn mount(self) -> Result<MountedFlysight, Error> {
+        let mount= unimplemented!();
+        Ok(MountedFlysight {
+            flysight: self,
+            mount,
+        })
+    }
 }
 
-impl Staging for Flysight {
+impl Staging for MountedFlysight {
     type FileType = FlysightFile;
 
     fn files(&self) -> Result<Vec<FlysightFile>, Error> {
@@ -109,7 +124,7 @@ impl Staging for Flysight {
         }
 
         let mut out = vec![];
-        let path = Path::new(&self.path);
+        let path = Path::new(&self.flysight.path);
         for entry in fs::read_dir(path)? {
             let entry = entry?;
             // Enter into directories that are named appropriately

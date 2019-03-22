@@ -33,7 +33,7 @@ impl Device<'_> {
             Device::MassStorage(desc, mass_storage) => {
                 mass_storage.stage_files(&desc.name, destination)
             }
-            Device::Flysight(desc, flysight) => flysight.stage_files(&desc.name, destination),
+            Device::Flysight(desc, flysight) => flysight.mount()?.stage_files(&desc.name, destination),
         }
     }
 
