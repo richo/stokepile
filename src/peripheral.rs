@@ -2,11 +2,11 @@ use std::fs;
 use std::path::PathBuf;
 
 pub trait Peripheral: Sized {
-    fn attached(&self) -> bool;
+    fn mounted(&self) -> bool;
 
     /// Returns Some(self) if the flysight is attached, None otherwise
     fn get(self) -> Option<Self> {
-        if self.attached() {
+        if self.mounted() {
             Some(self)
         } else {
             None
@@ -19,7 +19,7 @@ pub trait MountablePeripheral {
 }
 
 impl<T: MountablePeripheral> Peripheral for T {
-    fn attached(&self) -> bool {
+    fn mounted(&self) -> bool {
         // Hopefully empty means nothing was written there in the meantime
         if !self.path().exists() {
             return false;
