@@ -4,10 +4,27 @@ use std::process::Command;
 use failure::Error;
 use regex::Regex;
 
+use std::marker::PhantomData;
+
 #[derive(Debug)]
-pub struct MountedFilesystem {
+pub struct MountedFilesystem<Mounter> {
     mountpoint: PathBuf,
     device: PathBuf,
+    _phantom: PhantomData<Mounter>,
+}
+
+impl MountedFilesystem<ExternallyMounted> {
+    fn new(mountpoint: PathBuf) -> MountedFilesystem<ExternallyMounted> {
+        MountedFilesystem {
+            mountpoint,
+            // TODO(richo) Should we look this up?
+            device: PathBuf::new(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ExternallyMounted {
 }
 
 #[derive(Debug)]
@@ -15,7 +32,7 @@ pub struct UdisksMounter {
 }
 
 impl UdisksMounter {
-    pub fn mount<U>(device: U) -> Result<MountedFilesystem, Error>
+    pub fn mount<U>(device: U) -> Result<MountedFilesystem<UdisksMounter>, Error>
     where U: AsRef<Path>
     {
         let child = Command::new("udisksctl")
@@ -39,8 +56,25 @@ impl UdisksMounter {
     }
 }
 
-impl Drop for MountedFilesystem {
+impl Drop for MountedFilesystem<UdisksMounter> {
     fn drop(&mut self) {
+
+        let child = Command::new("udisksctl")
+            .arg("unmount")
+            .arg("-b")
+            .arg(self.device)
+            .spawn()?;
+
+        let ret = child.wait_with_output();
+        if ret.status.success() {
+
+        }
+    }
+}
+
+impl Drop for MountedFilesystem<ExternallyMounted> {
+    fn drop(&mut self) {
+
         let child = Command::new("udisksctl")
             .arg("unmount")
             .arg("-b")

@@ -8,7 +8,6 @@ use chrono;
 use chrono::prelude::*;
 use dropbox_content_hasher::DropboxContentHasher;
 use crate::formatting;
-use crate::mountable::Mountable;
 use failure::Error;
 use hashing_copy;
 use serde::Serialize;
@@ -162,16 +161,16 @@ impl StagingDevice {
     }
 }
 
-impl Mountable for StagingDevice {
-    type Mountpoint = tempfile::TempDir;
+// impl Mountable for StagingDevice {
+//     type Mountpoint = tempfile::TempDir;
 
-    fn set_mountpoint(&mut self, mountpoint: Self::Mountpoint) {
-        self.mountpoint = Some(mountpoint)
-    }
-    fn device(&self) -> &Path {
-        &self.device
-    }
-}
+//     fn set_mountpoint(&mut self, mountpoint: Self::Mountpoint) {
+//         self.mountpoint = Some(mountpoint)
+//     }
+//     fn device(&self) -> &Path {
+//         &self.device
+//     }
+// }
 
 impl Drop for StagingDevice {
     fn drop(&mut self) {

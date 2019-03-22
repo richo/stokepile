@@ -6,7 +6,6 @@ use super::config;
 use super::ctx;
 use super::flysight;
 use super::mass_storage;
-use super::peripheral::Peripheral;
 use super::ptp_device;
 use super::staging::{Staging, StageableLocation};
 

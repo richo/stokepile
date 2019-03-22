@@ -80,11 +80,11 @@ impl Staging for MassStorage {
     }
 }
 
-impl MountablePeripheral for MassStorage {
-    fn path(&self) -> &PathBuf {
-        &self.path
-    }
-}
+// impl MountablePeripheral for MassStorage {
+//     fn path(&self) -> &PathBuf {
+//         &self.path
+//     }
+// }
 
 #[cfg(test)]
 mod tests {

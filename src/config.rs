@@ -8,7 +8,7 @@ use toml;
 use url;
 
 use crate::dropbox;
-use crate::flysight::Flysight;
+use crate::flysight::FlysightDesc;
 use crate::local_backup::LocalBackup;
 use crate::mailer::SendgridMailer;
 use crate::mass_storage::MassStorage;
@@ -186,15 +186,25 @@ pub struct VimeoConfig {
     token: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+pub enum MountableDeviceLocation {
+    #[serde(rename = "mountpoint")]
+    Mountpoint(PathBuf),
+    #[serde(rename = "label")]
+    Label(String),
+}
+
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct FlysightConfig {
     pub name: String,
-    pub mountpoint: String,
+    #[serde(flatten)]
+    pub location: MountableDeviceLocation,
 }
 
 impl FlysightConfig {
-    pub fn flysight(&self) -> Flysight {
-        Flysight::new(self.name.clone(), PathBuf::from(self.mountpoint.clone()))
+    pub fn flysight(&self) -> FlysightDesc {
+        FlysightDesc::new(self.name.clone(),
+                          self.location.clone())
     }
 }
 

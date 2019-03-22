@@ -3,6 +3,7 @@ use std::fs::{self, File};
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 
+use super::config::MountableDeviceLocation;
 use super::peripheral::MountablePeripheral;
 use super::staging::{Staging, UploadableFile};
 
@@ -14,7 +15,7 @@ use regex;
 #[derive(Eq, PartialEq, Debug, Hash)]
 pub struct Flysight {
     name: String,
-    path: PathBuf,
+    location: MountableDeviceLocation,
 }
 
 #[derive(Debug)]
@@ -80,14 +81,14 @@ impl UploadableFile for FlysightFile {
 }
 
 impl MountablePeripheral for Flysight {
-    fn path(&self) -> &PathBuf {
+    fn location(&self) -> &PathBuf {
         &self.path
     }
 }
 
 impl Flysight {
-    pub fn new(name: String, path: PathBuf) -> Flysight {
-        Flysight { name, path }
+    pub fn new(name: String, location: MountableDeviceLocation) -> Flysight {
+        Flysight { name, location }
     }
     pub fn name(&self) -> &String {
         &self.name
