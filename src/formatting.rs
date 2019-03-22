@@ -68,6 +68,7 @@ mod tests {
         assert_eq!(human_readable_size(1024 * 100 + 100), "100k".to_string());
         assert_eq!(human_readable_size(5), "5".to_string());
         assert_eq!(human_readable_size(2000), "2k".to_string());
+        #[cfg(target_pointer_width = "64")]
         assert_eq!(human_readable_size(1024 * 1024 * 1024 * 1024 * 1024), "1024t".to_string());
     }
 }
