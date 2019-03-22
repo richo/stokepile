@@ -8,6 +8,7 @@ use super::flysight;
 use super::mass_storage;
 use super::ptp_device;
 use super::staging::{Staging, StageableLocation};
+use crate::peripheral::MountablePeripheral;
 
 #[derive(Eq, PartialEq, Debug, Hash)]
 pub struct DeviceDescription {

@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use super::config::MountableDeviceLocation;
 use super::peripheral::MountablePeripheral;
 use super::staging::{Staging, UploadableFile};
+use crate::mountable::MountedFilesystem;
 
 use chrono;
 use chrono::prelude::*;
@@ -21,6 +22,7 @@ pub struct Flysight {
 #[derive(Eq, PartialEq, Debug, Hash)]
 pub struct MountedFlysight {
     flysight: Flysight,
+    mount: MountedFilesystem,
 }
 
 #[derive(Debug)]
@@ -86,8 +88,8 @@ impl UploadableFile for FlysightFile {
 }
 
 impl MountablePeripheral for Flysight {
-    fn location(&self) -> &PathBuf {
-        &self.path
+    fn location(&self) -> &MountableDeviceLocation {
+        &self.location
     }
 }
 

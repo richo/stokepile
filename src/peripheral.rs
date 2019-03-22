@@ -22,10 +22,9 @@ fn attached_by_label(lbl: &str) -> bool {
     pb.exists()
 }
 
-
 pub trait MountablePeripheral: Sized {
     #[cfg(platform = "macos")]
-    fn mount(self) -> Result<MountedFilesystem, Self> {
+    fn mount(self) -> Result<MountedFilesystem, Error> {
         match self.location() {
             MountableDeviceLocation::Label(lbl) => {
                 MountedFilesystem::<ExternallyMounted>::new_externally_mounted(device_for_label(lbl))
@@ -49,6 +48,14 @@ pub trait MountablePeripheral: Sized {
     }
 
     fn location(&self) -> &MountableDeviceLocation;
+
+    fn get(self) -> Option<Self> {
+        if self.is_attached() {
+            Some(self)
+        } else {
+            None
+        }
+    }
 
     fn is_attached(&self) -> bool {
         match self.location() {
