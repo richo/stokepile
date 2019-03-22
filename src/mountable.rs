@@ -21,6 +21,10 @@ impl MountedFilesystem {
             mounter: Box::new(ExternallyMounted{}),
         }
     }
+
+    pub fn path(&self) -> &Path {
+        &self.mountpoint
+    }
 }
 
 #[derive(Debug)]
@@ -33,8 +37,9 @@ pub struct UdisksMounter {
 
 impl UdisksMounter {
     pub fn mount<U>(device: U) -> Result<MountedFilesystem, Error>
-    where U: AsRef<Path>
+    where U: AsRef<Path> + Debug
     {
+        info!("Mounting {:?}", &device);
         let child = Command::new("udisksctl")
             .arg("mount")
             .arg("-b")
@@ -65,6 +70,7 @@ trait Mounter: Debug {
 
 impl Mounter for UdisksMounter {
     fn unmount(&mut self, device: &Path) {
+        info!("Unmounting {:?}", &device);
         match Command::new("udisksctl")
             .arg("unmount")
             .arg("-b")
