@@ -4,21 +4,20 @@ use std::process::Command;
 use failure::Error;
 use regex::Regex;
 
-use std::marker::PhantomData;
-
 #[derive(Debug)]
-pub struct MountedFilesystem<Mounter> {
+pub struct MountedFilesystem {
     mountpoint: PathBuf,
     device: PathBuf,
-    _phantom: PhantomData<Mounter>,
+    mounter: Box<dyn Mounter>,
 }
 
-impl MountedFilesystem<ExternallyMounted> {
-    fn new(mountpoint: PathBuf) -> MountedFilesystem<ExternallyMounted> {
+impl MountedFilesystem {
+    fn new_externally_mounted(mountpoint: PathBuf) -> MountedFilesystem {
         MountedFilesystem {
             mountpoint,
             // TODO(richo) Should we look this up?
             device: PathBuf::new(),
+            mounter: Box::new(ExternallyMounted{}),
         }
     }
 }
@@ -32,7 +31,7 @@ pub struct UdisksMounter {
 }
 
 impl UdisksMounter {
-    pub fn mount<U>(device: U) -> Result<MountedFilesystem<UdisksMounter>, Error>
+    pub fn mount<U>(device: U) -> Result<MountedFilesystem, Error>
     where U: AsRef<Path>
     {
         let child = Command::new("udisksctl")
@@ -49,6 +48,7 @@ impl UdisksMounter {
                 return Ok(MountedFilesystem {
                     mountpoint: PathBuf::from(matches.get(2)),
                     device: device.to_path_buf(),
+                    mounter: Box::new(UdisksMounter{}),
                 });
             }
         }
@@ -56,34 +56,42 @@ impl UdisksMounter {
     }
 }
 
-impl Drop for MountedFilesystem<UdisksMounter> {
-    fn drop(&mut self) {
+trait Mounter {
+    fn unmount(&mut self, fs: &MountedFilesystem);
+}
 
-        let child = Command::new("udisksctl")
+impl Mounter for UdisksMounter {
+    fn unmount(&mut self, fs: &MountedFilesystem) {
+        match Command::new("udisksctl")
             .arg("unmount")
             .arg("-b")
-            .arg(self.device)
-            .spawn()?;
-
-        let ret = child.wait_with_output();
-        if ret.status.success() {
+            .arg(fs.device)
+            .spawn()
+        {
+            Ok(child) => {
+                let ret = child.wait_with_output();
+                if !ret.status.success() {
+                    error!("Couldn't unmount device: {}", ret.stderr);
+                }
+            },
+            Err(e) => {
+                error!("Couldn't launch unmount: {:?}", e);
+                return;
+            }
 
         }
+
     }
 }
 
-impl Drop for MountedFilesystem<ExternallyMounted> {
+impl Mounter for ExternallyMounted {
+    fn unmount(&mut self, fs: &MountedFilesystem) {
+        info!("Doing nothing because this was mounted when we got here");
+    }
+}
+
+impl Drop for MountedFilesystem {
     fn drop(&mut self) {
-
-        let child = Command::new("udisksctl")
-            .arg("unmount")
-            .arg("-b")
-            .arg(self.device)
-            .spawn()?;
-
-        let ret = child.wait_with_output();
-        if ret.status.success() {
-
-        }
+        self.mounter.unmount(&self.device);
     }
 }

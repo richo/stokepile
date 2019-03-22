@@ -18,6 +18,11 @@ pub struct Flysight {
     location: MountableDeviceLocation,
 }
 
+#[derive(Eq, PartialEq, Debug, Hash)]
+pub struct MountedFlysight {
+    flysight: Flysight,
+}
+
 #[derive(Debug)]
 pub struct FlysightFile {
     capturedate: String,

@@ -8,7 +8,7 @@ use toml;
 use url;
 
 use crate::dropbox;
-use crate::flysight::FlysightDesc;
+use crate::flysight::Flysight;
 use crate::local_backup::LocalBackup;
 use crate::mailer::SendgridMailer;
 use crate::mass_storage::MassStorage;
@@ -202,8 +202,8 @@ pub struct FlysightConfig {
 }
 
 impl FlysightConfig {
-    pub fn flysight(&self) -> FlysightDesc {
-        FlysightDesc::new(self.name.clone(),
+    pub fn flysight(&self) -> Flysight {
+        Flysight::new(self.name.clone(),
                           self.location.clone())
     }
 }
