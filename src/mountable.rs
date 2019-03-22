@@ -42,16 +42,16 @@ impl UdisksMounter {
         info!("Mounting {:?}", &device);
         let child = Command::new("udisksctl")
             .arg("mount")
+            .arg("--no-user-interaction")
             .arg("-b")
             .arg(device.as_ref())
-            .spawn()?;
+            .output()?;
 
         let regex = Regex::new(r"^Mounted (.+) at (.+)\.")
             .expect("Couldn't compile regex");
 
-        let ret = child.wait_with_output()?;
-        if ret.status.success() {
-            let s = String::from_utf8_lossy(&ret.stdout);
+        if child.status.success() {
+            let s = String::from_utf8_lossy(&child.stdout);
             if let Some(matches) = regex.captures(&s.into_owned()) {
                 return Ok(MountedFilesystem {
                     mountpoint: PathBuf::from(matches.get(2).unwrap().as_str()),
@@ -60,7 +60,7 @@ impl UdisksMounter {
                 });
             }
         }
-        bail!("Failed to mount: {}", String::from_utf8_lossy(&ret.stderr));
+        bail!("Failed to mount: {}", String::from_utf8_lossy(&child.stderr));
     }
 }
 
@@ -73,6 +73,7 @@ impl Mounter for UdisksMounter {
         info!("Unmounting {:?}", &device);
         match Command::new("udisksctl")
             .arg("unmount")
+            .arg("--no-user-interaction")
             .arg("-b")
             .arg(device)
             .spawn()

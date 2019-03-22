@@ -26,7 +26,7 @@ fn main() {
         let ctx = Ctx::create_without_lock(cfg?)?;
 
         let mut pb = PathBuf::from("/dev/disk/by-label");
-        pb.push(matches.value_of("label").expect("no label"));
+        pb.push(matches.value_of("LABEL").expect("no label"));
 
         let mp = mountable::UdisksMounter::mount(pb)?;
         for file in fs::read_dir(mp.path())? {
