@@ -1,96 +1,55 @@
 use std::path::{Path, PathBuf};
-use std::io::Write;
-use std::process::{Command, Stdio};
+use std::process::Command;
 
 use failure::Error;
-use serde_json;
+use regex::Regex;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct MountRequest {
-    device: PathBuf,
+#[derive(Debug)]
+pub struct MountedFilesystem {
     mountpoint: PathBuf,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum MountResponse {
-    Success,
-    // TODO(richo) bring more structural data about the error
-    Failure(String),
-}
-
-impl MountRequest {
-    pub fn process(self) -> Result<(), Error> {
-
-        Ok(())
-    }
+    device: PathBuf,
 }
 
 #[derive(Debug)]
-pub struct CmdMounter {
+pub struct UdisksMounter {
 }
 
-impl CmdMounter {
-    pub fn mount<U, T>(device: U, mountpoint: T) -> Result<MountResponse, Error>
-    where U: AsRef<Path>,
-          T: AsRef<Path>
+impl UdisksMounter {
+    pub fn mount<U>(device: U) -> Result<MountedFilesystem, Error>
+    where U: AsRef<Path>
     {
-        // TODO(richo) Find the helper properly.
-        let child = Command::new("mount")
-            .arg(device.as_ref())
-            .arg(mountpoint.as_ref())
+        let child = Command::new("udisksctl")
+            .arg("mount")
+            .arg("-b")
+            .arg(device)
             .spawn()?;
+
+        let regex = Regex::new(r"^Mounted (.+) at (.+)\.");
 
         let ret = child.wait_with_output()?;
         if ret.status.success() {
-            Ok(MountResponse::Success)
-        } else {
-            Ok(MountResponse::Failure(String::from_utf8(ret.stderr)?))
+            if let Some(matches) = regex.captures(ret.stdout) {
+                return Ok(MountedFilesystem {
+                    mountpoint: PathBuf::from(matches.get(2)),
+                    device: device.to_path_buf(),
+                });
+            }
         }
+        bail!("Failed to mount: {}", ret.stderr);
     }
 }
 
-// pub struct HelperMounter {
-// }
+impl Drop for MountedFilesystem {
+    fn drop(&mut self) {
+        let child = Command::new("udisksctl")
+            .arg("unmount")
+            .arg("-b")
+            .arg(self.device)
+            .spawn()?;
 
-// impl HelperMounter {
-//     pub fn mount<U, T>(device: U, mountpoint: T) -> Result<MountResponse, Error>
-//     where U: AsRef<Path>,
-//           T: AsRef<Path>
-//     {
-//         // TODO(richo) Find the helper properly.
-//         let mut child = Command::new("mount-helper")
-//             .stdin(Stdio::piped())
-//             .stdout(Stdio::piped())
-//             .spawn()?;
+        let ret = child.wait_with_output();
+        if ret.status.success() {
 
-//         {
-//             let json = serde_json::to_string(&self)?;
-//             let stdin = child.stdin.as_mut().expect("Couldn't get child stdio");
-//             stdin.write_all(json.as_bytes())?;
-//         }
-
-//         let output = child.wait_with_output()?;
-//         println!("OUTPUTOUTPUT: {:?}", &output);
-//         Ok(())
-//     }
-// }
-
-pub trait Mountable {
-    type Mountpoint: AsRef<Path>;
-
-    fn device(&self) -> &Path;
-
-    fn set_mountpoint(&mut self, mountpoint: Self::Mountpoint);
-
-    fn mount(&mut self, mountpoint: Self::Mountpoint) -> Result<(), Error> {
-        let req = MountRequest {
-            device: self.device().into(),
-            mountpoint: mountpoint.as_ref().into(),
-        };
-
-        req.process()?;
-
-        self.set_mountpoint(mountpoint);
-        Ok(())
+        }
     }
 }
