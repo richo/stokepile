@@ -89,6 +89,9 @@ mod mass_storage;
 /// Message types used for communication between the server and client components.
 pub mod messages;
 
+/// Stuff pertaining to mounting filesystems and managing their state.
+pub mod mountable;
+
 /// Contains the `MountablePeripheral` trait, common to `flysight`s and `mass_storage`s. This is
 /// simply the glue that makes it easy to check if they're currently present.
 mod peripheral;
