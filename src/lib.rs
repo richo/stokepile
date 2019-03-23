@@ -86,6 +86,9 @@ pub mod manual_file;
 /// local filesystem.
 mod mass_storage;
 
+/// The Mountable trait and associated machinery.
+mod mountable;
+
 /// Message types used for communication between the server and client components.
 pub mod messages;
 

@@ -23,7 +23,14 @@ pub static DEFAULT_API_BASE: &'static str = "https://onatopp.psych0tik.net";
 pub static TOKEN_FILE_NAME: &'static str = ".archiver-token";
 
 #[derive(Debug)]
+// TODO(richo) lol why is this using the default Debug impl
 pub struct AccessToken(String);
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum MountableDeviceLocation {
+    #[serde(rename = "label")]
+    Label(String),
+}
 
 pub fn get_home() -> Result<PathBuf, Error> {
     match dirs::home_dir() {
