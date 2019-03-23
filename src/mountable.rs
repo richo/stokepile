@@ -35,8 +35,22 @@ pub struct ExternallyMounted {
 pub struct UdisksMounter {
 }
 
-impl UdisksMounter {
-    pub fn mount<U>(device: U) -> Result<MountedFilesystem, Error>
+pub trait Mountable {
+    type Output;
+
+    fn mount<T, U>(device: U) -> Result<Self::Output, Error>
+        where T: Mounter,
+              U: AsRef<Path> + Debug;
+}
+
+trait Mounter: Debug {
+    fn mount<U>(device: U) -> Result<MountedFilesystem, Error>
+        where U: AsRef<Path> + Debug;
+    fn unmount(&mut self, fs: &Path);
+}
+
+impl Mounter for UdisksMounter {
+    fn mount<U>(device: U) -> Result<MountedFilesystem, Error>
     where U: AsRef<Path> + Debug
     {
         info!("Mounting {:?}", &device);
@@ -62,13 +76,7 @@ impl UdisksMounter {
         }
         bail!("Failed to mount: {}", String::from_utf8_lossy(&child.stderr));
     }
-}
 
-trait Mounter: Debug {
-    fn unmount(&mut self, fs: &Path);
-}
-
-impl Mounter for UdisksMounter {
     fn unmount(&mut self, device: &Path) {
         info!("Unmounting {:?}", &device);
         match Command::new("udisksctl")
@@ -98,6 +106,11 @@ impl Mounter for UdisksMounter {
 }
 
 impl Mounter for ExternallyMounted {
+    fn mount<U>(device: U) -> Result<MountedFilesystem, Error>
+    where U: AsRef<Path> + Debug {
+        info!("Doing nothing because this should already be mounted");
+    }
+
     fn unmount(&mut self, _device: &Path) {
         info!("Doing nothing because this was mounted when we got here");
     }
