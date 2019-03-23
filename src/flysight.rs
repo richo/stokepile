@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 
 use super::peripheral::MountablePeripheral;
 use super::staging::{Staging, DateTimeUploadable};
+use crate::mountable::MountedFilesystem;
 
 use chrono;
 use chrono::prelude::*;
@@ -15,6 +16,12 @@ use regex;
 pub struct Flysight {
     name: String,
     path: PathBuf,
+}
+
+#[derive(Debug)]
+pub struct MountedFlysight {
+    flysight: Flysight,
+    mount: MountedFilesystem,
 }
 
 #[derive(Debug)]
@@ -86,8 +93,8 @@ impl MountablePeripheral for Flysight {
 }
 
 impl Flysight {
-    pub fn new(name: String, path: PathBuf) -> Flysight {
-        Flysight { name, path }
+    pub fn new(name: String, location: MountableDeviceLocation) -> Flysight {
+        Flysight { name, location }
     }
     pub fn name(&self) -> &String {
         &self.name

@@ -41,8 +41,7 @@ pub struct UdisksMounter {
 pub trait Mountable: Sized {
     type Output;
 
-    // TODO(richo) should this take a self param?
-    fn mount<T>(self) -> Result<MountedFilesystem, Error>
+    fn mount_filesystem<T>(&self) -> Result<MountedFilesystem, Error>
     where T: Mounter
     {
         match self.location() {
