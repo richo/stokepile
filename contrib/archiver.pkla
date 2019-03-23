@@ -1,0 +1,4 @@
+[Let users mount things for archiver]
+Identity=unix-group:archiver
+Action=org.freedesktop.udisks2.filesystem-mount-other-seat
+ResultAny=yes

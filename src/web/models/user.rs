@@ -4,6 +4,12 @@ use diesel::prelude::*;
 use super::*;
 use crate::web::schema::users;
 use crate::web::routes::settings::SettingsForm;
+use crate::config::StagingConfig;
+
+use rocket::http::RawStr;
+use rocket::request::FromFormValue;
+
+use std::path::PathBuf;
 
 #[derive(Identifiable, Queryable, Debug, Serialize)]
 pub struct User {
@@ -13,6 +19,27 @@ pub struct User {
     pub password: String,
     pub notify_email: Option<String>,
     pub notify_pushover: Option<String>,
+    pub staging_type: Option<StagingKind>,
+    pub staging_location: Option<String>,
+}
+
+#[derive(Debug, DbEnum, Serialize)]
+pub enum StagingKind {
+    Device,
+    Directory,
+}
+
+impl<'v> FromFormValue<'v> for StagingKind {
+    type Error = String;
+
+    fn from_form_value(form_value: &'v RawStr) -> Result<StagingKind, Self::Error> {
+        let decoded = form_value.url_decode();
+        match decoded {
+            Ok(ref kind) if kind == "device" => Ok(StagingKind::Device),
+            Ok(ref kind) if kind == "directory" => Ok(StagingKind::Directory),
+            _ => Err(format!("unknown staging_kind {}", form_value)),
+        }
+    }
 }
 
 impl User {
@@ -77,14 +104,44 @@ impl User {
             .get_result(conn)
     }
 
+    pub fn staging(&self) -> Option<StagingConfig> {
+        match &self.staging_location {
+            Some(location) => {
+                let location = PathBuf::from(location);
+                match self.staging_type {
+                    Some(StagingKind::Directory) => Some(StagingConfig::StagingDirectory(location)),
+                    Some(StagingKind::Device) => Some(StagingConfig::StagingDevice(location)),
+                    None => return None,
+                }
+            },
+            None => return None,
+        }
+    }
+
     pub fn update_settings(&self, settings: &SettingsForm, conn: &PgConnection) -> QueryResult<usize> {
+        use diesel::update;
+        use crate::web::schema::users::dsl::*;
+
+        let staging = settings.staging();
+        update(self)
+            .set((
+                    notify_email.eq(settings.notification_email()),
+                    notify_pushover.eq(settings.notification_pushover()),
+                    staging_type.eq(staging.kind()),
+                    staging_location.eq(staging.location().to_string_lossy())
+            ))
+            .execute(conn)
+    }
+
+    pub fn update_staging(&self, staging: &StagingConfig, conn: &PgConnection) -> QueryResult<usize> {
         use diesel::update;
         use crate::web::schema::users::dsl::*;
 
         update(self)
             .set((
-                    notify_email.eq(settings.notification_email()),
-                    notify_pushover.eq(settings.notification_pushover())))
+                    staging_type.eq(staging.kind()),
+                    staging_location.eq(staging.location().to_string_lossy())
+            ))
             .execute(conn)
     }
 }

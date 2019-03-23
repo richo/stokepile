@@ -3,8 +3,10 @@ use std::fs::{self, File};
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 
+use super::config::MountableDeviceLocation;
 use super::peripheral::MountablePeripheral;
 use super::staging::{Staging, DateTimeUploadable};
+use crate::mountable::MountedFilesystem;
 
 use chrono;
 use chrono::prelude::*;
@@ -14,7 +16,13 @@ use regex;
 #[derive(Eq, PartialEq, Debug, Hash)]
 pub struct Flysight {
     name: String,
-    path: PathBuf,
+    location: MountableDeviceLocation,
+}
+
+#[derive(Eq, PartialEq, Debug, Hash)]
+pub struct MountedFlysight {
+    flysight: Flysight,
+    mount: MountedFilesystem,
 }
 
 #[derive(Debug)]
@@ -80,14 +88,14 @@ impl DateTimeUploadable for FlysightFile {
 }
 
 impl MountablePeripheral for Flysight {
-    fn path(&self) -> &PathBuf {
-        &self.path
+    fn location(&self) -> &MountableDeviceLocation {
+        &self.location
     }
 }
 
 impl Flysight {
-    pub fn new(name: String, path: PathBuf) -> Flysight {
-        Flysight { name, path }
+    pub fn new(name: String, location: MountableDeviceLocation) -> Flysight {
+        Flysight { name, location }
     }
     pub fn name(&self) -> &String {
         &self.name
@@ -185,7 +193,7 @@ mod tests {
             name: "data".into(),
             path: source.path().to_path_buf(),
         };
-        flysight.stage_files("data", &dest.path()).unwrap();
+        flysight.stage_files("data", &dest).unwrap();
         // TODO(richo) test harder
         let iter = fs::read_dir(&dest.path()).unwrap();
         let files: Vec<_> = iter.collect();

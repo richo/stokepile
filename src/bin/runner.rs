@@ -2,7 +2,6 @@
 extern crate log;
 
 use clap::{App, Arg};
-use std::thread;
 
 use archiver::cli;
 use archiver::config;
@@ -66,15 +65,14 @@ fn main() {
 
         for device in devices {
             let msg = format!("Finished staging: {}", device.name());
-            device.stage_files(&ctx.staging)?;
+            device.stage_files(&*ctx.staging)?;
             maybe_notify(&msg);
         }
 
         // Run the uploader thread syncronously as a smoketest for the daemon mode
-        let staging = ctx.staging.clone();
-        let report = thread::spawn(move || storage::upload_from_staged(&staging, &backends))
-            .join()
-            .expect("Upload thread panicked")?;
+        // This is fine for now, we have to lift this into the trait
+        let staging = ctx.staging();
+        let report = storage::upload_from_staged(staging, &backends)?;
 
         maybe_notify("Finished uploading media");
 

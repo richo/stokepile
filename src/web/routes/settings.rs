@@ -1,11 +1,15 @@
+use std::path::PathBuf;
+
 use rocket::{get, post};
 use rocket_contrib::templates::Template;
 use rocket::response::{Flash, Redirect};
 use rocket::request::Form;
 
+use crate::config::StagingConfig;
 use crate::web::auth::WebUser;
 use crate::web::context::Context;
 use crate::web::db::DbConn;
+use crate::web::models::extra::StagingKind;
 
 #[get("/settings")]
 pub fn get_settings(user: WebUser) -> Template {
@@ -37,6 +41,19 @@ pub fn post_settings(user: WebUser, conn: DbConn, settings: Form<SettingsForm>) 
 pub struct SettingsForm {
     notification_email: String,
     notification_pushover: String,
+    staging_location: String,
+    staging_type: StagingKind,
+}
+
+impl SettingsForm {
+    /// Coerce the separate values given in the form back into a StagingConfig
+    pub fn staging(&self) -> StagingConfig {
+        let pathbuf = PathBuf::from(&self.staging_location);
+        match self.staging_type {
+            StagingKind::Device => StagingConfig::StagingDevice(pathbuf),
+            StagingKind::Directory => StagingConfig::StagingDirectory(pathbuf),
+        }
+    }
 }
 
 impl SettingsForm {
@@ -64,7 +81,7 @@ mod tests {
     use crate::web::models::User;
     use diesel::prelude::*;
 
-    use rocket::http::{ContentType};
+    use rocket::http::{ContentType, Status};
 
     client_for_routes!(get_settings, post_settings => client);
 
@@ -81,11 +98,12 @@ mod tests {
         assert_eq!(None, user.notify_pushover);
 
         // Set some settings
-        let req = client
+        let response = client
             .post("/settings")
             .header(ContentType::Form)
-            .body(r"notification_email=test-value&notification_pushover=another%20test%20value")
+            .body(r"notification_email=test-value&notification_pushover=another%20test%20value&staging_type=device&staging_location=/butts")
             .dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
 
         // Reload the user. There is probably a better way to do this.
         let user = {
@@ -109,15 +127,16 @@ mod tests {
         let u1 = create_user(&client1, "test1@email.com", "p@55w0rd");
         let u2 = create_user(&client2, "test2@email.com", "p@55w0rd");
 
-        let s1 = signin(&client1, "test1%40email.com", "p%4055w0rd").unwrap();
-        let s2 = signin(&client2, "test2%40email.com", "p%4055w0rd").unwrap();
+        let _s1 = signin(&client1, "test1%40email.com", "p%4055w0rd").unwrap();
+        let _s2 = signin(&client2, "test2%40email.com", "p%4055w0rd").unwrap();
 
         // Set some settings
-        let req = client1
+        let response = client1
             .post("/settings")
             .header(ContentType::Form)
-            .body(r"notification_email=lol&notification_pushover=hithere")
+            .body(r"notification_email=lol&notification_pushover=hithere&staging_type=device&staging_location=/butts")
             .dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
 
         let u1 = {
             let conn = db_conn(&client1);

@@ -8,6 +8,8 @@ use crate::web::models::NewUser;
 use crate::web::models::Session;
 use crate::web::models::User;
 
+use crate::config::StagingConfig;
+
 pub fn db_conn(client: &Client) -> DbConn {
     DbConn::maybe_from_rocket(client.rocket()).expect("db connection")
 }
@@ -38,7 +40,11 @@ pub fn signin(client: &Client, username: &str, password: &str) -> Option<String>
 pub fn create_user(client: &Client, username: &str, password: &str) -> User {
     let conn = db_conn(&client);
 
-    NewUser::new(username, password).create(&*conn).unwrap()
+    let user = NewUser::new(username, password).create(&*conn).unwrap();
+
+    user.update_staging(&StagingConfig::StagingDirectory("/path".into()), &*conn).unwrap();
+
+    user
 }
 
 pub fn init_env() {

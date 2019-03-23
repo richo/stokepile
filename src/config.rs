@@ -1,10 +1,8 @@
-use std::env;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-use dirs;
 use failure::Error;
 use toml;
 use url;
@@ -15,8 +13,10 @@ use crate::local_backup::LocalBackup;
 use crate::mailer::SendgridMailer;
 use crate::mass_storage::MassStorage;
 use crate::pushover_notifier::PushoverNotifier;
+use crate::staging::{StagingDirectory, StageableLocation};
 use crate::storage::StorageAdaptor;
 use crate::vimeo::VimeoClient;
+
 
 // TODO(richo) Change this once we have a canonical domain
 pub static DEFAULT_API_BASE: &'static str = "https://onatopp.psych0tik.net";
@@ -25,8 +25,21 @@ pub static TOKEN_FILE_NAME: &'static str = ".archiver-token";
 #[derive(Debug)]
 pub struct AccessToken(String);
 
-pub fn get_home() -> Result<PathBuf, Error> {
-    match dirs::home_dir() {
+#[cfg(test)]
+lazy_static! {
+    static ref HOME_DIR: tempfile::TempDir = tempfile::tempdir().unwrap();
+}
+
+/// Find the users home directory.
+///
+/// In tests, we persiste a tempdir over the process to ensure we're not spamming the user.
+pub fn get_home() -> Result<impl AsRef<Path>, Error> {
+    #[cfg(not(test))]
+    let home_func = dirs::home_dir;
+    #[cfg(test)]
+    let home_func = || Some(&*HOME_DIR);
+
+    match home_func() {
         Some(home) => Ok(home),
         None => {
             Err(format_err!(
@@ -116,9 +129,49 @@ lazy_static! {
     static ref EMPTY_GOPROS: Vec<GoproConfig> = vec![];
 }
 
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
+/// The configuration entry associated with a staging location.
+pub enum StagingConfig {
+    #[serde(rename = "staging_directory")]
+    StagingDirectory(PathBuf),
+    #[serde(rename = "staging_device")]
+    StagingDevice(PathBuf),
+}
+
+#[cfg(feature = "web")]
+use crate::web::models::extra::StagingKind;
+
+impl StagingConfig {
+    #[cfg(feature = "web")]
+    pub fn location(&self) -> &Path {
+        match self {
+            StagingConfig::StagingDirectory(buf) |
+            StagingConfig::StagingDevice(buf) => &buf
+        }
+    }
+
+    #[cfg(feature = "web")]
+    pub fn kind(&self) -> StagingKind {
+        match self {
+            StagingConfig::StagingDirectory(_) => StagingKind::Directory,
+            StagingConfig::StagingDevice(_) => StagingKind::Device,
+        }
+    }
+}
+
+impl StagingConfig {
+    fn is_relative(&self) -> bool {
+        match &*self {
+            StagingConfig::StagingDirectory(path) |
+            StagingConfig::StagingDevice(path) => path.is_relative()
+        }
+    }
+}
+
 #[derive(Default, Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct ArchiverConfig {
-    staging: Option<PathBuf>,
+    #[serde(flatten)]
+    staging: Option<StagingConfig>,
     api_base: Option<String>,
     api_token: Option<String>,
 }
@@ -133,15 +186,25 @@ pub struct VimeoConfig {
     token: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+pub enum MountableDeviceLocation {
+    #[serde(rename = "mountpoint")]
+    Mountpoint(PathBuf),
+    #[serde(rename = "label")]
+    Label(String),
+}
+
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct FlysightConfig {
     pub name: String,
-    pub mountpoint: String,
+    #[serde(flatten)]
+    pub location: MountableDeviceLocation,
 }
 
 impl FlysightConfig {
     pub fn flysight(&self) -> Flysight {
-        Flysight::new(self.name.clone(), PathBuf::from(self.mountpoint.clone()))
+        Flysight::new(self.name.clone(),
+                          self.location.clone())
     }
 }
 
@@ -198,11 +261,17 @@ pub struct GoproConfig {
 
 #[derive(Fail, Debug)]
 pub enum ConfigError {
-    #[fail(display = "Must have at least one of dropbox and vimeo configured")]
+    #[fail(display = "Must have at least one of dropbox and vimeo configured.")]
     MissingBackend,
-    #[fail(display = "Could not parse config: {}", _0)]
+    #[fail(display = "Must have either a `staging_path` or `staging_device` set.")]
+    MissingStaging,
+    #[fail(display = "`staging_path` or `staging_device` must be absolute paths.")]
+    RelativeStaging,
+    #[fail(display = "Could not parse config: {}.", _0)]
     ParseError(#[cause] toml::de::Error),
-    #[fail(display = "Invalid url for api base: {}", _0)]
+    #[fail(display = "Could not generate config: {}.", _0)]
+    GenerateError(#[cause] toml::ser::Error),
+    #[fail(display = "Invalid url for api base: {}.", _0)]
     InvalidApiBase(url::ParseError),
     #[fail(display = "The token file does not exist. Did you login?")]
     NoTokenFile,
@@ -214,7 +283,7 @@ impl FromStr for Config {
     fn from_str(body: &str) -> Result<Self, Self::Err> {
         match toml::from_str(body) {
             Ok(config) => Self::check_config(config),
-            Err(e) => bail!(ConfigError::ParseError(e)),
+            Err(e) => Err(ConfigError::ParseError(e))?,
         }
     }
 }
@@ -235,14 +304,25 @@ impl Config {
     }
 
     /// Serializes this config option into TOML
-    pub fn to_toml(&self) -> String {
-        toml::to_string(self).unwrap()
+    pub fn to_toml(&self) -> Result<String, Error> {
+        toml::to_string(self).map_err(|e| ConfigError::GenerateError(e).into())
     }
 
     fn check_config(config: Config) -> Result<Config, Error> {
         if config.dropbox.is_none() && config.vimeo.is_none() {
             Err(ConfigError::MissingBackend)?;
         }
+
+        if config.archiver.staging.is_none() {
+            bail!(ConfigError::MissingStaging);
+        }
+
+        if let Some(staging) = &config.archiver.staging {
+            if staging.is_relative() {
+                Err(ConfigError::RelativeStaging)?
+            }
+        }
+
         if let Some(base) = &config.archiver.api_base {
             if let Err(err) = url::Url::parse(&base) {
                 Err(ConfigError::InvalidApiBase(err))?;
@@ -324,25 +404,28 @@ impl Config {
     }
 
     /// Returns an owned reference to the staging directory, expanded to be absolute
-    pub fn staging_dir(&self) -> Result<Option<PathBuf>, Error> {
+    pub fn staging(&self) -> Result<impl StageableLocation, Error> {
         match self.archiver.staging {
-            Some(ref staging) => {
-                if staging.is_absolute() {
-                    Ok(Some(staging.clone()))
-                } else {
-                    let mut absolute_path = env::current_dir()?;
-                    absolute_path.push(&staging);
-                    Ok(Some(absolute_path))
-                }
+            Some(StagingConfig::StagingDirectory(ref path)) if path.is_absolute() => {
+                Ok(StagingDirectory::new(path.to_path_buf()))
+            },
+            Some(StagingConfig::StagingDevice(ref device_path)) if device_path.is_absolute() => {
+                unimplemented!()
+            },
+            Some(_) => {
+                // It shouldn't be possible to get an absolute path because of the guards in
+                // check_config, but it's super bad if we end up with one so we guard against it
+                // very explicitly.
+                bail!(ConfigError::RelativeStaging)
             }
-            None => Ok(None),
+            None => unreachable!("Should not be possible to construct a Config without staging set"),
         }
     }
 }
 
 impl ConfigBuilder {
     /// Set the staging directory for this config object
-    pub fn staging(mut self, staging: PathBuf) -> Self {
+    pub fn staging(mut self, staging: StagingConfig) -> Self {
         self.archiver.staging = Some(staging);
         self
     }
@@ -457,7 +540,7 @@ mod tests {
             ArchiverConfig {
                 api_token: Some("ARCHIVER_TOKEN_GOES_HERE".into()),
                 api_base: Some("https://test-api.base".into()),
-                staging: Some("/test/staging/dir".into()),
+                staging: Some(StagingConfig::StagingDirectory("/test/staging/dir".into())),
             }
         );
 
@@ -516,14 +599,69 @@ mod tests {
         let cfg = Config::from_str(
             r#"
 [archiver]
-staging="test/dir"
+staging_directory="test/dir"
+
+[dropbox]
+token = "TOKEN"
+"#,
+        )
+        .unwrap_err();
+        let err = cfg.downcast::<ConfigError>().unwrap();
+        let formatted = format!("{:?}", err);
+        assert_eq!("RelativeStaging", &formatted);
+    }
+
+    #[test]
+    fn test_staging_directory() {
+        let cfg = Config::from_str(
+            r#"
+[archiver]
+staging_directory="/test/dir"
 
 [dropbox]
 token = "TOKEN"
 "#,
         )
         .unwrap();
-        assert_eq!(cfg.archiver.staging, Some(PathBuf::from("test/dir")));
+        assert_eq!(cfg.archiver.staging, Some(StagingConfig::StagingDirectory(PathBuf::from("/test/dir"))));
+    }
+
+    #[test]
+    fn test_staging_device() {
+        let cfg = Config::from_str(
+            r#"
+[archiver]
+staging_device="/dev/staging"
+
+[dropbox]
+token = "TOKEN"
+"#,
+        )
+        .unwrap();
+        assert_eq!(cfg.archiver.staging, Some(StagingConfig::StagingDevice(PathBuf::from("/dev/staging"))));
+    }
+
+    #[test]
+    // This is a lie, it shouldn't fail. This is a bug.
+    // TODO(richo)
+    #[should_panic]
+    fn test_staging_cannot_be_both() {
+        let cfg = Config::from_str(
+            r#"
+[archiver]
+staging_device="/dev/staging"
+staging_directory="/test/dir"
+
+[dropbox]
+token = "TOKEN"
+"#,
+        )
+        .unwrap_err();
+        let err = cfg.downcast::<ConfigError>().unwrap();
+        assert!(match err {
+            ConfigError::ParseError(_) => true,
+            _ => false,
+        });
     }
 
     #[test]
@@ -531,6 +669,7 @@ token = "TOKEN"
         let cfg = Config::from_str(
             r#"
 [archiver]
+staging_directory = "/test"
 api_base = "malformed"
 
 [dropbox]
@@ -548,6 +687,7 @@ token = "TOKEN"
         let cfg = Config::from_str(
             r#"
 [archiver]
+staging_directory = "/test"
 
 [dropbox]
 token = "TOKEN"
@@ -562,6 +702,7 @@ token = "TOKEN"
         let cfg = Config::from_str(
             r#"
 [archiver]
+staging_directory = "/test"
 
 [dropbox]
 token = "TOKEN"
@@ -579,7 +720,7 @@ token = "TOKEN"
         let cfg = Config::from_str(
             r#"
 [archiver]
-staging="test/dir"
+staging_directory="/test/dir"
 
 [dropbox]
 token = "TOKEN"
@@ -598,10 +739,12 @@ recipient = "RECIPIENT_TOKEN"
         let error = Config::from_str(
             r#"
 [archiver]
+staging_directory = "/test"
 "#,
         )
         .unwrap_err();
-        let error = error.downcast::<ConfigError>().unwrap();
+        println!("{:?}", &error);
+        let error = error.downcast::<ConfigError>().unwrap_or_else(|e| panic!("{:?}", e));
         assert!(match error {
             ConfigError::MissingBackend => true,
             _ => false,
@@ -613,6 +756,7 @@ recipient = "RECIPIENT_TOKEN"
         let config = Config::from_str(
             r#"
 [archiver]
+staging_directory = "/test"
 [dropbox]
 token="DROPBOX_TOKEN_GOES_HERE"
 "#,
@@ -687,6 +831,7 @@ token="DROPBOX_TOKEN_GOES_HERE"
         let config = Config::from_str(
             r#"
 [archiver]
+staging_directory = "/test"
 [dropbox]
 token="DROPBOX_TOKEN_GOES_HERE"
 
@@ -711,6 +856,7 @@ extensions = ["mov"]
         let config = Config::from_str(
             r#"
 [archiver]
+staging_directory = "/test"
 [dropbox]
 token="DROPBOX_TOKEN_GOES_HERE"
 
@@ -734,6 +880,7 @@ serial = "C3131127500001"
         let config = Config::from_str(
             r#"
 [archiver]
+staging_directory = "/test"
 [dropbox]
 token="DROPBOX_TOKEN_GOES_HERE"
 
@@ -756,6 +903,7 @@ mountpoint="/mnt/archiver/comp"
         let config = Config::from_str(
             r#"
 [archiver]
+staging_directory = "/test"
 [dropbox]
 token="DROPBOX_TOKEN_GOES_HERE"
 

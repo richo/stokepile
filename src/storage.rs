@@ -1,12 +1,11 @@
-use std::fs::{self, File};
-use std::path::{Path, PathBuf};
+use std::fs::File;
 
 use crate::reporting::{ReportEntry, UploadReport, UploadStatus};
-use crate::staging;
+use crate::staging::{self, StageableLocation};
 use crate::formatting;
 
+
 use failure::Error;
-use serde_json;
 use chrono::prelude::*;
 
 const MAX_RETRIES: usize = 3;
@@ -29,54 +28,21 @@ pub trait StorageAdaptor<T>: Send {
     fn name(&self) -> String;
 }
 
-/// Converts a manifest path back into the filename to set
-fn content_path_from_manifest(manifest: &Path) -> PathBuf {
-    let mut content_path = manifest.to_path_buf();
-    let mut string = manifest
-        .file_name()
-        .unwrap()
-        .to_os_string()
-        .into_string()
-        .unwrap();
-    let len = string.len();
-    string.truncate(len - 9);
 
-    content_path.set_file_name(string);
-    content_path
-}
-
-fn is_manifest(path: &Path) -> bool {
-    path.to_str().unwrap().ends_with(".manifest")
-}
-
-pub fn upload_from_staged<T>(
-    staged: T,
+// TODO(richo) Make this use StageableLocation to find the files.
+pub fn upload_from_staged(
+    staged: &dyn StageableLocation,
     adaptors: &[Box<dyn StorageAdaptor<File>>],
-) -> Result<UploadReport, Error>
-where
-    T: AsRef<Path> + std::fmt::Debug,
-{
+) -> Result<UploadReport, Error> {
     let mut report: UploadReport = Default::default();
     info!("Starting upload from {:?}", &staged);
-    for entry in fs::read_dir(staged)? {
-        // Find manifests and work backward
-        let entry = entry?;
-        trace!("Looking at {:?}", entry.path());
-        if !is_manifest(&entry.path()) {
-            continue;
-        }
-        let manifest_path = entry.path();
-        let content_path = content_path_from_manifest(&manifest_path);
-
-        let manifest = File::open(&manifest_path)?;
-
-        let manifest: staging::UploadDescriptor = serde_json::from_reader(manifest)?;
+    for (staged_file, manifest) in staged.staged_files()? {
 
         let results: Vec<_> = adaptors
             .iter()
             .map(|ad| {
                 let start = Utc::now();
-                info!("Starting {} adaptor for {:?}", ad.name(), &content_path);
+                info!("Starting {} adaptor for {:?}", ad.name(), &staged_file.content_path);
                 info!("Checking if file already exists");
                 if ad.already_uploaded(&manifest) {
                     info!("File was already uploaded - skipping");
@@ -84,9 +50,13 @@ where
                 }
 
                 info!("File not present upstream - beginning upload");
+                // I have no idea how bad it is to lie about the adaptor name here
                 // We have inverted the sense of "success" and "failure" from try_for_each
                 let result = (0..MAX_RETRIES).try_fold(format_err!("dummy error"), |_, i| {
-                    let content = File::open(&content_path).expect("Couldn't open content file");
+                    let content = match staged_file.content_handle() {
+                        Ok(content) => content,
+                        Err(e) => return Some(e.into()),
+                    };
                     match ad.upload(content, &manifest) {
                         Ok(_resp) => {
                             let finish = Utc::now();
@@ -97,7 +67,7 @@ where
                         Err(error) => {
                             error!(
                                 "Attempt {} of upload of {:?} failed: {:?}",
-                                &i, &content_path, &error
+                                &i, &staged_file.content_path, &error
                             );
                             Some(error)
                         }
@@ -114,11 +84,9 @@ where
 
         let entry = ReportEntry::new(manifest, results);
         if entry.is_success() {
-            info!("removing {:?}", content_path);
-            fs::remove_file(&manifest_path)?;
-            fs::remove_file(&content_path)?;
+            staged_file.delete()?;
         } else {
-            info!("one or more adaptors failed, preserving {:?}", content_path);
+            info!("one or more adaptors failed, preserving {:?}", &staged_file);
         }
         report.record_activity(entry);
     }
@@ -128,12 +96,15 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
     use std::cell::Cell;
     use tempfile;
     use crate::staging::UploadDescriptor;
     use crate::test_helpers;
 
     /// A storage adaptor that will succeed on the nth attempt
+    // TODO(richo) It's probably a fairly small problem to make this Sync and suddenly parrallel
+    // uploads are right there on the horizon.
     struct TemporarilyBrokenStorageAdaptor {
         attempts: Cell<usize>,
         successful_attempt: usize,
@@ -189,7 +160,7 @@ mod tests {
 
         let uploader = TemporarilyBrokenStorageAdaptor::new(4);
 
-        upload_from_staged(data, &[Box::new(uploader)]).expect("Didn't upload successfully");
+        upload_from_staged(&data, &[Box::new(uploader)]).expect("Didn't upload successfully");
         assert_eq!(10, files.len());
     }
 
@@ -201,60 +172,9 @@ mod tests {
 
         let uploader = TemporarilyBrokenStorageAdaptor::new(2);
 
-        let report = upload_from_staged(data, &[Box::new(uploader)]).expect("Didn't upload successfully");
+        let report = upload_from_staged(&data, &[Box::new(uploader)]).expect("Didn't upload successfully");
         println!("{}", report.to_plaintext().unwrap());
         // TODO(richo) why isn't this actually deleting anything
         // assert_eq!(0, files.len());
-    }
-
-    #[test]
-    fn test_absolute_manifest_conversion() {
-        let manifest = Path::new("/tmp/foo/bar/butts.manifest");
-        let content = content_path_from_manifest(&manifest);
-        assert_eq!(PathBuf::from("/tmp/foo/bar/butts".to_string()), content);
-    }
-
-    #[test]
-    fn test_relative_manifest_conversion() {
-        let manifest = Path::new("bar/butts.manifest");
-        let content = content_path_from_manifest(&manifest);
-        assert_eq!(PathBuf::from("bar/butts".to_string()), content);
-    }
-
-    #[test]
-    fn test_bare_manifest_conversion() {
-        let manifest = Path::new("butts.manifest");
-        let content = content_path_from_manifest(&manifest);
-        assert_eq!(PathBuf::from("butts".to_string()), content);
-    }
-
-    #[test]
-    fn test_absolute_manifest_detection() {
-        let manifest = Path::new("/tmp/foo/bar/butts.manifest");
-        assert_eq!(true, is_manifest(&manifest));
-        let manifest = Path::new("/tmp/foo/bar/buttsmanifest");
-        assert_eq!(false, is_manifest(&manifest));
-        let manifest = Path::new("/tmp/foo/bar/butts.manifes");
-        assert_eq!(false, is_manifest(&manifest));
-    }
-
-    #[test]
-    fn test_relative_manifest_detection() {
-        let manifest = Path::new("bar/butts.manifest");
-        assert_eq!(true, is_manifest(&manifest));
-        let manifest = Path::new("bar/buttsmanifest");
-        assert_eq!(false, is_manifest(&manifest));
-        let manifest = Path::new("bar/butts.manifes");
-        assert_eq!(false, is_manifest(&manifest));
-    }
-
-    #[test]
-    fn test_bare_manifest_detection() {
-        let manifest = Path::new("butts.manifest");
-        assert_eq!(true, is_manifest(&manifest));
-        let manifest = Path::new("buttsmanifest");
-        assert_eq!(false, is_manifest(&manifest));
-        let manifest = Path::new("butts.manifes");
-        assert_eq!(false, is_manifest(&manifest));
     }
 }

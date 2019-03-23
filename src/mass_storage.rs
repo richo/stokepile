@@ -1,6 +1,7 @@
 use std::fs::{self, File};
 use std::path::PathBuf;
 
+use super::config::MountableDeviceLocation;
 use super::peripheral::MountablePeripheral;
 use super::staging::{Staging, DateTimeUploadable};
 
@@ -13,7 +14,7 @@ use walkdir::WalkDir;
 pub struct MassStorage {
     // TODO(richo) privatise these
     pub name: String,
-    pub path: PathBuf,
+    pub location: MountableDeviceLocation,
     pub extensions: Vec<String>,
 }
 
@@ -81,8 +82,8 @@ impl Staging for MassStorage {
 }
 
 impl MountablePeripheral for MassStorage {
-    fn path(&self) -> &PathBuf {
-        &self.path
+    fn location(&self) -> &MountableDeviceLocation {
+        &self.location
     }
 }
 
@@ -146,7 +147,7 @@ mod tests {
             extensions: extensions(),
         };
 
-        mass_storage.stage_files("data", &dest.path()).unwrap();
+        mass_storage.stage_files("data", &dest).unwrap();
         // TODO(richo) test harder
         let iter = fs::read_dir(&dest.path()).unwrap();
         let files: Vec<_> = iter.collect();

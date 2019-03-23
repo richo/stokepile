@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::path::Path;
 
 use failure::Error;
 
@@ -7,9 +6,9 @@ use super::config;
 use super::ctx;
 use super::flysight;
 use super::mass_storage;
-use super::peripheral::Peripheral;
 use super::ptp_device;
-use super::staging::Staging;
+use super::staging::{Staging, StageableLocation};
+use crate::peripheral::MountablePeripheral;
 
 #[derive(Eq, PartialEq, Debug, Hash)]
 pub struct DeviceDescription {
@@ -24,10 +23,7 @@ pub enum Device<'a> {
 }
 
 impl Device<'_> {
-    pub fn stage_files<T>(self, destination: T) -> Result<(), Error>
-    where
-        T: AsRef<Path>,
-    {
+    pub fn stage_files(self, destination: &dyn StageableLocation) -> Result<(), Error> {
         match self {
             Device::Gopro(desc, gopro) => gopro.connect()?.stage_files(&desc.name, destination),
             Device::MassStorage(desc, mass_storage) => {
