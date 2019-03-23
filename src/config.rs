@@ -14,7 +14,6 @@ use crate::mailer::SendgridMailer;
 use crate::mass_storage::MassStorage;
 use crate::pushover_notifier::PushoverNotifier;
 use crate::storage::StorageAdaptor;
-use crate::stagging::StagingLocation;
 use crate::vimeo::VimeoClient;
 
 
@@ -186,7 +185,7 @@ pub struct VimeoConfig {
     token: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq, Hash)]
 pub enum MountableDeviceLocation {
     #[serde(rename = "mountpoint")]
     Mountpoint(PathBuf),
@@ -204,7 +203,7 @@ pub struct FlysightConfig {
 impl FlysightConfig {
     pub fn flysight(&self) -> Flysight {
         Flysight::new(self.name.clone(),
-                          self.location.clone())
+                      self.location.clone())
     }
 }
 

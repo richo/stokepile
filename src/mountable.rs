@@ -1,9 +1,12 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::fmt::Debug;
+use std::fs;
 
 use failure::Error;
 use regex::Regex;
+
+use crate::config::MountableDeviceLocation;
 
 #[derive(Debug)]
 pub struct MountedFilesystem {
@@ -35,12 +38,63 @@ pub struct ExternallyMounted {
 pub struct UdisksMounter {
 }
 
-pub trait Mountable {
+pub trait Mountable: Sized {
     type Output;
 
-    fn mount<T, U>(device: U) -> Result<Self::Output, Error>
-        where T: Mounter,
-              U: AsRef<Path> + Debug;
+    // TODO(richo) should this take a self param?
+    fn mount<T>(self) -> Result<MountedFilesystem, Error>
+    where T: Mounter
+    {
+        match self.location() {
+            MountableDeviceLocation::Label(lbl) => {
+                let path = device_for_label(&lbl[..]);
+                T::mount(&path)
+            },
+            MountableDeviceLocation::Mountpoint(path) => {
+                unimplemented!();
+            }
+        }
+    }
+
+    fn location(&self) -> MountableDeviceLocation;
+
+    fn is_attached(&self) -> bool {
+        match self.location() {
+            MountableDeviceLocation::Label(lbl) => {
+                attached_by_label(&lbl[..])
+            },
+            MountableDeviceLocation::Mountpoint(path) => {
+                // Hopefully empty means nothing was written there in the meantime
+                if !path.exists() {
+                    return false;
+                }
+                let files: Vec<_> = fs::read_dir(path).unwrap().collect();
+                if files.is_empty() {
+                    return false;
+                }
+
+                #[cfg(test)]
+                { // Only allow .gitkeep in tests
+                    use std::ffi::OsStr;
+                    match files.as_slice() {
+                        &[Ok(ref file)] if file.file_name() == OsStr::new(".gitkeep") => return false,
+                        _ => {}
+                    }
+                }
+
+                true
+            },
+        }
+    }
+
+    /// Get the device if attached, otherwise return None
+    fn get(self) -> Option<Self> {
+        if self.is_attached() {
+            Some(self)
+        } else {
+            None
+        }
+    }
 }
 
 pub trait Mounter: Debug {
@@ -130,4 +184,24 @@ impl Drop for MountedFilesystem {
     fn drop(&mut self) {
         self.unmounter.unmount(&self.device);
     }
+}
+
+#[cfg(target_os = "linux")]
+fn device_for_label(lbl: &str) -> PathBuf {
+    let mut pb = PathBuf::from("/dev/disk/by-label");
+    pb.push(lbl);
+    pb
+}
+
+#[cfg(target_os = "macos")]
+fn device_for_label(lbl: &str) -> PathBuf {
+    // TODO(richo) it looks like `diskutil mount LABEL` actually works here
+    let mut pb = PathBuf::from("/Volumes");
+    pb.push(lbl);
+    pb
+}
+
+fn attached_by_label(lbl: &str) -> bool {
+    let pb = device_for_label(lbl);
+    pb.exists()
 }

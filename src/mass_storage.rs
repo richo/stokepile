@@ -1,8 +1,9 @@
 use std::fs::{self, File};
 use std::path::PathBuf;
 
-use super::peripheral::MountablePeripheral;
 use super::staging::{Staging, DateTimeUploadable};
+use crate::config::MountableDeviceLocation;
+use crate::mountable::Mountable;
 
 use chrono;
 use chrono::prelude::*;
@@ -13,8 +14,16 @@ use walkdir::WalkDir;
 pub struct MassStorage {
     // TODO(richo) privatise these
     pub name: String,
-    pub path: PathBuf,
+    pub location: MountableDeviceLocation,
     pub extensions: Vec<String>,
+}
+
+impl Mountable for MassStorage {
+    type Output = MountedMassStorage;
+
+    fn location(&self) -> MountableDeviceLocation {
+        self.location
+    }
 }
 
 #[derive(Debug)]
@@ -77,12 +86,6 @@ impl Staging for MassStorage {
             }
         }
         Ok(out)
-    }
-}
-
-impl MountablePeripheral for MassStorage {
-    fn path(&self) -> &PathBuf {
-        &self.path
     }
 }
 

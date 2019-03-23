@@ -7,7 +7,7 @@ use super::config;
 use super::ctx;
 use super::flysight;
 use super::mass_storage;
-use super::peripheral::Peripheral;
+use crate::mountable::Mountable;
 use super::ptp_device;
 use super::staging::Staging;
 

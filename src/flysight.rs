@@ -3,9 +3,9 @@ use std::fs::{self, File};
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 
-use super::peripheral::MountablePeripheral;
 use super::staging::{Staging, DateTimeUploadable};
-use crate::mountable::{self, MountedFilesystem};
+use crate::mountable::{self, Mountable, MountedFilesystem};
+use crate::config::MountableDeviceLocation;
 
 use chrono;
 use chrono::prelude::*;
@@ -15,7 +15,15 @@ use regex;
 #[derive(Eq, PartialEq, Debug, Hash)]
 pub struct Flysight {
     name: String,
-    path: PathBuf,
+    location: MountableDeviceLocation,
+}
+
+impl Mountable for Flysight {
+    type Output = MountedFlysight;
+
+    fn location(&self) -> MountableDeviceLocation {
+        self.location
+    }
 }
 
 #[derive(Debug)]
@@ -86,15 +94,9 @@ impl DateTimeUploadable for FlysightFile {
     }
 }
 
-impl MountablePeripheral for Flysight {
-    fn path(&self) -> &PathBuf {
-        &self.path
-    }
-}
-
 impl Flysight {
-    pub fn new(name: String, path: PathBuf) -> Flysight {
-        Flysight { name, path }
+    pub fn new(name: String, location: MountableDeviceLocation) -> Flysight {
+        Flysight { name, location }
     }
     pub fn name(&self) -> &String {
         &self.name
