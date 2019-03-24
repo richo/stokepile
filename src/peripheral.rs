@@ -1,3 +1,4 @@
+use failure::Error;
 use std::fs;
 use std::path::PathBuf;
 use crate::config::MountableDeviceLocation;
@@ -22,9 +23,28 @@ fn attached_by_label(lbl: &str) -> bool {
     pb.exists()
 }
 
+pub trait MountableKind {
+    fn from_mounted_parts<T>(this: T, mount: MountedFilesystem) -> Self
+    where T: MountablePeripheral;
+}
+
 pub trait MountablePeripheral: Sized {
+    type Output: MountableKind;
+
+    fn mount(self) -> Result<Self::Output, Error> {
+        let mount = match &self.location {
+            MountableDeviceLocation::Label(lbl) => {
+                let device = device_for_label(lbl);
+                UdisksMounter::mount(device)?
+            },
+            MountableDeviceLocation::Mountpoint(_) => unimplemented!(),
+        };
+
+        Ok(Self::Output::from_mounted_parts(self, mount))
+    }
+
     #[cfg(platform = "macos")]
-    fn mount(self) -> Result<MountedFilesystem, Error> {
+    fn mount_filesystem(&self) -> Result<MountedFilesystem, Error> {
         match self.location() {
             MountableDeviceLocation::Label(lbl) => {
                 MountedFilesystem::<ExternallyMounted>::new_externally_mounted(device_for_label(lbl))
@@ -36,7 +56,7 @@ pub trait MountablePeripheral: Sized {
     }
 
     #[cfg(platform = "linux")]
-    fn mount(self) -> Result<MountedFilesystem<UdisksMounter>, Error> {
+    fn mount_filesystem(&self) -> Result<MountedFilesystem<UdisksMounter>, Error> {
         match self.location() {
             MountableDeviceLocation::Label(lbl) => {
                 let dev = device_for_label(lbl);

@@ -2,8 +2,9 @@ use std::fs::{self, File};
 use std::path::PathBuf;
 
 use super::config::MountableDeviceLocation;
-use super::peripheral::MountablePeripheral;
+use super::peripheral::{MountablePeripheral, MountableKind};
 use super::staging::{Staging, DateTimeUploadable};
+use crate::mountable::MountedFilesystem;
 
 use chrono;
 use chrono::prelude::*;
@@ -16,6 +17,28 @@ pub struct MassStorage {
     pub name: String,
     pub location: MountableDeviceLocation,
     pub extensions: Vec<String>,
+}
+
+impl MassStorage {
+    #[cfg(test)]
+    fn mount_for_test(self) -> MountedMassStorage {
+        let loc = match &self.location {
+            MountableDeviceLocation::Label(_) => panic!("Labels not supported in tests"),
+            MountableDeviceLocation::Mountpoint(mp) => mp.clone(),
+        };
+
+        let mount = MountedFilesystem::new_externally_mounted(loc);
+        MountedMassStorage {
+            mass_storage: self,
+            mount,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct MountedMassStorage {
+    mass_storage: MassStorage,
+    mount: MountedFilesystem,
 }
 
 #[derive(Debug)]
@@ -51,12 +74,12 @@ impl DateTimeUploadable for MassStorageFile {
     }
 }
 
-impl Staging for MassStorage {
+impl Staging for MountedMassStorage {
     type FileType = MassStorageFile;
 
     fn files(&self) -> Result<Vec<MassStorageFile>, Error> {
         let mut out = vec![];
-        for entry in WalkDir::new(&self.path) {
+        for entry in WalkDir::new(&self.mount.path()) {
             let entry = entry?;
             if entry.file_type().is_dir() {
                 continue;
@@ -65,7 +88,7 @@ impl Staging for MassStorage {
             let path = entry.path();
             if let Some(ext) = path.extension() {
                 let extension = ext.to_str().unwrap().to_lowercase();
-                if !self.extensions.contains(&extension) {
+                if !self.mass_storage.extensions.contains(&extension) {
                     continue;
                 }
 
@@ -82,8 +105,20 @@ impl Staging for MassStorage {
 }
 
 impl MountablePeripheral for MassStorage {
+    type Output = MountedMassStorage;
+
     fn location(&self) -> &MountableDeviceLocation {
         &self.location
+    }
+}
+
+impl MountableKind for MountedMassStorage {
+    fn from_mounted_parts<T>(this: T, mount: MountedFilesystem) -> Self
+    where T: MountablePeripheral {
+        MountedMassStorage {
+            mass_storage: this,
+            mount,
+        }
     }
 }
 
@@ -124,11 +159,12 @@ mod tests {
     fn test_mass_storage_loads_files() {
         let mass_storage = MassStorage {
             name: "data".into(),
-            path: "test-data/mass_storage".into(),
+            location: MountableDeviceLocation::from_mountpoint("test-data/mass_storage".into()),
             extensions: extensions(),
         };
+        let mounted = mass_storage.mount_for_test();
 
-        let files = mass_storage.files().expect("Couldn't load test files");
+        let files = mounted.files().expect("Couldn't load test files");
         assert_eq!(files.len(), 2);
         for file in files {
             assert_eq!(&file.extension, "mp4");
@@ -143,11 +179,13 @@ mod tests {
 
         let mass_storage = MassStorage {
             name: "data".into(),
-            path: source.path().to_path_buf(),
+            location: MountableDeviceLocation::from_mountpoint(source.path().to_path_buf()),
             extensions: extensions(),
         };
 
-        mass_storage.stage_files("data", &dest).unwrap();
+        let mounted = mass_storage.mount_for_test();
+
+        mounted.stage_files("data", &dest).unwrap();
         // TODO(richo) test harder
         let iter = fs::read_dir(&dest.path()).unwrap();
         let files: Vec<_> = iter.collect();

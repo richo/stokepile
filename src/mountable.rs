@@ -14,13 +14,19 @@ pub struct MountedFilesystem {
 }
 
 impl MountedFilesystem {
-    fn new_externally_mounted(mountpoint: PathBuf) -> MountedFilesystem {
+    pub fn new_externally_mounted(mountpoint: PathBuf) -> MountedFilesystem {
         MountedFilesystem {
             mountpoint,
             // TODO(richo) Should we look this up?
             device: PathBuf::new(),
             mounter: Box::new(ExternallyMounted{}),
         }
+    }
+}
+
+impl MountedFilesystem {
+    pub fn path(&self) -> &Path {
+        &self.mountpoint
     }
 }
 

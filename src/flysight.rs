@@ -4,9 +4,9 @@ use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 
 use super::config::MountableDeviceLocation;
-use super::peripheral::MountablePeripheral;
+use super::peripheral::{self, MountablePeripheral, MountableKind};
 use super::staging::{Staging, DateTimeUploadable};
-use crate::mountable::MountedFilesystem;
+use crate::mountable::{UdisksMounter, MountedFilesystem};
 
 use chrono;
 use chrono::prelude::*;
@@ -19,7 +19,7 @@ pub struct Flysight {
     location: MountableDeviceLocation,
 }
 
-#[derive(Eq, PartialEq, Debug, Hash)]
+#[derive(Debug)]
 pub struct MountedFlysight {
     flysight: Flysight,
     mount: MountedFilesystem,
@@ -88,8 +88,20 @@ impl DateTimeUploadable for FlysightFile {
 }
 
 impl MountablePeripheral for Flysight {
+    type Output = MountedFlysight;
+
     fn location(&self) -> &MountableDeviceLocation {
         &self.location
+    }
+}
+
+impl MountableKind for MountedFlysight {
+    fn from_mounted_parts<T>(this: T, mount: MountedFilesystem) -> Self
+    where T: MountablePeripheral {
+        MountedFlysight {
+            flysight: this,
+            mount,
+        }
     }
 }
 
@@ -100,9 +112,25 @@ impl Flysight {
     pub fn name(&self) -> &String {
         &self.name
     }
+
+    // TODO(richo) I think this is all superfluous
+
+    #[cfg(test)]
+    fn mount_for_test(self) -> MountedFlysight {
+        let loc = match &self.location {
+            MountableDeviceLocation::Label(_) => panic!("Labels not supported in tests"),
+            MountableDeviceLocation::Mountpoint(mp) => mp.clone(),
+        };
+
+        let mount = MountedFilesystem::new_externally_mounted(loc);
+        MountedFlysight {
+            flysight: self,
+            mount,
+        }
+    }
 }
 
-impl Staging for Flysight {
+impl Staging for MountedFlysight {
     type FileType = FlysightFile;
 
     fn files(&self) -> Result<Vec<FlysightFile>, Error> {
@@ -117,7 +145,7 @@ impl Staging for Flysight {
         }
 
         let mut out = vec![];
-        let path = Path::new(&self.path);
+        let path = Path::new(&self.mount.path());
         for entry in fs::read_dir(path)? {
             let entry = entry?;
             // Enter into directories that are named appropriately
@@ -155,10 +183,11 @@ mod tests {
     fn test_flysight_loads_files() {
         let flysight = Flysight {
             name: "data".into(),
-            path: "test-data/flysight".into(),
+            location: MountableDeviceLocation::from_mountpoint("test-data/flysight".into()),
         };
+        let mounted = flysight.mount_for_test();
 
-        let files = flysight.files().expect("Couldn't load test files");
+        let files = mounted.files().expect("Couldn't load test files");
         assert_eq!(files.len(), 3);
     }
 
@@ -166,10 +195,11 @@ mod tests {
     fn test_flysight_parses_dates() {
         let flysight = Flysight {
             name: "data".into(),
-            path: "test-data/flysight".into(),
+            location: MountableDeviceLocation::from_mountpoint("test-data/flysight".into()),
         };
+        let mounted = flysight.mount_for_test();
 
-        let files = flysight.files().expect("Couldn't load test files");
+        let files = mounted.files().expect("Couldn't load test files");
         assert_eq!(
             files[0].capture_datetime().unwrap(),
             Local.ymd(2018, 8, 24).and_hms(9, 55, 30)
@@ -191,9 +221,12 @@ mod tests {
 
         let flysight = Flysight {
             name: "data".into(),
-            path: source.path().to_path_buf(),
+            location: MountableDeviceLocation::from_mountpoint(source.path().to_path_buf()),
         };
-        flysight.stage_files("data", &dest).unwrap();
+        let mounted = flysight.mount_for_test();
+
+
+        mounted.stage_files("data", &dest).unwrap();
         // TODO(richo) test harder
         let iter = fs::read_dir(&dest.path()).unwrap();
         let files: Vec<_> = iter.collect();

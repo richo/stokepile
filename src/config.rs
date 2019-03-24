@@ -194,6 +194,16 @@ pub enum MountableDeviceLocation {
     Label(String),
 }
 
+impl MountableDeviceLocation {
+    pub fn from_mountpoint(pb: PathBuf) -> MountableDeviceLocation {
+        MountableDeviceLocation::Mountpoint(pb)
+    }
+
+    pub fn from_label(lbl: String) -> MountableDeviceLocation {
+        MountableDeviceLocation::Label(lbl)
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct FlysightConfig {
     pub name: String,
