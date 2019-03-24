@@ -247,13 +247,9 @@ pub struct StagingDevice {
 
 impl StagingDevice {
     pub fn new(location: MountableDeviceLocation) -> Result<Self, MountError> {
-        // We create the mountpoint ourselves, but then we shell out to our setuid helper to
-        // actually arrange for it to be mounted there.
-        let mut out = StagingDevice {
+        StagingDevice {
             location,
-        };
-
-        Ok(out)
+        }
     }
 }
 

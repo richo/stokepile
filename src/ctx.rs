@@ -10,7 +10,7 @@ use lockfile::Lockfile;
 use crate::config;
 use crate::mailer;
 use crate::pushover_notifier;
-use crate::staging::{StagingDirectory, StageableLocation};
+use crate::staging::StagingDirectory;
 
 /// Ctx is the global context object. Constructed by consuming a `config::Config`.
 pub struct Ctx {

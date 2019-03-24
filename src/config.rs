@@ -13,7 +13,7 @@ use crate::local_backup::LocalBackup;
 use crate::mailer::SendgridMailer;
 use crate::mass_storage::MassStorage;
 use crate::pushover_notifier::PushoverNotifier;
-use crate::staging::{StagingDirectory, StageableLocation};
+use crate::staging::StagingDirectory;
 use crate::storage::StorageAdaptor;
 use crate::vimeo::VimeoClient;
 

@@ -1,12 +1,12 @@
 use std::cmp::Ordering;
 use std::fs::{self, File};
 use std::os::unix::ffi::OsStrExt;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use super::config::MountableDeviceLocation;
-use super::peripheral::{self, MountablePeripheral, MountableKind};
+use super::peripheral::{MountablePeripheral, MountableKind};
 use super::staging::{Staging, DateTimeUploadable};
-use crate::mountable::{UdisksMounter, MountedFilesystem};
+use crate::mountable::MountedFilesystem;
 
 use chrono;
 use chrono::prelude::*;

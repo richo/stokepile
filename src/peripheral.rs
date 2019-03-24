@@ -2,7 +2,7 @@ use failure::Error;
 use std::fs;
 use std::path::PathBuf;
 use crate::config::MountableDeviceLocation;
-use crate::mountable::{ExternallyMounted, UdisksMounter, MountedFilesystem};
+use crate::mountable::{UdisksMounter, MountedFilesystem};
 
 #[cfg(target_os = "linux")]
 fn device_for_label(lbl: &str) -> PathBuf {
