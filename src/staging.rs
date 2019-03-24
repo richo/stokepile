@@ -13,6 +13,8 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 
 use crate::config::MountableDeviceLocation;
+use crate::peripheral::{MountablePeripheral, MountableKind};
+use crate::mountable::MountedFilesystem;
 
 #[derive(Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub enum RemotePathDescriptor {
@@ -119,7 +121,7 @@ where T: UploadableFile,
 
 /// The contract of StageableLocation is a directory with a bunch of flat files under it. Doing
 /// things other than this will probably panic implementors.
-pub trait StageableLocation: Debug + Sync + Send {
+pub trait StageableLocation: Debug {
     /// Return a path relative to this location for the given path.
     ///
     /// It's annoying that these can't be Path's with lifetime bounds that force them not to
@@ -213,6 +215,20 @@ pub struct StagingDirectory {
     path: PathBuf,
 }
 
+impl StagingDirectory {
+    pub fn new(path: PathBuf) -> Self {
+        StagingDirectory {
+            path,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct MountedStagingDevice {
+    device: StagingDevice,
+    mount: MountedFilesystem,
+}
+
 impl StageableLocation for StagingDirectory {
     fn relative_path(&self, path: &Path) -> PathBuf {
         assert!(path.is_relative());
@@ -224,21 +240,28 @@ impl StageableLocation for StagingDirectory {
     }
 }
 
-impl StagingDirectory {
-    pub fn new(path: PathBuf) -> Self {
-        StagingDirectory {
-            path,
+impl StageableLocation for MountedStagingDevice {
+    fn relative_path(&self, path: &Path) -> PathBuf {
+        assert!(path.is_relative());
+        self.mount.path().join(&path)
+    }
+
+    fn read_dir(&self) -> Result<fs::ReadDir, io::Error> {
+        fs::read_dir(&self.mount.path())
+    }
+}
+
+impl MountableKind for MountedStagingDevice {
+    type This = StagingDevice;
+
+    fn from_mounted_parts(this: Self::This, mount: MountedFilesystem) -> Self {
+        MountedStagingDevice {
+            device: this,
+            mount,
         }
     }
 }
 
-#[derive(Fail, Debug)]
-pub enum MountError {
-    #[fail(display = "Failed to create mountpoint: {}.", _0)]
-    TempDir(io::Error),
-    #[fail(display = "Failed to mount device: {}.", _0)]
-    Mount(Error),
-}
 
 #[derive(Debug)]
 pub struct StagingDevice {
@@ -253,20 +276,11 @@ impl StagingDevice {
     }
 }
 
-// impl Mountable for StagingDevice {
-//     type Mountpoint = tempfile::TempDir;
+impl MountablePeripheral for StagingDevice {
+    type Output = MountedStagingDevice;
 
-//     fn set_mountpoint(&mut self, mountpoint: Self::Mountpoint) {
-//         self.mountpoint = Some(mountpoint)
-//     }
-//     fn device(&self) -> &Path {
-//         &self.device
-//     }
-// }
-
-impl Drop for StagingDevice {
-    fn drop(&mut self) {
-        // TODO(richo) unmount the device, clean up the tempdir.
+    fn location(&self) -> &MountableDeviceLocation {
+        &self.location
     }
 }
 
