@@ -65,7 +65,7 @@ fn main() {
 
         for device in devices {
             let msg = format!("Finished staging: {}", device.name());
-            device.stage_files(&*ctx.staging)?;
+            device.stage_files(ctx.staging())?;
             maybe_notify(&msg);
         }
 

@@ -10,7 +10,7 @@ use lockfile::Lockfile;
 use crate::config;
 use crate::mailer;
 use crate::pushover_notifier;
-use crate::staging::StageableLocation;
+use crate::staging::{StagingDirectory, StageableLocation};
 
 /// Ctx is the global context object. Constructed by consuming a `config::Config`.
 pub struct Ctx {
@@ -22,7 +22,7 @@ pub struct Ctx {
     /// An optional mailer that will be used to send reports when uploads finish or fail.
     pub mailer: Option<mailer::SendgridMailer>,
     /// The staging adaptor that we'll be using.
-    pub staging: Box<dyn StageableLocation>,
+    pub staging: StagingDirectory,
     // This lock is optional, since we can opt into building it without, but by making the lock
     // part of this API we can't accidentally end up not having one.
     _lock: Option<lockfile::Lockfile>,
@@ -67,7 +67,7 @@ impl Ctx {
     fn create_ctx(cfg: config::Config, should_lock: bool) -> Result<Ctx, Error> {
         let notifier = cfg.notifier();
         let mailer = cfg.mailer();
-        let staging = Box::new(cfg.staging()?);
+        let staging = cfg.staging()?;
 
         let _lock = if should_lock {
             Some(acquire_lock()?)
@@ -85,8 +85,8 @@ impl Ctx {
         })
     }
 
-    pub fn staging(&self) -> &dyn StageableLocation {
-        &*self.staging
+    pub fn staging(&self) -> &StagingDirectory {
+        &self.staging
     }
 }
 

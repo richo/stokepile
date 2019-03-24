@@ -78,7 +78,7 @@ impl<T> UploadableFile for T where T: DateTimeUploadable {
     }
 }
 
-pub fn stage_file<T, U>(mut file: T, destination: U, name: &str) -> Result<(), Error>
+pub fn stage_file<T, U>(mut file: T, destination: &U, name: &str) -> Result<(), Error>
 where T: UploadableFile,
       U: StageableLocation,
 {
@@ -556,10 +556,10 @@ impl StageableLocation for tempfile::TempDir {
 
 impl<T> StageableLocation for &T where T: StageableLocation {
     fn relative_path(&self, path: &Path) -> PathBuf {
-        self.relative_path(path)
+        (*self).relative_path(path)
     }
 
     fn read_dir(&self) -> Result<fs::ReadDir, io::Error> {
-        self.read_dir()
+        (*self).read_dir()
     }
 }

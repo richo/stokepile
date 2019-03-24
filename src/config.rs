@@ -415,7 +415,7 @@ impl Config {
     }
 
     /// Returns an owned reference to the staging directory, expanded to be absolute
-    pub fn staging(&self) -> Result<impl StageableLocation, Error> {
+    pub fn staging(&self) -> Result<StagingDirectory, Error> {
         match self.archiver.staging {
             Some(StagingConfig::StagingDirectory(ref path)) if path.is_absolute() => {
                 Ok(StagingDirectory::new(path.to_path_buf()))
@@ -901,7 +901,7 @@ mountpoint="/mnt/archiver/training"
 
 [[flysight]]
 name = "comp"
-mountpoint="/mnt/archiver/comp"
+label="COMP_FLYSIGHT"
 "#,
         )
         .unwrap();
@@ -925,7 +925,7 @@ extensions = ["mp4"]
 
 [[mass_storage]]
 name = "back"
-mountpoint="/mnt/archiver/back"
+label="back_mass_storage"
 extensions = ["mov"]
 
 [[flysight]]

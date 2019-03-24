@@ -10,7 +10,7 @@ use std::fmt::Debug;
 pub struct MountedFilesystem {
     mountpoint: PathBuf,
     device: PathBuf,
-    mounter: Box<dyn Mounter>,
+    mounter: Box<dyn Unmounter>,
 }
 
 impl MountedFilesystem {
@@ -65,17 +65,17 @@ impl UdisksMounter {
     }
 }
 
-trait Mounter: Debug{
-    fn unmount(&mut self, fs: &mut MountedFilesystem);
+trait Unmounter: Debug {
+    fn unmount(&mut self, device: &Path);
 }
 
-impl Mounter for UdisksMounter {
-    fn unmount(&mut self, fs: &mut MountedFilesystem) {
+impl Unmounter for UdisksMounter {
+    fn unmount(&mut self, device: &Path) {
         match Command::new("udisksctl")
             .arg("unmount")
             .arg("--no-user-interaction")
             .arg("-b")
-            .arg(&fs.device)
+            .arg(device)
             .output()
         {
             Ok(child) => {
@@ -93,14 +93,19 @@ impl Mounter for UdisksMounter {
     }
 }
 
-impl Mounter for ExternallyMounted {
-    fn unmount(&mut self, fs: &mut MountedFilesystem) {
+impl Unmounter for ExternallyMounted {
+    fn unmount(&mut self, _: &Path) {
         info!("Doing nothing because this was mounted when we got here");
     }
 }
 
 impl Drop for MountedFilesystem {
     fn drop(&mut self) {
-        self.mounter.unmount(&mut self);
+        let MountedFilesystem {
+            mountpoint,
+            device,
+            mounter,
+        } = self;
+        mounter.unmount(device);
     }
 }
