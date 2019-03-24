@@ -246,7 +246,7 @@ pub struct StagingDevice {
 }
 
 impl StagingDevice {
-    pub fn new(location: MountableDeviceLocation) -> Result<Self, MountError> {
+    pub fn new(location: MountableDeviceLocation) -> Self {
         StagingDevice {
             location,
         }

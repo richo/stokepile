@@ -4,7 +4,7 @@ use super::*;
 use crate::web::schema::devices;
 
 use crate::config;
-use crate::config::{FlysightConfig, GoproConfig, MassStorageConfig};
+use crate::config::{FlysightConfig, GoproConfig, MassStorageConfig, MountableDeviceLocation};
 
 #[derive(Identifiable, Queryable, Associations, Debug, Serialize)]
 #[belongs_to(User)]
@@ -31,12 +31,12 @@ impl From<Device> for config::DeviceConfig {
                     name: device.name,
                     // TODO(richo) add a metadata field and store this there
                     extensions: vec!["mp4".into()],
-                    mountpoint: device.identifier,
+                    location: MountableDeviceLocation::from_label(device.identifier),
                 })
             }
             "flysight" => config::DeviceConfig::Flysight(FlysightConfig {
                 name: device.name,
-                mountpoint: device.identifier,
+                location: MountableDeviceLocation::from_label(device.identifier),
             }),
             kind => {
                 // This feels sound with the overlapping borrows, revisit?
