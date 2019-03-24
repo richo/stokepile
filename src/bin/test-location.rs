@@ -8,10 +8,6 @@ use archiver::cli;
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
     cli::base_opts()
         .about("Smoke test the location and mounting")
-        .arg(Arg::with_name("LABEL")
-             .help("Label of the device to test mount")
-             .required(true)
-             .index(1))
 }
 
 
