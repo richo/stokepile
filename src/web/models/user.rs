@@ -19,7 +19,7 @@ pub struct User {
     pub password: String,
     pub notify_email: Option<String>,
     pub notify_pushover: Option<String>,
-    pub staging_type: Option<StagingKind>,
+    pub staging_type: StagingKind,
     pub staging_location: Option<String>,
 }
 
@@ -109,9 +109,8 @@ impl User {
             Some(location) => {
                 let location = PathBuf::from(location);
                 match self.staging_type {
-                    Some(StagingKind::Directory) => Some(StagingConfig::StagingDirectory(location)),
-                    Some(StagingKind::Device) => Some(StagingConfig::StagingDevice(location)),
-                    None => return None,
+                    StagingKind::Directory => Some(StagingConfig::StagingDirectory(location)),
+                    StagingKind::Device => Some(StagingConfig::StagingDevice(location)),
                 }
             },
             None => return None,

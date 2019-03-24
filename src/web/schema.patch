@@ -8,7 +8,7 @@
          id -> Int4,
 @@ -36,13 +38,16 @@
  }
- 
+
  table! {
 +    use diesel::sql_types::*;
 +    use crate::web::models::extra::StagingKindMapping;
@@ -19,8 +19,8 @@
          password -> Varchar,
          notify_email -> Nullable<Varchar>,
          notify_pushover -> Nullable<Varchar>,
--        staging_type -> Nullable<Stagingkind>,
-+        staging_type -> Nullable<StagingKindMapping>,
+-        staging_type -> Stagingkind,
++        staging_type -> StagingKindMapping,
          staging_location -> Nullable<Varchar>,
      }
  }

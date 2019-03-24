@@ -47,7 +47,7 @@ table! {
         password -> Varchar,
         notify_email -> Nullable<Varchar>,
         notify_pushover -> Nullable<Varchar>,
-        staging_type -> Nullable<StagingKindMapping>,
+        staging_type -> StagingKindMapping,
         staging_location -> Nullable<Varchar>,
     }
 }
