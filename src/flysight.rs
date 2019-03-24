@@ -96,8 +96,9 @@ impl MountablePeripheral for Flysight {
 }
 
 impl MountableKind for MountedFlysight {
-    fn from_mounted_parts<T>(this: T, mount: MountedFilesystem) -> Self
-    where T: MountablePeripheral {
+    type This = Flysight;
+
+    fn from_mounted_parts(this: Self::This, mount: MountedFilesystem) -> Self {
         MountedFlysight {
             flysight: this,
             mount,
@@ -145,8 +146,8 @@ impl Staging for MountedFlysight {
         }
 
         let mut out = vec![];
-        let path = Path::new(&self.mount.path());
-        for entry in fs::read_dir(path)? {
+        let mount_path = self.mount.path();
+        for entry in fs::read_dir(mount_path)? {
             let entry = entry?;
             // Enter into directories that are named appropriately
             if entry.file_type()?.is_dir() && DATE.is_match(&entry.file_name().as_bytes()) {

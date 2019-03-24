@@ -235,7 +235,8 @@ impl LocalBackupConfig {
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct MassStorageConfig {
     pub name: String,
-    pub mountpoint: String,
+    #[serde(flatten)]
+    pub location: MountableDeviceLocation,
     pub extensions: Vec<String>,
 }
 
@@ -243,7 +244,7 @@ impl MassStorageConfig {
     pub fn mass_storage(&self) -> MassStorage {
         MassStorage {
             name: self.name.clone(),
-            path: PathBuf::from(self.mountpoint.clone()),
+            location: self.location.clone(),
             extensions: self.extensions.iter().map(|x| x.to_lowercase()).collect(),
         }
     }
@@ -565,7 +566,7 @@ mod tests {
             config.flysight,
             Some(vec![FlysightConfig {
                 name: "data".into(),
-                mountpoint: "/mnt/archiver/flysight".into(),
+                location: MountableDeviceLocation::from_mountpoint("/mnt/archiver/flysight".into()),
             }])
         );
 
@@ -573,7 +574,7 @@ mod tests {
             config.mass_storage,
             Some(vec![MassStorageConfig {
                 name: "video".into(),
-                mountpoint: "/mnt/archiver/mass_storage".into(),
+                location: MountableDeviceLocation::from_mountpoint("/mnt/archiver/mass_storage".into()),
                 extensions: vec!["mp4".into()],
             }])
         );
@@ -792,12 +793,12 @@ token="DROPBOX_TOKEN_GOES_HERE"
             &vec![
                 MassStorageConfig {
                     name: "front".into(),
-                    mountpoint: "/mnt/archiver/front".into(),
+                    location: MountableDeviceLocation::Mountpoint("/mnt/archiver/front".into()),
                     extensions: vec!["mp4".into()],
                 },
                 MassStorageConfig {
                     name: "back".into(),
-                    mountpoint: "/mnt/archiver/back".into(),
+                    location: MountableDeviceLocation::Label("back_mass_storage".into()),
                     extensions: vec!["mov".into()],
                 }
             ]
@@ -826,11 +827,11 @@ token="DROPBOX_TOKEN_GOES_HERE"
             &vec![
                 FlysightConfig {
                     name: "training".into(),
-                    mountpoint: "/mnt/archiver/training".into(),
+                    location: MountableDeviceLocation::Mountpoint("/mnt/archiver/training".into()),
                 },
                 FlysightConfig {
                     name: "comp".into(),
-                    mountpoint: "/mnt/archiver/comp".into(),
+                    location: MountableDeviceLocation::Label("COMP_FLYSIGHT".into()),
                 }
             ]
         )
@@ -852,7 +853,7 @@ extensions = ["mp4"]
 
 [[mass_storage]]
 name = "back"
-mountpoint="/mnt/archiver/back"
+label = "back_mass_storage"
 extensions = ["mov"]
 "#,
         )
@@ -933,7 +934,7 @@ mountpoint="/mnt/archiver/training"
 
 [[flysight]]
 name = "comp"
-mountpoint="/mnt/archiver/comp"
+label="COMP_FLYSIGHT"
 "#,
         )
         .unwrap();

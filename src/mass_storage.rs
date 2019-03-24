@@ -113,8 +113,9 @@ impl MountablePeripheral for MassStorage {
 }
 
 impl MountableKind for MountedMassStorage {
-    fn from_mounted_parts<T>(this: T, mount: MountedFilesystem) -> Self
-    where T: MountablePeripheral {
+    type This = MassStorage;
+
+    fn from_mounted_parts(this: Self::This, mount: MountedFilesystem) -> Self {
         MountedMassStorage {
             mass_storage: this,
             mount,

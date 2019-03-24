@@ -66,16 +66,16 @@ impl UdisksMounter {
 }
 
 trait Mounter: Debug{
-    fn unmount(&mut self, fs: &MountedFilesystem);
+    fn unmount(&mut self, fs: &mut MountedFilesystem);
 }
 
 impl Mounter for UdisksMounter {
-    fn unmount(&mut self, fs: &MountedFilesystem) {
+    fn unmount(&mut self, fs: &mut MountedFilesystem) {
         match Command::new("udisksctl")
             .arg("unmount")
             .arg("--no-user-interaction")
             .arg("-b")
-            .arg(fs.device)
+            .arg(&fs.device)
             .output()
         {
             Ok(child) => {
@@ -94,13 +94,13 @@ impl Mounter for UdisksMounter {
 }
 
 impl Mounter for ExternallyMounted {
-    fn unmount(&mut self, fs: &MountedFilesystem) {
+    fn unmount(&mut self, fs: &mut MountedFilesystem) {
         info!("Doing nothing because this was mounted when we got here");
     }
 }
 
 impl Drop for MountedFilesystem {
     fn drop(&mut self) {
-        self.mounter.unmount(&self);
+        self.mounter.unmount(&mut self);
     }
 }

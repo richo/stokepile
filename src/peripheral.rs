@@ -24,17 +24,18 @@ fn attached_by_label(lbl: &str) -> bool {
 }
 
 pub trait MountableKind {
-    fn from_mounted_parts<T>(this: T, mount: MountedFilesystem) -> Self
-    where T: MountablePeripheral;
+    type This: MountablePeripheral;
+
+    fn from_mounted_parts(this: Self::This, mount: MountedFilesystem) -> Self;
 }
 
 pub trait MountablePeripheral: Sized {
-    type Output: MountableKind;
+    type Output: MountableKind<This = Self>;
 
     fn mount(self) -> Result<Self::Output, Error> {
-        let mount = match &self.location {
+        let mount = match self.location() {
             MountableDeviceLocation::Label(lbl) => {
-                let device = device_for_label(lbl);
+                let device = device_for_label(&lbl);
                 UdisksMounter::mount(device)?
             },
             MountableDeviceLocation::Mountpoint(_) => unimplemented!(),

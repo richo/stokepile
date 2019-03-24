@@ -80,7 +80,7 @@ impl<T> UploadableFile for T where T: DateTimeUploadable {
 
 pub fn stage_file<T, U>(mut file: T, destination: U, name: &str) -> Result<(), Error>
 where T: UploadableFile,
-      U: AsRef<Path>,
+      U: StageableLocation,
 {
     let mut desc = file.descriptor(name)?;
 
@@ -90,8 +90,8 @@ where T: UploadableFile,
     let mut options = fs::OpenOptions::new();
     let options = options.write(true).create(true).truncate(true);
 
-    let staging_path = destination.as_ref().join(&staging_name);
-    let manifest_path = destination.as_ref().join(&manifest_name);
+    let staging_path = destination.path_for_name(&staging_name);
+    let manifest_path = destination.path_for_name(&manifest_name);
 
     info!("Staging {} to {:?}", &staging_name, &staging_path);
     {
@@ -130,6 +130,12 @@ pub trait StageableLocation: Debug + Sync + Send {
     /// should be a single API that gives you a containing object for a file and a manifest, and
     /// cleans them up if you don't commit it?
     fn relative_path(&self, path: &Path) -> PathBuf;
+
+    fn path_for_name(&self, name: &str) -> PathBuf {
+        let pb = PathBuf::from(name);
+        assert!(pb.is_relative());
+        self.relative_path(&pb)
+    }
 
     fn file_path(&self, desc: &UploadDescriptor) -> PathBuf {
         let name = desc.staging_name();
@@ -275,12 +281,12 @@ pub trait Staging: Sized {
     fn files(&self) -> Result<Vec<Self::FileType>, Error>;
 
     /// Stage all available files on this device, erasing the device copies as they are staged.
-    fn stage_files<T>(self, name: &str, destination: T) -> Result<(), Error>
+    fn stage_files<T>(self, name: &str, destination: &T) -> Result<(), Error>
     where
-        T: AsRef<Path>,
+        T: StageableLocation,
     {
         for file in self.files()? {
-            stage_file(file, &destination, name)?;
+            stage_file(file, destination, name)?;
         }
 
         Ok(())
@@ -545,5 +551,15 @@ impl StageableLocation for tempfile::TempDir {
 
     fn read_dir(&self) -> Result<fs::ReadDir, io::Error> {
         fs::read_dir(self.path())
+    }
+}
+
+impl<T> StageableLocation for &T where T: StageableLocation {
+    fn relative_path(&self, path: &Path) -> PathBuf {
+        self.relative_path(path)
+    }
+
+    fn read_dir(&self) -> Result<fs::ReadDir, io::Error> {
+        self.read_dir()
     }
 }

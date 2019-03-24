@@ -23,13 +23,14 @@ pub enum Device<'a> {
 }
 
 impl Device<'_> {
-    pub fn stage_files(self, destination: &dyn StageableLocation) -> Result<(), Error> {
+    pub fn stage_files<T>(self, destination: T) -> Result<(), Error>
+    where T: StageableLocation {
         match self {
-            Device::Gopro(desc, gopro) => gopro.connect()?.stage_files(&desc.name, destination),
+            Device::Gopro(desc, gopro) => gopro.connect()?.stage_files(&desc.name, &destination),
             Device::MassStorage(desc, mass_storage) => {
-                mass_storage.stage_files(&desc.name, destination)
+                mass_storage.mount()?.stage_files(&desc.name, &destination)
             }
-            Device::Flysight(desc, flysight) => flysight.mount()?.stage_files(&desc.name, destination),
+            Device::Flysight(desc, flysight) => flysight.mount()?.stage_files(&desc.name, &destination),
         }
     }
 
