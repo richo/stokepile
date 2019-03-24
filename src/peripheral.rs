@@ -20,6 +20,7 @@ fn device_for_label(lbl: &str) -> PathBuf {
 
 fn attached_by_label(lbl: &str) -> bool {
     let pb = device_for_label(lbl);
+    info!("Checking if {:?} exists", &pb);
     pb.exists()
 }
 
