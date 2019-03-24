@@ -1,10 +1,7 @@
-use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::fmt::Debug;
 use std::fs::{self, File};
 use std::io::{self, Read};
-use std::path::Path;
-use std::path::PathBuf;
 
 use chrono;
 use chrono::prelude::*;
@@ -14,6 +11,8 @@ use failure::Error;
 use hashing_copy;
 use serde::{Deserialize, Serialize};
 use serde_json;
+
+use crate::config::MountableDeviceLocation;
 
 #[derive(Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub enum RemotePathDescriptor {
@@ -238,20 +237,15 @@ pub enum MountError {
 #[derive(Debug)]
 pub struct StagingDevice {
     location: MountableDeviceLocation,
-    mountpoint: Option<tempfile::TempDir>,
 }
 
 impl StagingDevice {
-    pub fn new(device: PathBuf) -> Result<Self, MountError> {
+    pub fn new(location: MountableDeviceLocation) -> Result<Self, MountError> {
         // We create the mountpoint ourselves, but then we shell out to our setuid helper to
         // actually arrange for it to be mounted there.
         let mut out = StagingDevice {
-            device,
-            mountpoint: None,
+            location,
         };
-
-        let mountpoint = tempfile::tempdir().map_err(MountError::TempDir)?;
-        out.mount(mountpoint).map_err(MountError::Mount)?;
 
         Ok(out)
     }

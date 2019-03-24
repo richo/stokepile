@@ -4,6 +4,8 @@ use std::process::Command;
 use failure::Error;
 use regex::Regex;
 
+use std::fmt::Debug;
+
 #[derive(Debug)]
 pub struct MountedFilesystem {
     mountpoint: PathBuf,
@@ -36,27 +38,28 @@ impl UdisksMounter {
     {
         let child = Command::new("udisksctl")
             .arg("mount")
+            .arg("--no-user-interaction")
             .arg("-b")
-            .arg(device)
-            .spawn()?;
+            .arg(device.as_ref())
+            .output()?;
 
-        let regex = Regex::new(r"^Mounted (.+) at (.+)\.");
+        let regex = Regex::new(r"^Mounted (.+) at (.+)\.")
+            .expect("Couldn't compile regex");
 
-        let ret = child.wait_with_output()?;
-        if ret.status.success() {
-            if let Some(matches) = regex.captures(ret.stdout) {
+        if child.status.success() {
+            if let Some(matches) = regex.captures(&String::from_utf8_lossy(&child.stdout)) {
                 return Ok(MountedFilesystem {
-                    mountpoint: PathBuf::from(matches.get(2)),
-                    device: device.to_path_buf(),
+                    mountpoint: PathBuf::from(matches.get(2).unwrap().as_str()),
+                    device: device.as_ref().to_path_buf(),
                     mounter: Box::new(UdisksMounter{}),
                 });
             }
         }
-        bail!("Failed to mount: {}", ret.stderr);
+        bail!("Failed to mount: {}", String::from_utf8_lossy(&child.stderr));
     }
 }
 
-trait Mounter {
+trait Mounter: Debug{
     fn unmount(&mut self, fs: &MountedFilesystem);
 }
 
@@ -64,14 +67,14 @@ impl Mounter for UdisksMounter {
     fn unmount(&mut self, fs: &MountedFilesystem) {
         match Command::new("udisksctl")
             .arg("unmount")
+            .arg("--no-user-interaction")
             .arg("-b")
             .arg(fs.device)
-            .spawn()
+            .output()
         {
             Ok(child) => {
-                let ret = child.wait_with_output();
-                if !ret.status.success() {
-                    error!("Couldn't unmount device: {}", ret.stderr);
+                if !child.status.success() {
+                    error!("Couldn't unmount device: {}", String::from_utf8_lossy(&child.stderr));
                 }
             },
             Err(e) => {
@@ -92,6 +95,6 @@ impl Mounter for ExternallyMounted {
 
 impl Drop for MountedFilesystem {
     fn drop(&mut self) {
-        self.mounter.unmount(&self.device);
+        self.mounter.unmount(&self);
     }
 }

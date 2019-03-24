@@ -186,7 +186,7 @@ pub struct VimeoConfig {
     token: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq, Hash)]
 pub enum MountableDeviceLocation {
     #[serde(rename = "mountpoint")]
     Mountpoint(PathBuf),
