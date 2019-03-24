@@ -1,7 +1,7 @@
 use std::fs::{self, File};
 use std::path::{Path, PathBuf};
 use std::fmt::Debug;
-use super::staging::{UploadableFile, RemotePathDescriptor};
+use crate::staging::{UploadableFile, RemotePathDescriptor};
 
 use chrono;
 use chrono::prelude::*;

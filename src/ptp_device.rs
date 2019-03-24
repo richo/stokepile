@@ -3,8 +3,8 @@ use std::io::{self, Read};
 use std::rc::Rc;
 use std::sync::Mutex;
 
-use super::ctx;
-use super::staging::{Staging, DateTimeUploadable};
+use crate::ctx;
+use crate::staging::{Staging, DateTimeUploadable};
 
 use chrono;
 use chrono::prelude::*;

@@ -2,12 +2,12 @@ use std::collections::HashMap;
 
 use failure::Error;
 
-use super::config;
-use super::ctx;
-use super::flysight;
-use super::mass_storage;
-use super::ptp_device;
-use super::staging::{Staging, StageableLocation};
+use crate::config;
+use crate::ctx;
+use crate::flysight;
+use crate::mass_storage;
+use crate::ptp_device;
+use crate::staging::{Staging, StageableLocation};
 use crate::peripheral::MountablePeripheral;
 
 #[derive(Eq, PartialEq, Debug, Hash)]
@@ -108,7 +108,7 @@ fn locate_mass_storages(
 
 #[cfg(test)]
 mod tests {
-    use super::config::Config;
+    use crate::config::Config;
     use super::*;
 
     #[test]

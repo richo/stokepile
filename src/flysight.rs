@@ -3,9 +3,9 @@ use std::fs::{self, File};
 use std::os::unix::ffi::OsStrExt;
 use std::path::PathBuf;
 
-use super::config::MountableDeviceLocation;
-use super::peripheral::{MountablePeripheral, MountableKind};
-use super::staging::{Staging, DateTimeUploadable};
+use crate::config::MountableDeviceLocation;
+use crate::peripheral::{MountablePeripheral, MountableKind};
+use crate::staging::{Staging, DateTimeUploadable};
 use crate::mountable::MountedFilesystem;
 
 use chrono;
