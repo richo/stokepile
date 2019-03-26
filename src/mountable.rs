@@ -102,9 +102,9 @@ impl Unmounter for ExternallyMounted {
 impl Drop for MountedFilesystem {
     fn drop(&mut self) {
         let MountedFilesystem {
-            mountpoint: _,
             device,
             mounter,
+            ..
         } = self;
         mounter.unmount(device);
     }

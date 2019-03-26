@@ -498,7 +498,7 @@ impl ConfigBuilder {
 
     /// Add a local backup to this config
     pub fn local_backup(mut self, local_backup: LocalBackupConfig) -> Self {
-        let mut local_backups = self.local_backup.unwrap_or(vec![]);
+        let mut local_backups = self.local_backup.unwrap_or_else(|| vec![]);
         local_backups.push(local_backup);
         self.local_backup = Some(local_backups);
         self
