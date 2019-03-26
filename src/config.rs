@@ -13,7 +13,8 @@ use crate::local_backup::LocalBackup;
 use crate::mailer::SendgridMailer;
 use crate::mass_storage::MassStorage;
 use crate::pushover_notifier::PushoverNotifier;
-use crate::staging::StagingDirectory;
+use crate::staging::{StageableLocation, StagingDirectory, StagingDevice};
+use crate::peripheral::MountablePeripheral;
 use crate::storage::StorageAdaptor;
 use crate::vimeo::VimeoClient;
 
@@ -135,7 +136,7 @@ pub enum StagingConfig {
     #[serde(rename = "staging_directory")]
     StagingDirectory(PathBuf),
     #[serde(rename = "staging_device")]
-    StagingDevice(PathBuf),
+    StagingDevice(String),
 }
 
 #[cfg(feature = "web")]
@@ -143,7 +144,7 @@ use crate::web::models::extra::StagingKind;
 
 impl StagingConfig {
     #[cfg(feature = "web")]
-    pub fn location(&self) -> &Path {
+    pub fn location(&self) -> &MountableDeviceLocation {
         match self {
             StagingConfig::StagingDirectory(buf) |
             StagingConfig::StagingDevice(buf) => &buf
@@ -162,8 +163,8 @@ impl StagingConfig {
 impl StagingConfig {
     fn is_relative(&self) -> bool {
         match &*self {
-            StagingConfig::StagingDirectory(path) |
-            StagingConfig::StagingDevice(path) => path.is_relative()
+            StagingConfig::StagingDirectory(path) => path.is_relative(),
+            StagingConfig::StagingDevice(_label) => false,
         }
     }
 }
@@ -415,13 +416,14 @@ impl Config {
     }
 
     /// Returns an owned reference to the staging directory, expanded to be absolute
-    pub fn staging(&self) -> Result<StagingDirectory, Error> {
+    pub fn staging(&self) -> Result<Box<dyn StageableLocation>, Error> {
         match self.archiver.staging {
             Some(StagingConfig::StagingDirectory(ref path)) if path.is_absolute() => {
-                Ok(StagingDirectory::new(path.to_path_buf()))
+                Ok(Box::new(StagingDirectory::new(path.to_path_buf())))
             },
-            Some(StagingConfig::StagingDevice(ref device_path)) if device_path.is_absolute() => {
-                unimplemented!()
+            Some(StagingConfig::StagingDevice(ref label)) => {
+                Ok(Box::new(StagingDevice::new(MountableDeviceLocation::Label(label.clone()))
+                                               .mount()?))
             },
             Some(_) => {
                 // It shouldn't be possible to get an absolute path because of the guards in
@@ -642,14 +644,14 @@ token = "TOKEN"
         let cfg = Config::from_str(
             r#"
 [archiver]
-staging_device="/dev/staging"
+staging_device="LABEL"
 
 [dropbox]
 token = "TOKEN"
 "#,
         )
         .unwrap();
-        assert_eq!(cfg.archiver.staging, Some(StagingConfig::StagingDevice(PathBuf::from("/dev/staging"))));
+        assert_eq!(cfg.archiver.staging, Some(StagingConfig::StagingDevice("LABEL".into())));
     }
 
     #[test]

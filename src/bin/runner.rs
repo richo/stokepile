@@ -71,8 +71,7 @@ fn main() {
 
         // Run the uploader thread syncronously as a smoketest for the daemon mode
         // This is fine for now, we have to lift this into the trait
-        let staging = ctx.staging();
-        let report = storage::upload_from_staged(staging, &backends)?;
+        let report = storage::upload_from_staged(ctx.staging(), &backends)?;
 
         maybe_notify("Finished uploading media");
 

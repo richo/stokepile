@@ -32,6 +32,7 @@ impl MountedFilesystem {
 
 #[derive(Debug)]
 pub struct ExternallyMounted {
+    // TODO(richo) This should include some preflight magic to make sure it's really mounted
 }
 
 #[derive(Debug)]

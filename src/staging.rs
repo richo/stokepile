@@ -80,9 +80,8 @@ impl<T> UploadableFile for T where T: DateTimeUploadable {
     }
 }
 
-pub fn stage_file<T, U>(mut file: T, destination: &U, name: &str) -> Result<(), Error>
-where T: UploadableFile,
-      U: StageableLocation,
+pub fn stage_file<T, U: ?Sized>(mut file: T, destination: &MountedStaging, name: &str) -> Result<(), Error>
+where T: UploadableFile
 {
     let mut desc = file.descriptor(name)?;
 
@@ -117,6 +116,21 @@ where T: UploadableFile,
     file.delete()?;
 
     Ok(())
+}
+
+#[derive(Debug)]
+pub struct MountedStaging {
+    mount: MountedFilesystem,
+}
+
+impl MountedStaging {
+    pub fn relative_path(&self, path: &Path) -> PathBuf {
+        (**self).relative_path(path)
+    }
+
+    pub fn read_dir(&self) -> Result<fs::ReadDir, io::Error> {
+        (**self).read_dir()
+    }
 }
 
 /// The contract of StageableLocation is a directory with a bunch of flat files under it. Doing
@@ -181,13 +195,6 @@ pub trait StageableLocation: Debug {
 }
 
 impl<T: StageableLocation> StageableLocation for Box<T> {
-    fn relative_path(&self, path: &Path) -> PathBuf {
-        (**self).relative_path(path)
-    }
-
-    fn read_dir(&self) -> Result<fs::ReadDir, io::Error> {
-        (**self).read_dir()
-    }
 }
 
 #[derive(Debug)]
@@ -291,10 +298,7 @@ pub trait Staging: Sized {
     fn files(&self) -> Result<Vec<Self::FileType>, Error>;
 
     /// Stage all available files on this device, erasing the device copies as they are staged.
-    fn stage_files<T>(self, name: &str, destination: &T) -> Result<(), Error>
-    where
-        T: StageableLocation,
-    {
+    fn stage_files<T: ?Sized>(self, name: &str, destination: &MountedStaging) -> Result<(), Error> {
         for file in self.files()? {
             stage_file(file, destination, name)?;
         }
