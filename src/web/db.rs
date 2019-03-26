@@ -1,9 +1,10 @@
 use std::env;
 use std::fmt;
 use std::ops::Deref;
+use failure::Error;
 
 use diesel::pg::PgConnection;
-use diesel::r2d2::{ConnectionManager, CustomizeConnection, Error, Pool, PooledConnection};
+use diesel::r2d2::{self, ConnectionManager, CustomizeConnection, Pool, PooledConnection};
 use diesel::Connection;
 
 use rocket::http::Status;
@@ -72,11 +73,18 @@ impl Deref for DbConn {
     }
 }
 
+pub fn run_migrations() -> Result<(), Error> {
+    let database_url = env::var("DATABASE_URL")?;
+    let mut conn = PgConnection::establish(&database_url)?;
+    diesel_migrations::run_pending_migrations(&mut conn)?;
+    Ok(())
+}
+
 #[derive(Debug)]
 struct TestTransactionCustomizer;
 
-impl CustomizeConnection<PgConnection, Error> for TestTransactionCustomizer {
-    fn on_acquire(&self, conn: &mut PgConnection) -> Result<(), Error> {
-        conn.begin_test_transaction().map_err(Error::QueryError)
+impl CustomizeConnection<PgConnection, r2d2::Error> for TestTransactionCustomizer {
+    fn on_acquire(&self, conn: &mut PgConnection) -> Result<(), r2d2::Error> {
+        conn.begin_test_transaction().map_err(r2d2::Error::QueryError)
     }
 }

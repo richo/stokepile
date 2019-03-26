@@ -2,11 +2,13 @@
 
 use dotenv;
 
+use archiver::web::db::run_migrations;
 use archiver::web::configure_rocket;
 
 fn main() {
     archiver::cli::run(|| {
         dotenv::dotenv().ok();
+        run_migrations()?;
         configure_rocket().launch();
         Ok(())
     })
