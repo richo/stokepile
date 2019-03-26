@@ -41,6 +41,8 @@ pub fn configure_rocket() -> Rocket {
                 routes::settings::get_settings,
                 routes::settings::post_settings,
 
+                routes::healthcheck::healthcheck,
+
                 routes::index::index,
 
                 routes::integrations::connect_integration,
@@ -64,6 +66,9 @@ pub fn create_test_rocket(routes: Vec<rocket::Route>) -> Rocket {
             "/",
             routes,
         )
+        .attach(Template::custom(|engines| {
+            engines.handlebars.register_helper("maybe_selected", Box::new(maybe_selected));
+        }))
 }
 
 #[cfg(test)]
