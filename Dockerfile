@@ -7,4 +7,4 @@ ADD . /app
 WORKDIR /app
 RUN cargo install diesel_cli
 RUN cargo +nightly build --features=web
-CMD /usr/local/cargo/bin/diesel setup && cargo +nightly run --bin=server --features=web
+CMD /usr/local/cargo/bin/diesel setup && ./target/release/server
