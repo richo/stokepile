@@ -14,7 +14,6 @@ edition = "2018"
   "bcrypt",
   "rand",
   "oauth2",
-  "dotenv"
 ]
 
 [dependencies]
@@ -26,10 +25,10 @@ diesel_migrations = { version = "1.4.0", optional = true }
 bcrypt = { version = "0.3.0", optional = true }
 rand = { version = "0.6.5", optional = true }
 oauth2 = { version = "2.0.0-alpha.4", optional = true }
-dotenv = { version = "0.13.0", optional = true }
 
 toml = "0.5.0"
 clap = "2.32.0"
+dotenv = "0.13.0"
 serde = { version = "1.0.89", features = ["derive"] }
 serde_derive = "1.0.89"
 serde_json = "1.0.39"
@@ -68,5 +67,6 @@ path = "src/bin/server.rs"
 required-features = ["web"]
 
 [[bin]]
-name = "runner"
-path = "src/bin/runner.rs"
+name = "run_migrations"
+path = "src/bin/run_migrations.rs"
+required-features = ["web"]
