@@ -1,12 +1,11 @@
 #![feature(decl_macro, proc_macro_hygiene)]
 
-use dotenv;
-
+use archiver::cli::init_dotenv;
 use archiver::web::configure_rocket;
 
 fn main() {
     archiver::cli::run(|| {
-        dotenv::dotenv().ok();
+        init_dotenv()?;
         configure_rocket().launch();
         Ok(())
     })
