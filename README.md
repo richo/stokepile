@@ -37,6 +37,31 @@ invoked as:
 
 Will fetch the config from upstream and save it in the current directory.
 
+Permissions
+===========
+
+While every attempt is made to have this runnable from a desktop machine, the
+primary usecase is a dedicated piece of hardware that functions as a docking
+station. My current test rig is running Bionic on a odroid device of some kind.
+In the `contrib` directory can be found some configuration snippits that make
+this a little smoother. Be warned, this grants some fairly substantial access
+to the archiver user, so consider if this makes sense before doing it on your
+desktop.
+
+### archiver.pkla:
+
+This is a polkit localauthority file. It grants anything in the `archiver`
+group (You will need to create this group and add your archiver user to it)
+access to mount attached media. It's probably not super hard to turn this into
+a local privesc.
+
+### archiver.rules
+
+Recently, I had an issue where my unprivileged user wasn't able to access some
+of my libusb devices (but curiously some were fine). Until I figure out what's
+changed, this is a bandaid to allow any user to interact with all libusb
+peripherals.
+
 Contributing
 ------------
 
