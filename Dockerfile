@@ -7,10 +7,4 @@ ADD . /app
 WORKDIR /app
 # RUN cargo install diesel_cli
 RUN cargo +nightly build --features=web --release
-
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates
-WORKDIR /
-COPY web web
-COPY --from=0 /app/target .
 CMD ["./target/release/server"]
