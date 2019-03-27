@@ -48,8 +48,10 @@ pub fn run(main: fn() -> Result<(), ::failure::Error>) {
     if let Err(e) = main() {
         error!("Error running archiver");
         error!("{:?}", e);
-        if ::std::env::var("RUST_BACKTRACE").is_ok() {
+        if ::std::env::var("ARCHIVER_BACKTRACE").is_ok() {
             error!("{:?}", e.backtrace());
+        } else {
+            info!("Set ARCHIVER_BACKTRACE for more information");
         }
         ::std::process::exit(1);
     }
