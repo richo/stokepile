@@ -192,6 +192,8 @@ pub enum MountableDeviceLocation {
     Mountpoint(PathBuf),
     #[serde(rename = "label")]
     Label(String),
+    #[serde(rename = "uuid")]
+    UUID(String),
 }
 
 impl MountableDeviceLocation {
