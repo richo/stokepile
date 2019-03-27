@@ -1,7 +1,7 @@
 use std::env;
 use std::fmt;
 use std::ops::Deref;
-use failure::Error;
+use failure::{Context, Error, Fail};
 
 use diesel::pg::PgConnection;
 use diesel::r2d2::{self, ConnectionManager, CustomizeConnection, Pool, PooledConnection};
@@ -14,12 +14,14 @@ use rocket::{Outcome, Request, Rocket, State};
 pub type PgPool = Pool<ConnectionManager<PgConnection>>;
 
 lazy_static! {
-    static ref DATABASE_URL: String =
-        env::var("DATABASE_URL").expect("DATABASE_URL is not set.");
+    static ref DATABASE_URL: Result<String, Context<&'static str>> =
+        env::var("DATABASE_URL").map_err(|e| {
+            e.context("DATABASE_URL is not set")
+        });
 }
 
-pub fn init_pool(test_transactions: bool) -> PgPool {
-    let manager = ConnectionManager::<PgConnection>::new(DATABASE_URL.clone());
+pub fn init_pool(test_transactions: bool) -> Result<PgPool, Error> {
+    let manager = ConnectionManager::<PgConnection>::new((*DATABASE_URL)?.clone());
     let mut builder = Pool::builder();
 
     if test_transactions {
@@ -28,9 +30,7 @@ pub fn init_pool(test_transactions: bool) -> PgPool {
             .connection_customizer(Box::new(TestTransactionCustomizer))
     }
 
-    builder
-        .build(manager)
-        .expect("Could not initialize database pool.")
+    Ok(builder.build(manager)?)
 }
 
 pub struct DbConn(pub PooledConnection<ConnectionManager<PgConnection>>);
@@ -74,7 +74,8 @@ impl Deref for DbConn {
 }
 
 pub fn run_migrations() -> Result<(), Error> {
-    let mut conn = PgConnection::establish(&DATABASE_URL)?;
+    let _ = env::var("DATABASE_URL")?;
+    let mut conn = PgConnection::establish(&(*DATABASE_URL)?)?;
     diesel_migrations::run_pending_migrations(&mut conn)?;
     Ok(())
 }
