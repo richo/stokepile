@@ -13,12 +13,12 @@ use rocket::{Outcome, Request, Rocket, State};
 
 pub type PgPool = Pool<ConnectionManager<PgConnection>>;
 
-pub fn init_pool(test_transactions: bool) -> PgPool {
-    lazy_static! {
-        static ref DATABASE_URL: String =
-            env::var("DATABASE_URL").expect("DATABASE_URL is not set.");
-    }
+lazy_static! {
+    static ref DATABASE_URL: String =
+        env::var("DATABASE_URL").expect("DATABASE_URL is not set.");
+}
 
+pub fn init_pool(test_transactions: bool) -> PgPool {
     let manager = ConnectionManager::<PgConnection>::new(DATABASE_URL.clone());
     let mut builder = Pool::builder();
 
@@ -74,8 +74,7 @@ impl Deref for DbConn {
 }
 
 pub fn run_migrations() -> Result<(), Error> {
-    let database_url = env::var("DATABASE_URL")?;
-    let mut conn = PgConnection::establish(&database_url)?;
+    let mut conn = PgConnection::establish(&DATABASE_URL)?;
     diesel_migrations::run_pending_migrations(&mut conn)?;
     Ok(())
 }
