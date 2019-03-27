@@ -23,6 +23,7 @@ impl PushoverNotifier {
 
 impl Notify for PushoverNotifier {
     fn notify(&self, msg: &str) -> Result<(), Error> {
+        info!("Sending push notification: {}", msg);
         let notification = self.client.build_notification(&self.recipient, msg);
         self.client
             .send(&notification)
@@ -32,10 +33,12 @@ impl Notify for PushoverNotifier {
 
 impl Notify for Option<PushoverNotifier> {
     fn notify(&self, msg: &str) -> Result<(), Error> {
-        info!("sending push notification: {}", msg);
         match self {
             Some(notifier) => notifier.notify(msg),
-            None => Ok(()),
+            None => {
+                info!("Notifier not configured, ignoring push notification: {}", msg);
+                Ok(())
+            }
         }
     }
 }
