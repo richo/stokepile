@@ -65,7 +65,7 @@ impl UdisksMounter {
     }
 }
 
-trait Unmounter: Debug {
+trait Unmounter: Debug + Sync + Send {
     fn unmount(&mut self, device: &Path);
 }
 

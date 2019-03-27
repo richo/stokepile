@@ -65,7 +65,7 @@ impl ArchiverClient {
             Err(ClientError::ServerError(resp.text()?))?;
         }
 
-        resp.text()?.parse()
+        Ok(resp.text()?.parse()?)
     }
 
     pub fn login(&self, email: &str, password: &str) -> Result<SessionToken, Error> {

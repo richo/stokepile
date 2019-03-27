@@ -12,7 +12,9 @@ use hashing_copy;
 use serde::{Deserialize, Serialize};
 use serde_json;
 
-use crate::config::MountableDeviceLocation;
+use crate::config::{MountableDeviceLocation, StagingConfig};
+use crate::mountable::MountedFilesystem;
+use crate::peripheral::{MountablePeripheral, MountableKind};
 
 #[derive(Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub enum RemotePathDescriptor {
@@ -25,6 +27,40 @@ pub enum RemotePathDescriptor {
     },
 }
 
+impl MountablePeripheral for StagingConfig {
+    type Output = MountedStaging;
+
+    fn location(&self) -> &MountableDeviceLocation {
+        &self.location
+    }
+}
+
+impl MountableKind for MountedStaging {
+    type This = StagingConfig;
+
+    fn from_mounted_parts(this: Self::This, mount: MountedFilesystem) -> Self {
+        MountedStaging {
+            staging: this,
+            mount,
+        }
+    }
+}
+
+impl StageableLocation for MountedStaging {
+    fn relative_path(&self, path: &Path) -> PathBuf {
+        self.mount.path().join(path)
+    }
+
+    fn read_dir(&self) -> Result<fs::ReadDir, io::Error> {
+        fs::read_dir(self.mount.path())
+    }
+}
+
+#[derive(Debug)]
+pub struct MountedStaging {
+    staging: StagingConfig,
+    mount: MountedFilesystem,
+}
 
 pub trait UploadableFile {
     type Reader: Read;
@@ -205,30 +241,6 @@ impl StagedFile {
 
     pub fn content_handle(&self) -> Result<File, io::Error> {
         File::open(&self.content_path)
-    }
-}
-
-#[derive(Debug)]
-pub struct StagingDirectory {
-    path: PathBuf,
-}
-
-impl StageableLocation for StagingDirectory {
-    fn relative_path(&self, path: &Path) -> PathBuf {
-        assert!(path.is_relative());
-        self.path.join(&path)
-    }
-
-    fn read_dir(&self) -> Result<fs::ReadDir, io::Error> {
-        fs::read_dir(&self.path)
-    }
-}
-
-impl StagingDirectory {
-    pub fn new(path: PathBuf) -> Self {
-        StagingDirectory {
-            path,
-        }
     }
 }
 
