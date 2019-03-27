@@ -94,3 +94,8 @@ body {
   padding: 0;
   width: 100%;
 }
+
+.home-button {
+  font-size: 125%;
+  background: rgb(66, 184, 221);
+}
