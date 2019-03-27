@@ -18,13 +18,13 @@ pub fn human_readable_size(bytes: usize) -> String {
     for unit in &['k', 'm', 'g', 't'] {
         multiplier *= 1024;
         if *unit != 'k' && bytes < multiplier * 10 {
-            return format!("{:.1}{}", bytes as f32 / multiplier as f32, unit);
+            return format!("{:.1}{}", bytes as f64 / multiplier as f64, unit);
         }
         if bytes < 1024 * multiplier {
-            return format!("{:.0}{}", bytes as f32 / multiplier as f32, unit);
+            return format!("{:.0}{}", bytes as f64 / multiplier as f64, unit);
         }
     }
-    return format!("{}t", bytes as f32 / multiplier as f32);
+    return format!("{}t", bytes as f64 / multiplier as f64);
 }
 
 /// Format a given `Duration` as a formatted amount of time a human might reasonably interpret.

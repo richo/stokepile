@@ -155,6 +155,17 @@ mod tests {
                 ],
         ));
 
+        let mut desc = UploadDescriptor::build("Flock n Dock".to_string())
+                .manual_file("richo/gigantic video.mp4".into());
+        desc.size = 38 * 1024 * 1024 * 1024;
+        report.record_activity(ReportEntry::new(
+                desc,
+                vec![
+                    ("vimeo".into(), UploadStatus::Succeeded),
+                    ("youtube".into(), UploadStatus::AlreadyUploaded),
+                ],
+        ));
+
         report
     }
 
@@ -176,6 +187,10 @@ Flock n Dock
     # vimeo: Succeeded
     # youtube: Succeeded
 
+    /Flock n Dock/richo/gigantic video.mp4 (38gb)
+    # vimeo: Succeeded
+    # youtube: Already uploaded
+
 test-device
 ===========
 
@@ -190,7 +205,7 @@ test-device
 Uploaded Data
 =============
 
-vimeo: 18mb
+vimeo: 38gb
 youtube: 15mb
 ");
         assert_eq!(report.to_plaintext().unwrap(), expected);
