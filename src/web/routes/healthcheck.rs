@@ -1,8 +1,10 @@
 use rocket_contrib::templates::Template;
+
+use crate::web::db::DbConn;
 use crate::web::context::Context;
 
 #[get("/healthcheck")]
-pub fn healthcheck() -> Template {
+pub fn healthcheck(_conn: DbConn) -> Template {
     Template::render("healthcheck", Context::default())
 }
 
