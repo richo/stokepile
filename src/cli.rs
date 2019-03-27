@@ -1,6 +1,7 @@
 use crate::{AUTHOR, VERSION};
 
 use clap::{App, Arg};
+use dotenv;
 
 /// Create the base set of clap options common to all cli commands
 pub fn base_opts<'a, 'b>() -> App<'a, 'b> {
@@ -51,5 +52,14 @@ pub fn run(main: fn() -> Result<(), ::failure::Error>) {
             error!("{:?}", e.backtrace());
         }
         ::std::process::exit(1);
+    }
+}
+
+/// Configure dotenv, ignoring any errors purely because it can't find the dotenv file.
+pub fn init_dotenv() -> Result<(), dotenv::Error> {
+    match dotenv::dotenv() {
+        Err(dotenv::Error::Io(_)) |
+        Ok(_) => Ok(()),
+        Err(e) => Err(e)?,
     }
 }
