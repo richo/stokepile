@@ -53,19 +53,23 @@ pub fn get_config(user: AuthenticatedUser, conn: DbConn) -> Result<Content<Strin
         config = config.staging(staging);
     }
 
-    match config.finish().map(|c| c.to_toml()) {
-        Ok(Ok(config)) => Ok(Content(
-            ContentType::new("application", "toml"),
-            config,
-        )),
-        Ok(Err(error)) |
-        Err(error) => Err(Flash::error(
+    fn build_flash_error(error: Error) -> Flash<Redirect> {
+        Flash::error(
             Redirect::to("/"),
             format!(
                 "There was a problem generating configuration for you: {}",
                 error
             ),
+            )
+    }
+
+    match config.finish().map(|c| c.to_toml()) {
+        Ok(Ok(config)) => Ok(Content(
+            ContentType::new("application", "toml"),
+            config,
         )),
+        Ok(Err(error)) => Err(build_flash_error(error)),
+        Err(error) => Err(build_flash_error(error)),
     }
 }
 
