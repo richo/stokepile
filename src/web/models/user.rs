@@ -26,8 +26,9 @@ pub struct User {
 // we're going to have a mirror struct and some smoke unit tests that break if they're not kept in
 // sync
 pub enum StagingKind {
-    Device,
-    Directory,
+    None,
+    Mountpoint,
+    Label,
 }
 
 impl<'v> FromFormValue<'v> for StagingKind {
