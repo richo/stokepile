@@ -1,3 +1,5 @@
+use failure::Error;
+
 use rocket::get;
 use rocket::response::content::Content;
 use rocket::http::ContentType;
@@ -69,7 +71,7 @@ pub fn get_config(user: AuthenticatedUser, conn: DbConn) -> Result<Content<Strin
             config,
         )),
         Ok(Err(error)) => Err(build_flash_error(error)),
-        Err(error) => Err(build_flash_error(error)),
+        Err(error) => Err(build_flash_error(error.into())),
     }
 }
 
