@@ -9,7 +9,6 @@ use url;
 
 use crate::dropbox;
 use crate::flysight::Flysight;
-use crate::local_backup::LocalBackup;
 use crate::mailer::SendgridMailer;
 use crate::mass_storage::MassStorage;
 use crate::pushover_notifier::PushoverNotifier;
@@ -217,16 +216,8 @@ impl FlysightConfig {
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct LocalBackupConfig {
-    pub mountpoint: String,
-}
-
-impl LocalBackupConfig {
-    pub fn local_backup(&self) -> LocalBackup {
-        // TODO(richo) barf if there's nothing mounted exactly here?
-        LocalBackup {
-            destination: PathBuf::from(self.mountpoint.clone()),
-        }
-    }
+    #[serde(flatten)]
+    pub location: MountableDeviceLocation,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
@@ -402,21 +393,25 @@ impl Config {
         None
     }
 
-    /// Returns a vec of all configured backends
-    pub fn backends(&self) -> Vec<Box<dyn StorageAdaptor<File>>> {
+    /// Returns a vec of Result<Box<StorageAdaptor>>s for each storage adaptor.
+    ///
+    /// It is the responsibility of consumers to decide what do to in the face of not all adaptors
+    /// being present.
+    pub fn backends(&self) -> Vec<Result<Box<dyn StorageAdaptor<File>>, Error>> {
         let mut out: Vec<Box<dyn StorageAdaptor<File>>> = vec![];
         if let Some(ref locals) = self.local_backup {
-            for adaptor in locals {
-                out.push(Box::new(adaptor.local_backup()));
+            for cfg in locals {
+                let mount = cfg.mount().map(|m| Box::new(m));
+                out.push(mount);
             }
         }
         if let Some(ref dropbox) = self.dropbox {
-            out.push(Box::new(dropbox::DropboxFilesClient::new(
+            out.push(Ok(Box::new(dropbox::DropboxFilesClient::new(
                 dropbox.token.clone(),
-            )));
+            ))));
         }
         if let Some(ref vimeo) = self.vimeo {
-            out.push(Box::new(VimeoClient::new(vimeo.token.clone())));
+            out.push(Ok(Box::new(VimeoClient::new(vimeo.token.clone()))));
         }
         out
     }

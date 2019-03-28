@@ -15,6 +15,10 @@ pub struct MountedFilesystem {
 
 impl MountedFilesystem {
     pub fn new_externally_mounted(mountpoint: PathBuf) -> MountedFilesystem {
+        if !mountpoint.exists() {
+            // TODO(richo) this shouldn't panic
+            panic!("Mountpoint doesn't exist at {:?}", &mountpoint);
+        }
         MountedFilesystem {
             mountpoint,
             // TODO(richo) Should we look this up?

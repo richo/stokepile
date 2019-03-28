@@ -1,3 +1,7 @@
+use crate::config::LocalBackupConfig;
+use crate::config::{MountableDeviceLocation};
+use crate::mountable::MountedFilesystem;
+use crate::peripheral::{MountablePeripheral, MountableKind};
 use crate::staging;
 use crate::storage::{StorageAdaptor, StorageStatus};
 use dropbox_content_hasher;
@@ -10,23 +14,43 @@ use digest::Digest;
 use failure::Error;
 
 #[derive(Debug)]
-pub struct LocalBackup {
-    pub(crate) destination: PathBuf
+pub struct MountedLocalBackup {
+    local_backup: LocalBackupConfig,
+    mount: MountedFilesystem,
 }
 
-impl LocalBackup {
+impl MountablePeripheral for LocalBackupConfig {
+    type Output = MountedLocalBackup;
+
+    fn location(&self) -> &MountableDeviceLocation {
+        &self.location
+    }
+}
+
+impl MountableKind for MountedLocalBackup {
+    type This = LocalBackupConfig;
+
+    fn from_mounted_parts(this: Self::This, mount: MountedFilesystem) -> Self {
+        MountedLocalBackup {
+            local_backup: this,
+            mount,
+        }
+    }
+}
+
+impl MountedLocalBackup {
+    fn local_path(&self, manifest: &staging::UploadDescriptor) -> PathBuf {
+        let root = PathBuf::from("/");
+        self.mount.path().join(manifest.remote_path().strip_prefix(&root).unwrap())
+    }
+
     fn containing_dir(&self, manifest: &staging::UploadDescriptor) -> PathBuf {
         let local = self.local_path(manifest);
         local.parent().unwrap().to_path_buf()
     }
-
-    fn local_path(&self, manifest: &staging::UploadDescriptor) -> PathBuf {
-        let root = PathBuf::from("/");
-        self.destination.join(manifest.remote_path().strip_prefix(&root).unwrap())
-    }
 }
 
-impl<T> StorageAdaptor<T> for LocalBackup
+impl<T> StorageAdaptor<T> for MountedLocalBackup
 where
     T: Read,
 {
@@ -86,8 +110,8 @@ mod tests {
 
     #[test]
     fn test_containing_dir() {
-        let backup_adaptor = LocalBackup {
-            destination: PathBuf::from("/test/directory"),
+        let backup_adaptor = LocalBackupConfig {
+            location: MountableDeviceLocation::Mountpoint("/test/directory".into()),
         };
         let manifest = UploadDescriptor::test_descriptor();
 
@@ -97,8 +121,8 @@ mod tests {
 
     #[test]
     fn test_local_path() {
-        let backup_adaptor = LocalBackup {
-            destination: PathBuf::from("/test/directory"),
+        let backup_adaptor = LocalBackupConfig {
+            location: MountableDeviceLocation::Mountpoint("/test/directory".into()),
         };
         let manifest = UploadDescriptor::test_descriptor();
 
@@ -109,8 +133,8 @@ mod tests {
     #[test]
     fn test_already_uploaded() {
         let tmp = test_helpers::tempdir();
-        let adaptor = LocalBackup {
-            destination: tmp.path().to_path_buf(),
+        let adaptor = LocalBackupConfig {
+            location: MountableDeviceLocation::new_externally_mounted(tmp),
         };
 
         let mut manifest = UploadDescriptor::test_descriptor();
