@@ -138,8 +138,8 @@ impl User {
 
         update(self)
             .set((
-                    staging_type.eq(staging.kind()),
-                    staging_location.eq(staging.location().to_string_lossy())
+                    staging_type.eq(staging.kind_for_db()),
+                    staging_location.eq(staging.location_for_db().to_string_lossy())
             ))
             .execute(conn)
     }

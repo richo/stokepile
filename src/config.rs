@@ -140,10 +140,9 @@ pub struct StagingConfig {
 #[cfg(feature = "web")]
 use crate::web::models::extra::StagingKind;
 
-// TODO(richo) This all has to go, web needs to get a MountableLocation abstraction
 impl StagingConfig {
     #[cfg(feature = "web")]
-    pub fn location(&self) -> &Path {
+    pub fn location_for_db(&self) -> &Path {
         match self {
             StagingConfig::StagingDirectory(buf) |
             StagingConfig::StagingDevice(buf) => &buf
@@ -151,7 +150,7 @@ impl StagingConfig {
     }
 
     #[cfg(feature = "web")]
-    pub fn kind(&self) -> StagingKind {
+    pub fn kind_for_db(&self) -> StagingKind {
         match self {
             StagingConfig::StagingDirectory(_) => StagingKind::Directory,
             StagingConfig::StagingDevice(_) => StagingKind::Device,
