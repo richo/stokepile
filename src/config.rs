@@ -10,7 +10,6 @@ use url;
 use crate::dropbox;
 use crate::local_backup::LocalBackup;
 use crate::mailer::SendgridMailer;
-use crate::mass_storage::MassStorage;
 use crate::pushover_notifier::PushoverNotifier;
 use crate::storage::StorageAdaptor;
 use crate::vimeo::VimeoClient;
@@ -227,23 +226,13 @@ impl LocalBackupConfig {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone, Hash)]
 #[serde(deny_unknown_fields)]
 pub struct MassStorageConfig {
     pub name: String,
     #[serde(flatten)]
     pub location: MountableDeviceLocation,
     pub extensions: Vec<String>,
-}
-
-impl MassStorageConfig {
-    pub fn mass_storage(&self) -> MassStorage {
-        MassStorage {
-            name: self.name.clone(),
-            location: self.location.clone(),
-            extensions: self.extensions.iter().map(|x| x.to_lowercase()).collect(),
-        }
-    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]

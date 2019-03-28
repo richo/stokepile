@@ -4,7 +4,6 @@ use failure::Error;
 
 use crate::config;
 use crate::ctx;
-use crate::mass_storage;
 use crate::ptp_device;
 use crate::staging::{Staging, StageableLocation};
 use crate::peripheral::MountablePeripheral;
@@ -15,9 +14,11 @@ pub struct DeviceDescription {
 }
 
 #[derive(Eq, PartialEq, Debug, Hash)]
+// TODO(richo) if we implement the ptp connection stuff in terms of mount, suddenly we can unify
+// this whole thing behind a trait!, and I think the DeviceDescription is now pointless as well.
 pub enum Device<'a> {
     Gopro(DeviceDescription, ptp_device::Gopro<'a>),
-    MassStorage(DeviceDescription, mass_storage::MassStorage),
+    MassStorage(DeviceDescription, config::MassStorageConfig),
     Flysight(DeviceDescription, config::FlysightConfig),
 }
 
@@ -94,7 +95,7 @@ fn locate_mass_storages(
     cfg: &config::Config,
 ) -> Result<impl Iterator<Item = Device<'_>>, Error> {
     Ok(cfg.mass_storages().iter().filter_map(|cfg| {
-        cfg.mass_storage().get().map(|ms| {
+        cfg.clone().get().map(|ms| {
             Device::MassStorage(
                 DeviceDescription {
                     name: cfg.name.clone(),
