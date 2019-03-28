@@ -2,7 +2,7 @@ use std::fs::{self, File};
 use std::path::PathBuf;
 
 use crate::config::{MassStorageConfig, MountableDeviceLocation};
-use crate::mountable::{MountableFilesystem, MountedFilesystem, MountableKind};
+use crate::mountable::{PlatformMount, MountableFilesystem, MountableKind};
 use crate::staging::{Staging, DateTimeUploadable};
 
 use chrono;
@@ -13,12 +13,14 @@ use walkdir::WalkDir;
 impl MassStorageConfig {
     #[cfg(test)]
     fn mount_for_test(self) -> MountedMassStorage {
+        use crate::mountable::ExternalMount;
+
         let loc = match &self.location {
             MountableDeviceLocation::Label(_) => panic!("Labels not supported in tests"),
             MountableDeviceLocation::Mountpoint(mp) => mp.clone(),
         };
 
-        let mount = MountedFilesystem::new_externally_mounted(loc);
+        let mount = ExternalMount::mount(loc);
         MountedMassStorage {
             mass_storage: self,
             mount,
@@ -29,7 +31,7 @@ impl MassStorageConfig {
 #[derive(Debug)]
 pub struct MountedMassStorage {
     mass_storage: MassStorageConfig,
-    mount: MountedFilesystem,
+    mount: PlatformMount,
 }
 
 #[derive(Debug)]
@@ -105,8 +107,9 @@ impl MountableFilesystem for MassStorageConfig {
 
 impl MountableKind for MountedMassStorage {
     type This = MassStorageConfig;
+    type MountKind = PlatformMount;
 
-    fn from_mounted_parts(this: Self::This, mount: MountedFilesystem) -> Self {
+    fn from_mounted_parts(this: Self::This, mount: PlatformMount) -> Self {
         MountedMassStorage {
             mass_storage: this,
             mount,

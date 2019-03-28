@@ -4,7 +4,7 @@ use std::os::unix::ffi::OsStrExt;
 use std::path::PathBuf;
 
 use crate::config::{FlysightConfig, MountableDeviceLocation};
-use crate::mountable::{MountedFilesystem, MountableFilesystem, MountableKind};
+use crate::mountable::{PlatformMount, MountableFilesystem, MountableKind};
 use crate::staging::{Staging, DateTimeUploadable};
 
 use chrono;
@@ -15,7 +15,7 @@ use regex;
 #[derive(Debug)]
 pub struct MountedFlysight {
     flysight: FlysightConfig,
-    mount: MountedFilesystem,
+    mount: PlatformMount,
 }
 
 #[derive(Debug)]
@@ -90,8 +90,9 @@ impl MountableFilesystem for FlysightConfig {
 
 impl MountableKind for MountedFlysight {
     type This = FlysightConfig;
+    type MountKind = PlatformMount;
 
-    fn from_mounted_parts(this: Self::This, mount: MountedFilesystem) -> Self {
+    fn from_mounted_parts(this: Self::This, mount: Self::MountKind) -> Self {
         MountedFlysight {
             flysight: this,
             mount,
@@ -102,12 +103,14 @@ impl MountableKind for MountedFlysight {
 impl FlysightConfig {
     #[cfg(test)]
     fn mount_for_test(self) -> MountedFlysight {
+        use crate::mountable::ExternalMount;
+
         let loc = match &self.location {
             MountableDeviceLocation::Label(_) => panic!("Labels not supported in tests"),
             MountableDeviceLocation::Mountpoint(mp) => mp.clone(),
         };
 
-        let mount = MountedFilesystem::new_externally_mounted(loc);
+        let mount = ExternalMount::mount(loc);
         MountedFlysight {
             flysight: self,
             mount,

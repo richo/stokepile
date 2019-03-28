@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 
 use crate::config::{MountableDeviceLocation, StagingConfig};
-use crate::mountable::{MountedFilesystem, MountableFilesystem, MountableKind};
+use crate::mountable::{PlatformMount, MountableFilesystem, MountableKind};
 
 #[derive(Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub enum RemotePathDescriptor {
@@ -36,8 +36,9 @@ impl MountableFilesystem for StagingConfig {
 
 impl MountableKind for MountedStaging {
     type This = StagingConfig;
+    type MountKind = PlatformMount;
 
-    fn from_mounted_parts(this: Self::This, mount: MountedFilesystem) -> Self {
+    fn from_mounted_parts(this: Self::This, mount: Self::MountKind) -> Self {
         MountedStaging {
             staging: this,
             mount,
@@ -58,7 +59,7 @@ impl StageableLocation for MountedStaging {
 #[derive(Debug)]
 pub struct MountedStaging {
     staging: StagingConfig,
-    mount: MountedFilesystem,
+    mount: PlatformMount,
 }
 
 pub trait UploadableFile {

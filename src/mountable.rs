@@ -3,53 +3,51 @@ use std::process::Command;
 
 use regex::Regex;
 
-use std::fmt::Debug;
-
 use failure::Error;
 use std::fs;
 use crate::config::MountableDeviceLocation;
 
+// TODO(richo)
+/// The default kind of mount for this platform. This can be overridden, but it's generally unwise.
+// pub type PlatformMount = UdisksMount;
+// pub type PlatformMounter = UdisksMounter;
+
 #[derive(Debug)]
-pub struct MountedFilesystem {
+pub struct Mount<T: Unmounter> {
+    data
+    unmounter: T,
+}
+
+#[derive(Debug)]
+pub struct UdisksMount {
     mountpoint: PathBuf,
     device: PathBuf,
-    mounter: Box<dyn Unmounter>,
+    unmounted: bool,
 }
 
-impl MountedFilesystem {
-    pub fn new_externally_mounted(mountpoint: PathBuf) -> MountedFilesystem {
-        MountedFilesystem {
-            mountpoint,
-            // TODO(richo) Should we look this up?
-            device: PathBuf::new(),
-            mounter: Box::new(ExternallyMounted{}),
-        }
-    }
-}
-
-impl MountedFilesystem {
+impl UdisksMount {
     pub fn path(&self) -> &Path {
         &self.mountpoint
     }
 }
 
 #[derive(Debug)]
-pub struct ExternallyMounted {
-}
-
-#[derive(Debug)]
 pub struct UdisksMounter {
 }
 
-impl UdisksMounter {
-    pub fn mount<U>(device: U) -> Result<MountedFilesystem, Error>
-    where U: AsRef<Path>
+impl Mounter for UdisksMounter {
+    fn mount<U>(loc: MountableDeviceLocation) -> Result<UdisksMount, Error>
     {
+        let device = match loc {
+            MountableDeviceLocation::Label(lbl) => device_for_label(lbl),
+            MountableDeviceLocation::Mountpoint(_) => unimplemented!("UdisksMounter can not mount by mountpoint"),
+        };
+
         let child = Command::new("udisksctl")
             .arg("mount")
             .arg("--no-user-interaction")
             .arg("-b")
-            .arg(device.as_ref())
+            .arg(device)
             .output()?;
 
         let regex = Regex::new(r"^Mounted (.+) at (.+)\.")
@@ -57,10 +55,10 @@ impl UdisksMounter {
 
         if child.status.success() {
             if let Some(matches) = regex.captures(&String::from_utf8_lossy(&child.stdout)) {
-                return Ok(MountedFilesystem {
+                return Ok(UdisksMount {
                     mountpoint: PathBuf::from(matches.get(2).unwrap().as_str()),
                     device: device.as_ref().to_path_buf(),
-                    mounter: Box::new(UdisksMounter{}),
+                    unmounted: false,
                 });
             }
         }
@@ -68,23 +66,31 @@ impl UdisksMounter {
     }
 }
 
-trait Unmounter: Debug + Sync + Send {
-    fn unmount(&mut self, device: &Path);
+impl Unmounter for UdisksMounter {
+    /// Unmount this filesystem, consuming this reference to it.
+    fn unmount(mut self) {
+        self.inner_unmount()
+    }
 }
 
-impl Unmounter for UdisksMounter {
-    fn unmount(&mut self, device: &Path) {
+impl UdisksMounter {
+    /// Inner unmount unmounts the filesystem.
+    fn inner_unmount(&mut self) {
+        if self.unmounted {
+            return;
+        }
         match Command::new("udisksctl")
             .arg("unmount")
             .arg("--no-user-interaction")
             .arg("-b")
-            .arg(device)
+            .arg(self.device)
             .output()
         {
             Ok(child) => {
                 if !child.status.success() {
                     error!("Couldn't unmount device: {}", String::from_utf8_lossy(&child.stderr));
                 }
+                self.unmounted = true;
             },
             Err(e) => {
                 error!("Couldn't launch unmount: {:?}", e);
@@ -96,20 +102,27 @@ impl Unmounter for UdisksMounter {
     }
 }
 
-impl Unmounter for ExternallyMounted {
-    fn unmount(&mut self, _: &Path) {
-        info!("Doing nothing because this was mounted when we got here");
+#[derive(Debug)]
+pub struct ExternalMount {
+    mountpoint: PathBuf,
+}
+
+impl ExternalMount {
+    pub fn mount(mountpoint: PathBuf) -> ExternalMount {
+        ExternalMount {
+            mountpoint,
+        }
+    }
+
+    pub fn unmount(self) {
     }
 }
 
-impl Drop for MountedFilesystem {
+
+impl Drop for UdisksMount {
     fn drop(&mut self) {
-        let MountedFilesystem {
-            device,
-            mounter,
-            ..
-        } = self;
-        mounter.unmount(device);
+        // TODO(richo) figure out what we're gunna do with this, probably some private thing called
+        // inner_drop ?
     }
 }
 
@@ -142,6 +155,17 @@ pub trait Mountable {
     fn mount(self) -> Result<Self::Target, Error>;
 }
 
+pub trait Mounter {
+    fn mount<T>(loc: MountableDeviceLocation) -> Result<T, Error>
+        where T: MountableFilesystem;
+}
+
+pub trait Unmounter {
+    fn unmount(mut self) {
+        self.inner_unmount()
+    }
+}
+
 /// This is a subtrait of `mountable` meant to represent devices that can be mounted as a logical
 /// filesystem. Implementers need only supply some information about how to find the device, and
 /// inherent impls will take care of getting your device mounted and available.
@@ -149,15 +173,10 @@ pub trait Mountable {
 /// For devices which require more handholding, look into implementing the `Mountable` trait.
 pub trait MountableFilesystem: Sized {
     type Target: MountableKind<This = Self>;
+    type Mounter: Mounter;
 
     fn mount(self) -> Result<Self::Target, Error> {
-        let mount = match self.location() {
-            MountableDeviceLocation::Label(lbl) => {
-                let device = device_for_label(&lbl);
-                UdisksMounter::mount(device)?
-            },
-            MountableDeviceLocation::Mountpoint(_) => unimplemented!(),
-        };
+        let mount = Self::Mounter::mount(self.device)?;
 
         Ok(Self::Target::from_mounted_parts(self, mount))
     }
@@ -236,6 +255,7 @@ impl<T> Mountable for T where T: MountableFilesystem {
 
 pub trait MountableKind: Sized {
     type This: MountableFilesystem;
+    type MountKind;
 
-    fn from_mounted_parts(this: Self::This, mount: MountedFilesystem) -> Self;
+    fn from_mounted_parts(this: Self::This, mount: Self::MountKind) -> Self;
 }
