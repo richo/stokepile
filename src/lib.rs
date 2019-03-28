@@ -20,7 +20,7 @@ extern crate log;
 #[macro_use]
 extern crate redacted_debug;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "web"))]
 macro_rules! client_for_routes {
     ($($route:ident),+ => $client:ident) => {
         fn $client() -> rocket::local::Client {
