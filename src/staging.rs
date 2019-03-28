@@ -13,8 +13,7 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 
 use crate::config::{MountableDeviceLocation, StagingConfig};
-use crate::mountable::MountedFilesystem;
-use crate::peripheral::{MountablePeripheral, MountableKind};
+use crate::mountable::{MountedFilesystem, MountableFilesystem, MountableKind};
 
 #[derive(Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub enum RemotePathDescriptor {
@@ -27,8 +26,8 @@ pub enum RemotePathDescriptor {
     },
 }
 
-impl MountablePeripheral for StagingConfig {
-    type Output = MountedStaging;
+impl MountableFilesystem for StagingConfig {
+    type Target = MountedStaging;
 
     fn location(&self) -> &MountableDeviceLocation {
         &self.location

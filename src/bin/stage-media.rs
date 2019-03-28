@@ -9,7 +9,7 @@ use archiver::config;
 use archiver::ctx::Ctx;
 use archiver::manual_file::ManualFile;
 use archiver::staging;
-use archiver::peripheral::MountablePeripheral;
+use archiver::mountable::Mountable;
 
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
     cli::base_opts()

@@ -5,6 +5,7 @@ use std::sync::Mutex;
 
 use crate::ctx;
 use crate::staging::{Staging, DateTimeUploadable};
+use crate::mountable::{Mountable};
 
 use chrono;
 use chrono::prelude::*;
@@ -219,22 +220,26 @@ impl<'c> Drop for GoproConnection<'c> {
     }
 }
 
-impl<'a> Gopro<'a> {
-    pub fn new(kind: GoproKind, serial: String, device: libusb::Device<'_>) -> Result<Gopro<'_>, Error> {
-        Ok(Gopro {
-            kind,
-            serial,
-            device,
-        })
-    }
+impl<'a> Mountable for Gopro<'a> {
+    type Target = GoproConnection<'a>;
 
-    pub fn connect(self) -> Result<GoproConnection<'a>, Error> {
+    fn mount(self) -> Result<GoproConnection<'a>, Error> {
         let mut camera = ptp::PtpCamera::new(&self.device)?;
         camera.open_session(None)?;
 
         Ok(GoproConnection {
             gopro: self,
             camera: Rc::new(Mutex::new(camera)),
+        })
+    }
+}
+
+impl<'a> Gopro<'a> {
+    pub fn new(kind: GoproKind, serial: String, device: libusb::Device<'_>) -> Result<Gopro<'_>, Error> {
+        Ok(Gopro {
+            kind,
+            serial,
+            device,
         })
     }
 }

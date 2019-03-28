@@ -2,9 +2,8 @@ use std::fs::{self, File};
 use std::path::PathBuf;
 
 use crate::config::{MassStorageConfig, MountableDeviceLocation};
-use crate::peripheral::{MountablePeripheral, MountableKind};
+use crate::mountable::{MountableFilesystem, MountedFilesystem, MountableKind};
 use crate::staging::{Staging, DateTimeUploadable};
-use crate::mountable::MountedFilesystem;
 
 use chrono;
 use chrono::prelude::*;
@@ -96,8 +95,8 @@ impl Staging for MountedMassStorage {
     }
 }
 
-impl MountablePeripheral for MassStorageConfig {
-    type Output = MountedMassStorage;
+impl MountableFilesystem for MassStorageConfig {
+    type Target = MountedMassStorage;
 
     fn location(&self) -> &MountableDeviceLocation {
         &self.location

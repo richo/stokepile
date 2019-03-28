@@ -6,7 +6,7 @@ use crate::config;
 use crate::ctx;
 use crate::ptp_device;
 use crate::staging::{Staging, StageableLocation};
-use crate::peripheral::MountablePeripheral;
+use crate::mountable::{Mountable, MountableFilesystem};
 
 #[derive(Eq, PartialEq, Debug, Hash)]
 pub struct DeviceDescription {
@@ -26,11 +26,15 @@ impl Device<'_> {
     pub fn stage_files<T>(self, destination: T) -> Result<(), Error>
     where T: StageableLocation {
         match self {
-            Device::Gopro(desc, gopro) => gopro.connect()?.stage_files(&desc.name, &destination),
+            Device::Gopro(desc, gopro) => {
+                Mountable::mount(gopro)?.stage_files(&desc.name, &destination)
+            },
             Device::MassStorage(desc, mass_storage) => {
-                mass_storage.mount()?.stage_files(&desc.name, &destination)
-            }
-            Device::Flysight(desc, flysight) => flysight.mount()?.stage_files(&desc.name, &destination),
+                Mountable::mount(mass_storage)?.stage_files(&desc.name, &destination)
+            },
+            Device::Flysight(desc, flysight) => {
+                Mountable::mount(flysight)?.stage_files(&desc.name, &destination)
+            },
         }
     }
 

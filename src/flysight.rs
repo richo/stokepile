@@ -4,9 +4,8 @@ use std::os::unix::ffi::OsStrExt;
 use std::path::PathBuf;
 
 use crate::config::{FlysightConfig, MountableDeviceLocation};
-use crate::peripheral::{MountablePeripheral, MountableKind};
+use crate::mountable::{MountedFilesystem, MountableFilesystem, MountableKind};
 use crate::staging::{Staging, DateTimeUploadable};
-use crate::mountable::MountedFilesystem;
 
 use chrono;
 use chrono::prelude::*;
@@ -81,8 +80,8 @@ impl DateTimeUploadable for FlysightFile {
     }
 }
 
-impl MountablePeripheral for FlysightConfig {
-    type Output = MountedFlysight;
+impl MountableFilesystem for FlysightConfig {
+    type Target = MountedFlysight;
 
     fn location(&self) -> &MountableDeviceLocation {
         &self.location
