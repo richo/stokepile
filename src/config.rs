@@ -8,7 +8,6 @@ use toml;
 use url;
 
 use crate::dropbox;
-use crate::flysight::Flysight;
 use crate::local_backup::LocalBackup;
 use crate::mailer::SendgridMailer;
 use crate::mass_storage::MassStorage;
@@ -199,7 +198,7 @@ impl MountableDeviceLocation {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone, Hash)]
 #[serde(deny_unknown_fields)]
 pub struct FlysightConfig {
     pub name: String,
@@ -208,9 +207,8 @@ pub struct FlysightConfig {
 }
 
 impl FlysightConfig {
-    pub fn flysight(&self) -> Flysight {
-        Flysight::new(self.name.clone(),
-                          self.location.clone())
+    pub fn name(&self) -> &str {
+        &self.name
     }
 }
 

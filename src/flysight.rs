@@ -3,7 +3,7 @@ use std::fs::{self, File};
 use std::os::unix::ffi::OsStrExt;
 use std::path::PathBuf;
 
-use crate::config::MountableDeviceLocation;
+use crate::config::{FlysightConfig, MountableDeviceLocation};
 use crate::peripheral::{MountablePeripheral, MountableKind};
 use crate::staging::{Staging, DateTimeUploadable};
 use crate::mountable::MountedFilesystem;
@@ -13,15 +13,9 @@ use chrono::prelude::*;
 use failure::Error;
 use regex;
 
-#[derive(Eq, PartialEq, Debug, Hash)]
-pub struct Flysight {
-    name: String,
-    location: MountableDeviceLocation,
-}
-
 #[derive(Debug)]
 pub struct MountedFlysight {
-    flysight: Flysight,
+    flysight: FlysightConfig,
     mount: MountedFilesystem,
 }
 
@@ -87,7 +81,7 @@ impl DateTimeUploadable for FlysightFile {
     }
 }
 
-impl MountablePeripheral for Flysight {
+impl MountablePeripheral for FlysightConfig {
     type Output = MountedFlysight;
 
     fn location(&self) -> &MountableDeviceLocation {
@@ -96,7 +90,7 @@ impl MountablePeripheral for Flysight {
 }
 
 impl MountableKind for MountedFlysight {
-    type This = Flysight;
+    type This = FlysightConfig;
 
     fn from_mounted_parts(this: Self::This, mount: MountedFilesystem) -> Self {
         MountedFlysight {
@@ -106,16 +100,7 @@ impl MountableKind for MountedFlysight {
     }
 }
 
-impl Flysight {
-    pub fn new(name: String, location: MountableDeviceLocation) -> Flysight {
-        Flysight { name, location }
-    }
-    pub fn name(&self) -> &String {
-        &self.name
-    }
-
-    // TODO(richo) I think this is all superfluous
-
+impl FlysightConfig {
     #[cfg(test)]
     fn mount_for_test(self) -> MountedFlysight {
         let loc = match &self.location {
@@ -182,7 +167,7 @@ mod tests {
 
     #[test]
     fn test_flysight_loads_files() {
-        let flysight = Flysight {
+        let flysight = FlysightConfig {
             name: "data".into(),
             location: MountableDeviceLocation::from_mountpoint("test-data/flysight".into()),
         };
@@ -194,7 +179,7 @@ mod tests {
 
     #[test]
     fn test_flysight_parses_dates() {
-        let flysight = Flysight {
+        let flysight = FlysightConfig {
             name: "data".into(),
             location: MountableDeviceLocation::from_mountpoint("test-data/flysight".into()),
         };
@@ -220,7 +205,7 @@ mod tests {
         let dest = test_helpers::tempdir();
         let source = test_helpers::test_data("flysight");
 
-        let flysight = Flysight {
+        let flysight = FlysightConfig {
             name: "data".into(),
             location: MountableDeviceLocation::from_mountpoint(source.path().to_path_buf()),
         };

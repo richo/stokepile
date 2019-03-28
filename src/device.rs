@@ -4,7 +4,6 @@ use failure::Error;
 
 use crate::config;
 use crate::ctx;
-use crate::flysight;
 use crate::mass_storage;
 use crate::ptp_device;
 use crate::staging::{Staging, StageableLocation};
@@ -19,7 +18,7 @@ pub struct DeviceDescription {
 pub enum Device<'a> {
     Gopro(DeviceDescription, ptp_device::Gopro<'a>),
     MassStorage(DeviceDescription, mass_storage::MassStorage),
-    Flysight(DeviceDescription, flysight::Flysight),
+    Flysight(DeviceDescription, config::FlysightConfig),
 }
 
 impl Device<'_> {
@@ -80,10 +79,10 @@ fn locate_flysights(
     cfg: &config::Config,
 ) -> Result<impl Iterator<Item = Device<'_>>, Error> {
     Ok(cfg.flysights().iter().filter_map(|cfg| {
-        cfg.flysight().get().map(|fs| {
+        cfg.clone().get().map(|fs| {
             Device::Flysight(
                 DeviceDescription {
-                    name: cfg.name.clone(),
+                    name: cfg.name().to_string(),
                 },
                 fs,
             )
