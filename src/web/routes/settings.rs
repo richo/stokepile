@@ -131,6 +131,37 @@ mod tests {
 
         assert_eq!(Some("test-value".into()), user.notify_email);
         assert_eq!(Some("another test value".into()), user.notify_pushover);
+
+        assert_eq!(Some("BUTTS".into()), user.staging_data);
+        assert_eq!(StagingKind::Label, user.staging_type);
+
+        let settings = SettingsForm {
+            notification_email: "".into(),
+            notification_pushover: "".into(),
+            staging_type: StagingKind::None,
+            staging_data: "".into(),
+        };
+        let serialized = serde_urlencoded::to_string(&settings).expect("Couldn't serialize form");
+
+        let response = client
+            .post("/settings")
+            .header(ContentType::Form)
+            .body(serialized.as_bytes())
+            .dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
+
+        // Reload the user. There is probably a better way to do this.
+        let user = {
+            let conn = db_conn(&client);
+
+            users.filter(id.eq(user.id)).get_result::<User>(&*conn).unwrap()
+        };
+
+        assert_eq!(None, user.notify_email);
+        assert_eq!(None, user.notify_pushover);
+
+        assert_eq!(None, user.staging_data);
+        assert_eq!(StagingKind::None, user.staging_type);
     }
 
 

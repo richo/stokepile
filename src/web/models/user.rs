@@ -21,7 +21,7 @@ pub struct User {
     pub staging_data: Option<String>,
 }
 
-#[derive(Debug, DbEnum, Serialize)]
+#[derive(Debug, DbEnum, Serialize, PartialEq)]
 // We can't reuse this directly, without pulling all of the web stuff into the client, so instead
 // we're going to have a mirror struct and some smoke unit tests that break if they're not kept in
 // sync
