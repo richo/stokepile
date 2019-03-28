@@ -29,11 +29,12 @@
             <td>Staging</td>
             <td>
               <select id="staging_type" name="staging_type">
-                <option value="directory" {{maybe_selected this.user.staging_type "Directory"}}>Directory</option>
-                <option value="device" {{maybe_selected this.user.staging_type "Device"}}>Device</option>
+                <option value="none" {{maybe_selected this.user.staging_type "None"}}>None</option>
+                <option value="label" {{maybe_selected this.user.staging_type "Label"}}>Label</option>
+                <option value="mountpoint" {{maybe_selected this.user.staging_type "Mountpoint"}}>Mountpoint</option>
               </select>
 
-              <input class="settings-text-input" type="text" name="staging_location" form="settings_form" placeholder="/mnt/staging"
+              <input class="settings-text-input" type="text" name="staging_data" form="settings_form" placeholder="/mnt/staging"
               {{#if this.user.staging_location}}value="{{this.user.staging_location}}"{{/if}}
               /></td>
           </tr>

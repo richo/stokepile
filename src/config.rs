@@ -142,7 +142,7 @@ use crate::web::models::extra::StagingKind;
 
 impl StagingConfig {
     #[cfg(feature = "web")]
-    pub fn location_for_db(&self) -> String {
+    pub fn data_for_db(&self) -> String {
         match &self.location {
             MountableDeviceLocation::Label(buf) => buf.to_string(),
             MountableDeviceLocation::Mountpoint(buf) => buf.to_string_lossy().into(),
@@ -152,8 +152,8 @@ impl StagingConfig {
     #[cfg(feature = "web")]
     pub fn kind_for_db(&self) -> StagingKind {
         match &self.location {
-            MountableDeviceLocation::Label(_) => StagingKind::Device,
-            MountableDeviceLocation::Mountpoint(_) => StagingKind::Directory,
+            MountableDeviceLocation::Label(_) => StagingKind::Label,
+            MountableDeviceLocation::Mountpoint(_) => StagingKind::Mountpoint,
         }
     }
 }

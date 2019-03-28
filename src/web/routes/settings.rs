@@ -41,23 +41,27 @@ pub fn post_settings(user: WebUser, conn: DbConn, settings: Form<SettingsForm>) 
 pub struct SettingsForm {
     pub(crate) notification_email: String,
     pub(crate) notification_pushover: String,
-    pub(crate) staging_location: String,
+    pub(crate) staging_data: String,
     pub(crate) staging_type: StagingKind,
 }
 
 impl SettingsForm {
     /// Coerce the separate values given in the form back into a StagingConfig
-    pub fn staging(&self) -> StagingConfig {
+    pub fn staging(&self) -> Option<StagingConfig> {
+        if self.staging_data.len() == 0 {
+            return None;
+        }
         let location = match self.staging_type {
-            StagingKind::Device => MountableDeviceLocation::Label(self.staging_location.clone()),
-            StagingKind::Directory => {
-                let pathbuf = PathBuf::from(&self.staging_location);
+            StagingKind::None => return None,
+            StagingKind::Label => MountableDeviceLocation::Label(self.staging_data.clone()),
+            StagingKind::Mountpoint => {
+                let pathbuf = PathBuf::from(&self.staging_data);
                 MountableDeviceLocation::Mountpoint(pathbuf)
             }
         };
-        StagingConfig {
+        Some(StagingConfig {
             location,
-        }
+        })
     }
 }
 
@@ -106,7 +110,7 @@ mod tests {
         let response = client
             .post("/settings")
             .header(ContentType::Form)
-            .body(r"notification_email=test-value&notification_pushover=another%20test%20value&staging_type=device&staging_location=/butts")
+            .body(r"notification_email=test-value&notification_pushover=another%20test%20value&staging_type=label&staging_data=BUTTS")
             .dispatch();
         assert_eq!(response.status(), Status::SeeOther);
 
@@ -139,7 +143,8 @@ mod tests {
         let response = client1
             .post("/settings")
             .header(ContentType::Form)
-            .body(r"notification_email=lol&notification_pushover=hithere&staging_type=device&staging_location=/butts")
+            // TODO(richo) generate these from the forms..
+            .body(r"notification_email=lol&notification_pushover=hithere&staging_type=mountpoint&staging_data=/butts")
             .dispatch();
         assert_eq!(response.status(), Status::SeeOther);
 

@@ -18,7 +18,7 @@ pub struct User {
     pub notify_email: Option<String>,
     pub notify_pushover: Option<String>,
     pub staging_type: StagingKind,
-    pub staging_location: Option<String>,
+    pub staging_data: Option<String>,
 }
 
 #[derive(Debug, DbEnum, Serialize)]
@@ -37,8 +37,9 @@ impl<'v> FromFormValue<'v> for StagingKind {
     fn from_form_value(form_value: &'v RawStr) -> Result<StagingKind, Self::Error> {
         let decoded = form_value.url_decode();
         match decoded {
-            Ok(ref kind) if kind == "device" => Ok(StagingKind::Device),
-            Ok(ref kind) if kind == "directory" => Ok(StagingKind::Directory),
+            Ok(ref kind) if kind == "none" => Ok(StagingKind::None),
+            Ok(ref kind) if kind == "label" => Ok(StagingKind::Label),
+            Ok(ref kind) if kind == "mountpoint" => Ok(StagingKind::Mountpoint),
             _ => Err(format!("unknown staging_kind {}", form_value)),
         }
     }
@@ -107,13 +108,14 @@ impl User {
     }
 
     pub fn staging(&self) -> Option<StagingConfig> {
-        let loc = match &self.staging_location {
+        let loc = match &self.staging_data {
             Some(loc) => loc,
             None => return None,
         };
         let location = match &self.staging_type {
-            StagingKind::Device => MountableDeviceLocation::Label(loc.to_owned()),
-            StagingKind::Directory => MountableDeviceLocation::Mountpoint(loc.into()),
+            StagingKind::None => return None,
+            StagingKind::Label => MountableDeviceLocation::Label(loc.to_owned()),
+            StagingKind::Mountpoint => MountableDeviceLocation::Mountpoint(loc.into()),
         };
         Some(StagingConfig {
             location,
@@ -124,13 +126,15 @@ impl User {
         use diesel::update;
         use crate::web::schema::users::dsl::*;
 
-        let staging = settings.staging();
+        let (ty, data) = settings.staging()
+            .map(|x| (x.kind_for_db(), Some(x.data_for_db())))
+            .unwrap_or_else(|| (StagingKind::None, None));
         update(self)
             .set((
                     notify_email.eq(settings.notification_email()),
                     notify_pushover.eq(settings.notification_pushover()),
-                    staging_type.eq(staging.kind_for_db()),
-                    staging_location.eq(staging.location_for_db())
+                    staging_type.eq(ty),
+                    staging_data.eq(data)
             ))
             .execute(conn)
     }
@@ -142,7 +146,7 @@ impl User {
         update(self)
             .set((
                     staging_type.eq(staging.kind_for_db()),
-                    staging_location.eq(staging.location_for_db())
+                    staging_data.eq(staging.data_for_db())
             ))
             .execute(conn)
     }
@@ -184,8 +188,9 @@ mod tests {
         // These don't have to run, we just want the definitions
         fn one_way(sk: StagingKind) {
             match sk {
-                StagingKind::Device => {},
-                StagingKind::Directory => {},
+                StagingKind::None => {},
+                StagingKind::Label => {},
+                StagingKind::Mountpoint => {},
             }
         }
 
