@@ -93,6 +93,7 @@ pub enum DeviceConfig {
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct Config {
     archiver: ArchiverConfig,
     staging: StagingConfig,
@@ -131,6 +132,7 @@ lazy_static! {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 /// The configuration entry associated with a staging location.
 pub struct StagingConfig {
     #[serde(flatten)]
@@ -160,22 +162,26 @@ impl StagingConfig {
 }
 
 #[derive(Default, Serialize, Deserialize, Debug, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct ArchiverConfig {
     api_base: Option<String>,
     api_token: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct DropboxConfig {
     token: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct VimeoConfig {
     token: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq, Hash)]
+#[serde(deny_unknown_fields)]
 pub enum MountableDeviceLocation {
     #[serde(rename = "mountpoint")]
     Mountpoint(PathBuf),
@@ -194,6 +200,7 @@ impl MountableDeviceLocation {
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct FlysightConfig {
     pub name: String,
     #[serde(flatten)]
@@ -208,6 +215,7 @@ impl FlysightConfig {
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct LocalBackupConfig {
     pub mountpoint: String,
 }
@@ -222,6 +230,7 @@ impl LocalBackupConfig {
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct MassStorageConfig {
     pub name: String,
     #[serde(flatten)]
@@ -240,12 +249,14 @@ impl MassStorageConfig {
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct PushoverConfig {
     pub token: String,
     pub recipient: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct SendgridConfig {
     pub token: String,
     pub from: String,
@@ -254,6 +265,7 @@ pub struct SendgridConfig {
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct GoproConfig {
     pub name: String,
     pub serial: String,
@@ -654,16 +666,15 @@ token = "TOKEN"
     }
 
     #[test]
-    // This is a lie, it shouldn't fail. This is a bug.
-    // TODO(richo)
-    #[should_panic]
     fn test_staging_cannot_be_both() {
         let err = Config::from_str(
             r#"
 [archiver]
 staging_device="/dev/staging"
+
 [staging]
 mountpoint="/test/dir"
+label="LABEL"
 
 [dropbox]
 token = "TOKEN"
