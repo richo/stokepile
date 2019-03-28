@@ -285,5 +285,22 @@ mod tests {
 
         assert_eq!(config.staging().location,
                    MountableDeviceLocation::Mountpoint("/tmp/whatever".into()));
+
+        {
+            let conn = db_conn(&client);
+            user.update_settings(&SettingsForm {
+                notification_email: "test@email.com".into(),
+                notification_pushover: "fake-api-key".into(),
+                staging_location: "".into(),
+                staging_type: StagingKind::Directory,
+            }, &*conn).unwrap();
+        }
+
+        let req = client.get("/config");
+
+        let mut response = req.dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
+
+        // TODO(richo) assert the body of the flash message
     }
 }
