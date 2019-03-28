@@ -22,8 +22,8 @@ use crate::vimeo::VimeoClient;
 pub static DEFAULT_API_BASE: &'static str = "https://onatopp.psych0tik.net";
 pub static TOKEN_FILE_NAME: &'static str = ".archiver-token";
 
-#[derive(Debug)]
-pub struct AccessToken(String);
+#[derive(RedactedDebug)]
+pub struct AccessToken(#[redacted] String);
 
 #[cfg(test)]
 lazy_static! {
