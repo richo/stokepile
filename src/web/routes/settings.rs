@@ -39,10 +39,10 @@ pub fn post_settings(user: WebUser, conn: DbConn, settings: Form<SettingsForm>) 
 
 #[derive(FromForm, Debug)]
 pub struct SettingsForm {
-    notification_email: String,
-    notification_pushover: String,
-    staging_location: String,
-    staging_type: StagingKind,
+    pub(crate) notification_email: String,
+    pub(crate) notification_pushover: String,
+    pub(crate) staging_location: String,
+    pub(crate) staging_type: StagingKind,
 }
 
 impl SettingsForm {

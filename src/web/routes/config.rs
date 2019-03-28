@@ -42,6 +42,7 @@ pub fn get_config(user: AuthenticatedUser, conn: DbConn) -> Result<Content<Strin
             format!("Error connecting to the DB: {}", e),
         )
     })?;
+
     for device in devices {
         match device.into() {
             DeviceConfig::Gopro(gopro) => config = config.gopro(gopro),
@@ -84,8 +85,10 @@ mod tests {
     use crate::web::models::NewIntegration;
     use crate::web::models::NewKey;
     use crate::web::models::NewDevice;
+    use crate::web::routes::settings::SettingsForm;
+    use crate::web::models::extra::StagingKind;
 
-    use crate::config::{Config, FlysightConfig};
+    use crate::config::{Config, FlysightConfig, MountableDeviceLocation};
 
     client_for_routes!(get_config => client);
 
@@ -244,5 +247,43 @@ mod tests {
         assert_eq!(config.flysights(), &empty_flysights);
         assert_eq!(config.mass_storages().len(), 1);
         assert_eq!(config.gopros().len(), 1);
+    }
+
+    #[test]
+    fn test_get_config_with_staging() {
+        let client = client();
+
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+        signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
+
+        {
+            let conn = db_conn(&client);
+
+            NewIntegration::new(&user, "dropbox", "test_oauth_token")
+                .create(&*conn)
+                .unwrap();
+        }
+
+        {
+            let conn = db_conn(&client);
+            user.update_settings(&SettingsForm {
+                notification_email: "test@email.com".into(),
+                notification_pushover: "fake-api-key".into(),
+                staging_location: "/tmp/whatever".into(),
+                staging_type: StagingKind::Directory,
+            }, &*conn).unwrap();
+        }
+
+        let req = client.get("/config");
+
+        let mut response = req.dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        let config: Config =
+            response.body_string().expect("Didn't recieve a body").parse().unwrap();
+
+        // assert!(config.notifier().is_some());
+
+        assert_eq!(config.staging().location,
+                   MountableDeviceLocation::Mountpoint("/tmp/whatever".into()));
     }
 }
