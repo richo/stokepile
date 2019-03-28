@@ -19,7 +19,7 @@ use crate::vimeo::VimeoClient;
 
 
 // TODO(richo) Change this once we have a canonical domain
-pub static DEFAULT_API_BASE: &'static str = "https://onatopp.psych0tik.net";
+pub static DEFAULT_API_BASE: &'static str = "https://archiver-web.onrender.com/";
 pub static TOKEN_FILE_NAME: &'static str = ".archiver-token";
 
 #[derive(RedactedDebug)]
