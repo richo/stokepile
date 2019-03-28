@@ -31,7 +31,7 @@ impl Notify for PushoverNotifier {
     }
 }
 
-impl Notify for Option<PushoverNotifier> {
+impl<T> Notify for Option<T> where T: Notify {
     fn notify(&self, msg: &str) -> Result<(), Error> {
         match self {
             Some(notifier) => notifier.notify(msg),
