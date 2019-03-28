@@ -3,31 +3,29 @@ use std::process::Command;
 
 use regex::Regex;
 
-use std::fmt::Debug;
-
 use failure::Error;
 use std::fs;
 use crate::config::MountableDeviceLocation;
 
 #[derive(Debug)]
-pub struct MountedFilesystem {
+pub struct MountedFilesystem<Un: Unmounter> {
     mountpoint: PathBuf,
     device: PathBuf,
-    mounter: Box<dyn Unmounter>,
+    _marker: std::marker::PhantomData<Un>,
 }
 
-impl MountedFilesystem {
-    pub fn new_externally_mounted(mountpoint: PathBuf) -> MountedFilesystem {
+impl<Un: Unmounter> MountedFilesystem<Un> {
+    pub fn new_externally_mounted(mountpoint: PathBuf) -> MountedFilesystem<NoopMounter> {
         MountedFilesystem {
             mountpoint,
             // TODO(richo) Should we look this up?
             device: PathBuf::new(),
-            mounter: Box::new(ExternallyMounted{}),
+            _marker: std::marker::PhantomData::<NoopMounter>,
         }
     }
 }
 
-impl MountedFilesystem {
+impl<Un: Unmounter> MountedFilesystem<Un> {
     pub fn path(&self) -> &Path {
         &self.mountpoint
     }
@@ -41,9 +39,14 @@ pub struct ExternallyMounted {
 pub struct UdisksMounter {
 }
 
+pub trait Unmounter {
+    fn unmount(&mut self);
+}
+
 impl UdisksMounter {
-    pub fn mount<U>(device: U) -> Result<MountedFilesystem, Error>
-    where U: AsRef<Path>
+    pub fn mount<U, Un>(device: U) -> Result<MountedFilesystem<Un>, Error>
+    where U: AsRef<Path>,
+          Un: Unmounter,
     {
         let child = Command::new("udisksctl")
             .arg("mount")
@@ -60,7 +63,7 @@ impl UdisksMounter {
                 return Ok(MountedFilesystem {
                     mountpoint: PathBuf::from(matches.get(2).unwrap().as_str()),
                     device: device.as_ref().to_path_buf(),
-                    mounter: Box::new(UdisksMounter{}),
+                    _marker: std::marker::PhantomData::<Un>,
                 });
             }
         }
@@ -68,17 +71,14 @@ impl UdisksMounter {
     }
 }
 
-trait Unmounter: Debug + Sync + Send {
-    fn unmount(&mut self, device: &Path);
-}
-
 impl Unmounter for UdisksMounter {
-    fn unmount(&mut self, device: &Path) {
+    fn unmount(&mut self) {
         match Command::new("udisksctl")
             .arg("unmount")
             .arg("--no-user-interaction")
             .arg("-b")
-            .arg(device)
+            // TODO(richo)
+            .arg("...")
             .output()
         {
             Ok(child) => {
@@ -96,20 +96,17 @@ impl Unmounter for UdisksMounter {
     }
 }
 
-impl Unmounter for ExternallyMounted {
-    fn unmount(&mut self, _: &Path) {
-        info!("Doing nothing because this was mounted when we got here");
+pub struct NoopMounter;
+impl Unmounter for NoopMounter {
+    fn unmount(&mut self) {
+        info!("Doing nothin!");
     }
 }
 
-impl Drop for MountedFilesystem {
+impl<Un> Drop for MountedFilesystem<Un>
+where Un: Unmounter {
     fn drop(&mut self) {
-        let MountedFilesystem {
-            device,
-            mounter,
-            ..
-        } = self;
-        mounter.unmount(device);
+        Un::unmount(self);
     }
 }
 
@@ -236,6 +233,7 @@ impl<T> Mountable for T where T: MountableFilesystem {
 
 pub trait MountableKind: Sized {
     type This: MountableFilesystem;
+    type Unmounter: Unmounter;
 
-    fn from_mounted_parts(this: Self::This, mount: MountedFilesystem) -> Self;
+    fn from_mounted_parts(this: Self::This, mount: MountedFilesystem<Self::Unmounter>) -> Self;
 }

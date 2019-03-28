@@ -4,7 +4,7 @@ use std::os::unix::ffi::OsStrExt;
 use std::path::PathBuf;
 
 use crate::config::{FlysightConfig, MountableDeviceLocation};
-use crate::mountable::{MountedFilesystem, MountableFilesystem, MountableKind};
+use crate::mountable::{self, MountedFilesystem, MountableFilesystem, MountableKind};
 use crate::staging::{Staging, DateTimeUploadable};
 
 use chrono;
@@ -15,7 +15,7 @@ use regex;
 #[derive(Debug)]
 pub struct MountedFlysight {
     flysight: FlysightConfig,
-    mount: MountedFilesystem,
+    mount: MountedFilesystem<mountable::UdisksMounter>,
 }
 
 #[derive(Debug)]
@@ -90,8 +90,9 @@ impl MountableFilesystem for FlysightConfig {
 
 impl MountableKind for MountedFlysight {
     type This = FlysightConfig;
+    type Unmounter = mountable::UdisksMounter;
 
-    fn from_mounted_parts(this: Self::This, mount: MountedFilesystem) -> Self {
+    fn from_mounted_parts(this: Self::This, mount: MountedFilesystem<mountable::UdisksMounter>) -> Self {
         MountedFlysight {
             flysight: this,
             mount,

@@ -2,7 +2,7 @@ use std::fs::{self, File};
 use std::path::PathBuf;
 
 use crate::config::{MassStorageConfig, MountableDeviceLocation};
-use crate::mountable::{MountableFilesystem, MountedFilesystem, MountableKind};
+use crate::mountable::{self, MountableFilesystem, MountedFilesystem, MountableKind};
 use crate::staging::{Staging, DateTimeUploadable};
 
 use chrono;
@@ -29,7 +29,7 @@ impl MassStorageConfig {
 #[derive(Debug)]
 pub struct MountedMassStorage {
     mass_storage: MassStorageConfig,
-    mount: MountedFilesystem,
+    mount: MountedFilesystem<mountable::UdisksMounter>,
 }
 
 #[derive(Debug)]
@@ -105,8 +105,9 @@ impl MountableFilesystem for MassStorageConfig {
 
 impl MountableKind for MountedMassStorage {
     type This = MassStorageConfig;
+    type Unmounter = mountable::UdisksMounter;
 
-    fn from_mounted_parts(this: Self::This, mount: MountedFilesystem) -> Self {
+    fn from_mounted_parts(this: Self::This, mount: MountedFilesystem<mountable::UdisksMounter>) -> Self {
         MountedMassStorage {
             mass_storage: this,
             mount,
