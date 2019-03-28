@@ -5,7 +5,7 @@ use rocket_contrib::templates::Template;
 use rocket::response::{Flash, Redirect};
 use rocket::request::Form;
 
-use crate::config::StagingConfig;
+use crate::config::{MountableDeviceLocation, StagingConfig};
 use crate::web::auth::WebUser;
 use crate::web::context::Context;
 use crate::web::db::DbConn;
@@ -48,10 +48,15 @@ pub struct SettingsForm {
 impl SettingsForm {
     /// Coerce the separate values given in the form back into a StagingConfig
     pub fn staging(&self) -> StagingConfig {
-        let pathbuf = PathBuf::from(&self.staging_location);
-        match self.staging_type {
-            StagingKind::Device => StagingConfig::StagingDevice(pathbuf),
-            StagingKind::Directory => StagingConfig::StagingDirectory(pathbuf),
+        let location = match self.staging_type {
+            StagingKind::Device => MountableDeviceLocation::Label(self.staging_location.clone()),
+            StagingKind::Directory => {
+                let pathbuf = PathBuf::from(&self.staging_location);
+                MountableDeviceLocation::Mountpoint(pathbuf)
+            }
+        };
+        StagingConfig {
+            location,
         }
     }
 }

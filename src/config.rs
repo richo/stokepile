@@ -142,18 +142,18 @@ use crate::web::models::extra::StagingKind;
 
 impl StagingConfig {
     #[cfg(feature = "web")]
-    pub fn location_for_db(&self) -> &Path {
-        match self {
-            StagingConfig::StagingDirectory(buf) |
-            StagingConfig::StagingDevice(buf) => &buf
+    pub fn location_for_db(&self) -> String {
+        match &self.location {
+            MountableDeviceLocation::Label(buf) => buf.to_string(),
+            MountableDeviceLocation::Mountpoint(buf) => buf.to_string_lossy().into(),
         }
     }
 
     #[cfg(feature = "web")]
     pub fn kind_for_db(&self) -> StagingKind {
-        match self {
-            StagingConfig::StagingDirectory(_) => StagingKind::Directory,
-            StagingConfig::StagingDevice(_) => StagingKind::Device,
+        match &self.location {
+            MountableDeviceLocation::Label(_) => StagingKind::Device,
+            MountableDeviceLocation::Mountpoint(_) => StagingKind::Directory,
         }
     }
 }
@@ -180,6 +180,9 @@ pub struct VimeoConfig {
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq, Hash)]
 #[serde(deny_unknown_fields)]
 pub enum MountableDeviceLocation {
+    // TODO(richo) This doens't really distinguish between a given mountpoint we should try to
+    // mount, and a place to find things that will already be mounted, although I think the first
+    // usecase is kinda deprecated anyway.
     #[serde(rename = "mountpoint")]
     Mountpoint(PathBuf),
     #[serde(rename = "label")]

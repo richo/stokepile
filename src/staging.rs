@@ -265,17 +265,6 @@ impl StagingDevice {
     }
 }
 
-// impl Mountable for StagingDevice {
-//     type Mountpoint = tempfile::TempDir;
-
-//     fn set_mountpoint(&mut self, mountpoint: Self::Mountpoint) {
-//         self.mountpoint = Some(mountpoint)
-//     }
-//     fn device(&self) -> &Path {
-//         &self.device
-//     }
-// }
-
 impl Drop for StagingDevice {
     fn drop(&mut self) {
         // TODO(richo) unmount the device, clean up the tempdir.
