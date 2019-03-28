@@ -47,15 +47,10 @@ impl Device<'_> {
     }
 }
 
-pub fn attached_devices(ctx: &ctx::Ctx) -> Result<Vec<Device<'_>>, Error> {
-    let mut devices = vec![];
-
-    // Should errors actually stop us finding other devices?
-    devices.extend(locate_gopros(&ctx)?);
-    devices.extend(locate_flysights(&ctx.cfg)?);
-    devices.extend(locate_mass_storages(&ctx.cfg)?);
-
-    Ok(devices)
+pub fn attached_devices(ctx: &ctx::Ctx) -> Result<impl Iterator<Item = Device<'_>>, Error> {
+    Ok(locate_gopros(&ctx)?
+        .chain(locate_flysights(&ctx.cfg)?)
+        .chain(locate_mass_storages(&ctx.cfg)?))
 }
 
 fn locate_gopros(ctx: &ctx::Ctx) -> Result<impl Iterator<Item = Device<'_>>, Error> {
