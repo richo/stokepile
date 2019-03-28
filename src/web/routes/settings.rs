@@ -48,10 +48,15 @@ pub struct SettingsForm {
 impl SettingsForm {
     /// Coerce the separate values given in the form back into a StagingConfig
     pub fn staging(&self) -> StagingConfig {
-        let pathbuf = PathBuf::from(&self.staging_location);
-        match self.staging_type {
-            StagingKind::Device => StagingConfig::StagingDevice(pathbuf),
-            StagingKind::Directory => StagingConfig::StagingDirectory(pathbuf),
+        let location = match self.staging_type {
+            StagingKind::Device => MountableDeviceLocation::Label(self.staging_location.clone()),
+            StagingKind::Directory => {
+                let pathbuf = PathBuf::from(&self.staging_location);
+                MountableDeviceLocation::Mountpoint(pathbuf)
+            }
+        };
+        StagingConfig {
+            location,
         }
     }
 }

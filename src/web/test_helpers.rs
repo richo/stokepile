@@ -42,7 +42,9 @@ pub fn create_user(client: &Client, username: &str, password: &str) -> User {
 
     let user = NewUser::new(username, password).create(&*conn).unwrap();
 
-    user.update_staging(&StagingConfig::StagingDirectory("/path".into()), &*conn).unwrap();
+    user.update_staging(&StagingConfig {
+        location: MountableDeviceLocation::Mountpoint("/path").into()
+    }, &*conn).unwrap();
 
     user
 }

@@ -24,6 +24,9 @@ pub struct User {
 }
 
 #[derive(Debug, DbEnum, Serialize)]
+// We can't reuse this directly, without pulling all of the web stuff into the client, so instead
+// we're going to have a mirror struct and some smoke unit tests that break if they're not kept in
+// sync
 pub enum StagingKind {
     Device,
     Directory,
@@ -107,11 +110,7 @@ impl User {
     pub fn staging(&self) -> Option<StagingConfig> {
         match &self.staging_location {
             Some(location) => {
-                let location = PathBuf::from(location);
-                match self.staging_type {
-                    StagingKind::Directory => Some(StagingConfig::StagingDirectory(location)),
-                    StagingKind::Device => Some(StagingConfig::StagingDevice(location)),
-                }
+                location.to_staging_config()
             },
             None => return None,
         }
@@ -168,5 +167,31 @@ impl<'a> NewUser<'a> {
         insert_into(users::table)
             .values(self)
             .get_result::<User>(conn)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use config::MountableDeviceLocation;
+
+    #[test]
+    fn test_staging_kinds_are_in_sync() {
+        // These don't have to run, we just want the definitions
+        fn one_way(sk: StagingKind) {
+            match sk {
+                StagingKind::Device => {},
+                StagingKind::Directory => {},
+            }
+        }
+
+        fn other_way(ml: MountableDeviceLocation) {
+            match ml {
+                MountableDeviceLocation::Label(_) => {},
+                MountableDeviceLocation::Mountpoint(_) => {},
+            }
+        }
+        // If you find yourself looking at this test, it's because one of those enums was updated
+        // without the other.
     }
 }
