@@ -37,7 +37,7 @@ pub fn post_settings(user: WebUser, conn: DbConn, settings: Form<SettingsForm>) 
     }
 }
 
-#[derive(FromForm, Debug)]
+#[derive(FromForm, Debug, Serialize)]
 pub struct SettingsForm {
     pub(crate) notification_email: String,
     pub(crate) notification_pushover: String,
@@ -91,6 +91,7 @@ mod tests {
     use diesel::prelude::*;
 
     use rocket::http::{ContentType, Status};
+    use serde_urlencoded;
 
     client_for_routes!(get_settings, post_settings => client);
 
@@ -106,11 +107,18 @@ mod tests {
         assert_eq!(None, user.notify_email);
         assert_eq!(None, user.notify_pushover);
 
-        // Set some settings
+        let settings = SettingsForm {
+            notification_email: "test-value".into(),
+            notification_pushover: "another test value".into(),
+            staging_type: StagingKind::Label,
+            staging_data: "BUTTS".into(),
+        };
+        let serialized = serde_urlencoded::to_string(&settings).expect("Couldn't serialize form");
+
         let response = client
             .post("/settings")
             .header(ContentType::Form)
-            .body(r"notification_email=test-value&notification_pushover=another%20test%20value&staging_type=label&staging_data=BUTTS")
+            .body(serialized.as_bytes())
             .dispatch();
         assert_eq!(response.status(), Status::SeeOther);
 
@@ -139,12 +147,18 @@ mod tests {
         let _s1 = signin(&client1, "test1%40email.com", "p%4055w0rd").unwrap();
         let _s2 = signin(&client2, "test2%40email.com", "p%4055w0rd").unwrap();
 
-        // Set some settings
+        let settings = SettingsForm {
+            notification_email: "lol".into(),
+            notification_pushover: "hithere".into(),
+            staging_type: StagingKind::Mountpoint,
+            staging_data: "butts".into(),
+        };
+        let serialized = serde_urlencoded::to_string(&settings).expect("Couldn't serialize form");
+
         let response = client1
             .post("/settings")
             .header(ContentType::Form)
-            // TODO(richo) generate these from the forms..
-            .body(r"notification_email=lol&notification_pushover=hithere&staging_type=mountpoint&staging_data=/butts")
+            .body(serialized)
             .dispatch();
         assert_eq!(response.status(), Status::SeeOther);
 

@@ -29,9 +29,9 @@
             <td>Staging</td>
             <td>
               <select id="staging_type" name="staging_type">
-                <option value="none" {{maybe_selected this.user.staging_type "None"}}>None</option>
-                <option value="label" {{maybe_selected this.user.staging_type "Label"}}>Label</option>
-                <option value="mountpoint" {{maybe_selected this.user.staging_type "Mountpoint"}}>Mountpoint</option>
+                <option value="None" {{maybe_selected this.user.staging_type "None"}}>None</option>
+                <option value="Label" {{maybe_selected this.user.staging_type "Label"}}>Label</option>
+                <option value="Mountpoint" {{maybe_selected this.user.staging_type "Mountpoint"}}>Mountpoint</option>
               </select>
 
               <input class="settings-text-input" type="text" name="staging_data" form="settings_form" placeholder="/mnt/staging"

@@ -37,9 +37,9 @@ impl<'v> FromFormValue<'v> for StagingKind {
     fn from_form_value(form_value: &'v RawStr) -> Result<StagingKind, Self::Error> {
         let decoded = form_value.url_decode();
         match decoded {
-            Ok(ref kind) if kind == "none" => Ok(StagingKind::None),
-            Ok(ref kind) if kind == "label" => Ok(StagingKind::Label),
-            Ok(ref kind) if kind == "mountpoint" => Ok(StagingKind::Mountpoint),
+            Ok(ref kind) if kind == "None" => Ok(StagingKind::None),
+            Ok(ref kind) if kind == "Label" => Ok(StagingKind::Label),
+            Ok(ref kind) if kind == "Mountpoint" => Ok(StagingKind::Mountpoint),
             _ => Err(format!("unknown staging_kind {}", form_value)),
         }
     }
