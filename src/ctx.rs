@@ -10,7 +10,6 @@ use lockfile::Lockfile;
 use crate::config;
 use crate::mailer;
 use crate::pushover_notifier::Notify;
-use crate::staging::StagingDirectory;
 
 /// Ctx is the global context object. Constructed by consuming a `config::Config`.
 pub struct Ctx {
@@ -21,8 +20,6 @@ pub struct Ctx {
     notifier: Option<Box<dyn Notify>>,
     /// An optional mailer that will be used to send reports when uploads finish or fail.
     pub mailer: Option<mailer::SendgridMailer>,
-    /// The staging adaptor that we'll be using.
-    pub staging: StagingDirectory,
     // This lock is optional, since we can opt into building it without, but by making the lock
     // part of this API we can't accidentally end up not having one.
     _lock: Option<lockfile::Lockfile>,
@@ -33,7 +30,6 @@ impl fmt::Debug for Ctx {
         fmt.debug_struct("Ctx")
             .field("usb_ctx", &"libusb::Context { ... }")
             .field("cfg", &self.cfg)
-            .field("staging", &self.staging)
             .field("notifier", &self.notifier)
             .field("mailer", &self.mailer)
             .finish()
@@ -67,7 +63,6 @@ impl Ctx {
     fn create_ctx(cfg: config::Config, should_lock: bool) -> Result<Ctx, Error> {
         let notifier = cfg.notifier();
         let mailer = cfg.mailer();
-        let staging = cfg.staging()?;
 
         let _lock = if should_lock {
             Some(acquire_lock()?)
@@ -80,13 +75,15 @@ impl Ctx {
             cfg,
             notifier,
             mailer,
-            staging,
             _lock,
         })
     }
 
-    pub fn staging(&self) -> &StagingDirectory {
-        &self.staging
+    // TODO(richo) We should be able to make this info
+    // &impl MountablePeripheral<Output=MountedStaging>
+    // at some point
+    pub fn staging(&self) -> config::StagingConfig {
+        self.cfg.staging()
     }
 
     pub fn notify(&self, msg: &str) -> Result<(), Error> {

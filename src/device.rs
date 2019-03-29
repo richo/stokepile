@@ -4,11 +4,9 @@ use failure::Error;
 
 use crate::config;
 use crate::ctx;
-use crate::flysight;
-use crate::mass_storage;
 use crate::ptp_device;
 use crate::staging::{Staging, StageableLocation};
-use crate::peripheral::MountablePeripheral;
+use crate::mountable::{Mountable, MountableFilesystem};
 
 #[derive(Eq, PartialEq, Debug, Hash)]
 pub struct DeviceDescription {
@@ -16,21 +14,27 @@ pub struct DeviceDescription {
 }
 
 #[derive(Eq, PartialEq, Debug, Hash)]
+// TODO(richo) if we implement the ptp connection stuff in terms of mount, suddenly we can unify
+// this whole thing behind a trait!, and I think the DeviceDescription is now pointless as well.
 pub enum Device<'a> {
     Gopro(DeviceDescription, ptp_device::Gopro<'a>),
-    MassStorage(DeviceDescription, mass_storage::MassStorage),
-    Flysight(DeviceDescription, flysight::Flysight),
+    MassStorage(DeviceDescription, config::MassStorageConfig),
+    Flysight(DeviceDescription, config::FlysightConfig),
 }
 
 impl Device<'_> {
     pub fn stage_files<T>(self, destination: T) -> Result<(), Error>
     where T: StageableLocation {
         match self {
-            Device::Gopro(desc, gopro) => gopro.connect()?.stage_files(&desc.name, &destination),
+            Device::Gopro(desc, gopro) => {
+                Mountable::mount(gopro)?.stage_files(&desc.name, &destination)
+            },
             Device::MassStorage(desc, mass_storage) => {
-                mass_storage.mount()?.stage_files(&desc.name, &destination)
-            }
-            Device::Flysight(desc, flysight) => flysight.mount()?.stage_files(&desc.name, &destination),
+                Mountable::mount(mass_storage)?.stage_files(&desc.name, &destination)
+            },
+            Device::Flysight(desc, flysight) => {
+                Mountable::mount(flysight)?.stage_files(&desc.name, &destination)
+            },
         }
     }
 
@@ -80,10 +84,10 @@ fn locate_flysights(
     cfg: &config::Config,
 ) -> Result<impl Iterator<Item = Device<'_>>, Error> {
     Ok(cfg.flysights().iter().filter_map(|cfg| {
-        cfg.flysight().get().map(|fs| {
+        cfg.clone().get().map(|fs| {
             Device::Flysight(
                 DeviceDescription {
-                    name: cfg.name.clone(),
+                    name: cfg.name().to_string(),
                 },
                 fs,
             )
@@ -95,7 +99,7 @@ fn locate_mass_storages(
     cfg: &config::Config,
 ) -> Result<impl Iterator<Item = Device<'_>>, Error> {
     Ok(cfg.mass_storages().iter().filter_map(|cfg| {
-        cfg.mass_storage().get().map(|ms| {
+        cfg.clone().get().map(|ms| {
             Device::MassStorage(
                 DeviceDescription {
                     name: cfg.name.clone(),

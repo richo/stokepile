@@ -48,7 +48,7 @@ table! {
         notify_email -> Nullable<Varchar>,
         notify_pushover -> Nullable<Varchar>,
         staging_type -> StagingKindMapping,
-        staging_location -> Nullable<Varchar>,
+        staging_data -> Nullable<Varchar>,
     }
 }
 
