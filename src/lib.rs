@@ -122,6 +122,9 @@ pub mod vimeo;
 
 mod version;
 
+/// A notifier that pushes notifications out via the web service.
+mod web_notifier;
+
 /// What version of archiver do you have :)
 pub use crate::version::VERSION;
 

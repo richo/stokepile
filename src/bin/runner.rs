@@ -39,7 +39,7 @@ fn main() {
         let work_to_be_done = !devices.is_empty();
         let maybe_notify = |msg: &str| {
             if work_to_be_done {
-                if let Err(e) = ctx.notifier.notify(msg) {
+                if let Err(e) = ctx.notify(msg) {
                     error!("Failed to send push notification: {:?}", e);
                 }
             } else {

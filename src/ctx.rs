@@ -9,7 +9,7 @@ use lockfile::Lockfile;
 
 use crate::config;
 use crate::mailer;
-use crate::pushover_notifier;
+use crate::pushover_notifier::Notify;
 use crate::staging::StagingDirectory;
 
 /// Ctx is the global context object. Constructed by consuming a `config::Config`.
@@ -18,7 +18,7 @@ pub struct Ctx {
     pub usb_ctx: libusb::Context,
     pub cfg: config::Config,
     /// An optional notifier to call on changes to uploads.
-    pub notifier: Option<pushover_notifier::PushoverNotifier>,
+    notifier: Option<Box<dyn Notify>>,
     /// An optional mailer that will be used to send reports when uploads finish or fail.
     pub mailer: Option<mailer::SendgridMailer>,
     /// The staging adaptor that we'll be using.
@@ -87,6 +87,13 @@ impl Ctx {
 
     pub fn staging(&self) -> &StagingDirectory {
         &self.staging
+    }
+
+    pub fn notify(&self, msg: &str) -> Result<(), Error> {
+        if let Some(notifier) = &self.notifier {
+            return notifier.notify(msg)
+        }
+        Ok(())
     }
 }
 

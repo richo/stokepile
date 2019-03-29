@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use failure::Error;
 
 use pshovr;
@@ -8,7 +9,7 @@ pub struct PushoverNotifier {
     client: pshovr::PushoverClient,
 }
 
-pub trait Notify {
+pub trait Notify: Debug + Send + Sync {
     fn notify(&self, msg: &str) -> Result<(), Error>;
 }
 
@@ -40,5 +41,11 @@ impl<T> Notify for Option<T> where T: Notify {
                 Ok(())
             }
         }
+    }
+}
+
+impl<T> Notify for Box<T> where T: Notify {
+    fn notify(&self, msg: &str) -> Result<(), Error> {
+        (**self).notify(msg)
     }
 }
