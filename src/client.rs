@@ -77,10 +77,12 @@ impl ArchiverClient {
         let mut endpoint = self.base.clone();
         endpoint.set_path("/notification/send");
 
-        let mut headers = self.json_content_type(HeaderMap::new());
+        let headers = self.json_content_type(
+            self.add_authorization(
+                HeaderMap::new())?);
 
         let payload = messages::SendNotification {
-            message: msg,
+            message: msg.into(),
         };
 
         let mut resp = self
@@ -97,7 +99,8 @@ impl ArchiverClient {
 
         let resp: messages::SendNotificationResp = resp.json()?;
         match resp {
-            messages::SendNotificationResp::Sent => {
+            messages::SendNotificationResp::Sent |
+            messages::SendNotificationResp::NotConfigured => {
                 Ok(())
             },
             messages::SendNotificationResp::Error(e) => {

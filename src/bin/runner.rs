@@ -8,7 +8,6 @@ use archiver::config;
 use archiver::ctx::Ctx;
 use archiver::device;
 use archiver::mailer::MailReport;
-use archiver::pushover_notifier::Notify;
 use archiver::storage;
 
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {

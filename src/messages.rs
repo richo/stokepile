@@ -13,12 +13,13 @@ pub enum JsonSignInResp {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct SendNotification<'a> {
-    pub message: &'a str,
+pub struct SendNotification {
+    pub message: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub enum SendNotificationResp {
     Sent,
+    NotConfigured,
     Error(String),
 }
