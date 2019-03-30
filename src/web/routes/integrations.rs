@@ -2,7 +2,7 @@ use rocket::request::Form;
 use rocket::response::{Flash, Redirect};
 
 use oauth2::prelude::*;
-use oauth2::CsrfToken;
+use oauth2::{AuthorizationCode, CsrfToken};
 
 use crate::web::auth::WebUser;
 use crate::web::db::DbConn;
@@ -98,6 +98,8 @@ pub fn finish_integration(
         );
         None
     } else {
+        let client = resp.provider.client();
+        let token = client.exchange_code(AuthorizationCode::new(resp.code.clone()));
         NewIntegration::new(&user.user, resp.provider.name(), &resp.code)
             .create(&*conn)
             .ok()
