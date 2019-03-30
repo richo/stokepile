@@ -12,6 +12,39 @@ use chrono::prelude::*;
 const MAX_RETRIES: usize = 3;
 
 #[derive(Debug)]
+pub struct MaybeStorageAdaptor {
+    name: String,
+    adaptor: Result<Box<dyn StorageAdaptor<File>>, Error>,
+}
+
+impl MaybeStorageAdaptor {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn adaptor(&self) -> &Result<Box<dyn StorageAdaptor<File>>, Error> {
+        &self.adaptor
+    }
+
+    #[allow(non_snake_case)]
+    pub fn Ok<T>(adaptor: T) -> MaybeStorageAdaptor
+    where T: 'static + StorageAdaptor<File> {
+        MaybeStorageAdaptor {
+            name: adaptor.name(),
+            adaptor: Ok(Box::new(adaptor)),
+        }
+    }
+
+    #[allow(non_snake_case)]
+    pub fn Err(name: String, error: Error) -> MaybeStorageAdaptor {
+        MaybeStorageAdaptor {
+            name,
+            adaptor: Err(error),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum StorageStatus {
     Success,
     Failure,
@@ -33,20 +66,21 @@ pub trait StorageAdaptor<T>: Send + Debug {
 // TODO(richo) Make this use StageableLocation to find the files.
 pub fn upload_from_staged(
     staged: &dyn StageableLocation,
-    adaptors: Vec<Result<Box<dyn StorageAdaptor<File>>, Error>>,
+    adaptors: &[MaybeStorageAdaptor],
 ) -> Result<UploadReport, Error> {
     let mut report: UploadReport = Default::default();
     info!("Starting upload from {:?}", &staged);
     for (staged_file, manifest) in staged.staged_files()? {
 
         let results: Vec<_> = adaptors
-            .into_iter()
+            .iter()
             .map(|ad| {
                 // Does it actually make sense to use Errored when it was a mount failure?
                 // dunno but we're doing it.
-                let ad = match ad {
+                let ad = match ad.adaptor() {
                     Ok(ad) => ad,
-                    Err(e) => return ("TODO OH SHIT WE DON'T KNOW WHAT IT'S CALLED".to_string(), UploadStatus::Errored(e)),
+                    // TODO(richo) throwing away the info with format_err is a little blunt
+                    Err(e) => return (ad.name().to_string(), UploadStatus::Errored(format_err!("Failed to get adaptor: {:?}", e))),
                 };
 
                 let start = Utc::now();
@@ -169,7 +203,7 @@ mod tests {
 
         let uploader = TemporarilyBrokenStorageAdaptor::new(4);
 
-        upload_from_staged(&data, vec![Ok(Box::new(uploader))]).expect("Didn't upload successfully");
+        upload_from_staged(&data, &[MaybeStorageAdaptor::Ok(uploader)]).expect("Didn't upload successfully");
         assert_eq!(10, files.len());
     }
 
@@ -181,7 +215,7 @@ mod tests {
 
         let uploader = TemporarilyBrokenStorageAdaptor::new(2);
 
-        let report = upload_from_staged(&data, vec![Ok(Box::new(uploader))]).expect("Didn't upload successfully");
+        let report = upload_from_staged(&data, &[MaybeStorageAdaptor::Ok(uploader)]).expect("Didn't upload successfully");
         println!("{}", report.to_plaintext().unwrap());
         // TODO(richo) why isn't this actually deleting anything
         // assert_eq!(0, files.len());

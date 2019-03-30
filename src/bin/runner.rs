@@ -73,7 +73,7 @@ fn main() {
             maybe_notify(&msg);
         }
 
-        let report = storage::upload_from_staged(&staging, backends)?;
+        let report = storage::upload_from_staged(&staging, &backends)?;
 
         maybe_notify("Finished uploading media");
 

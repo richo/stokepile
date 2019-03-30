@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::fmt;
 
 use failure::Error;
 use toml;
@@ -10,9 +11,9 @@ use url;
 use crate::dropbox;
 use crate::mailer::SendgridMailer;
 use crate::pushover_notifier::PushoverNotifier;
-use crate::storage::StorageAdaptor;
 use crate::vimeo::VimeoClient;
-use crate::mountable::Mountable;
+use crate::mountable::{Mountable, MountableFilesystem};
+use crate::storage::MaybeStorageAdaptor;
 
 
 // TODO(richo) Change this once we have a canonical domain
@@ -199,6 +200,20 @@ impl MountableDeviceLocation {
     }
 }
 
+impl fmt::Display for MountableDeviceLocation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            MountableDeviceLocation::Mountpoint(path) => {
+                write!(f, "Mountpoint({:?})", path)
+            },
+            MountableDeviceLocation::Label(label) => {
+                write!(f, "Label({})", label)
+            },
+        }
+    }
+}
+
+
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone, Hash)]
 #[serde(deny_unknown_fields)]
 pub struct FlysightConfig {
@@ -384,26 +399,21 @@ impl Config {
     }
 
     /// Returns a vec of all configured backends
-    pub fn backends(&self) -> Vec<Result<Box<dyn StorageAdaptor<File>>, Error>> {
-        let mut out: Vec<Result<Box<dyn StorageAdaptor<File>>, Error>> = vec![];
+    pub fn backends(&self) -> Vec<MaybeStorageAdaptor> {
+        let mut out = vec![];
         if let Some(ref locals) = self.local_backup {
             for adaptor in locals {
-                // For whatever reason,
-                // out.push(adaptor.mount().map(|o| Box::new(o)));
-                // Doesnt' Just Work so instead we have to destructure by hand :(
-                match adaptor.clone().mount() {
-                    Ok(mounted) => out.push(Ok(Box::new(mounted))),
-                    Err(e) => out.push(Err(e)),
-                }
+                out.push(match Mountable::mount(adaptor.clone()) {
+                    Ok(mounted) => MaybeStorageAdaptor::Ok(mounted),
+                    Err(e) => MaybeStorageAdaptor::Err(adaptor.location().to_string(), e),
+                });
             }
         }
         if let Some(ref dropbox) = self.dropbox {
-            out.push(Ok(Box::new(
-                        dropbox::DropboxFilesClient::new(dropbox.token.clone()))));
+            out.push(MaybeStorageAdaptor::Ok(dropbox::DropboxFilesClient::new(dropbox.token.clone())));
         }
         if let Some(ref vimeo) = self.vimeo {
-            out.push(Ok(Box::new(
-                        VimeoClient::new(vimeo.token.clone()))));
+            out.push(MaybeStorageAdaptor::Ok(VimeoClient::new(vimeo.token.clone())));
         }
         out
     }
