@@ -124,7 +124,8 @@ pub fn refresh_token(
         // Do we need to store the new refresh token somewhere?
         // We also definitely do need to cache this token since goog apparantly don't like being
         // pummeled
-        Ok(token) => Json(RefreshToken::Token(token.access_token())),
+        // Ok(token) => Json(RefreshToken::Token(token.access_token())),
+        Ok(token) => Json(unimplemented!()),
         Err(error) => Json(RefreshToken::Error(error.to_string())),
     }
 }
