@@ -1,43 +1,18 @@
 use std::fs::{self, File};
 use std::path::PathBuf;
 
-use crate::config::MountableDeviceLocation;
-use crate::peripheral::{MountablePeripheral, MountableKind};
+use crate::config::{MassStorageConfig, MountableDeviceLocation};
+use crate::mountable::{MountableFilesystem, MountedFilesystem, MountableKind};
 use crate::staging::{Staging, DateTimeUploadable};
-use crate::mountable::MountedFilesystem;
 
 use chrono;
 use chrono::prelude::*;
 use failure::Error;
 use walkdir::WalkDir;
 
-#[derive(Eq, PartialEq, Debug, Hash)]
-pub struct MassStorage {
-    // TODO(richo) privatise these
-    pub name: String,
-    pub location: MountableDeviceLocation,
-    pub extensions: Vec<String>,
-}
-
-impl MassStorage {
-    #[cfg(test)]
-    fn mount_for_test(self) -> MountedMassStorage {
-        let loc = match &self.location {
-            MountableDeviceLocation::Label(_) => panic!("Labels not supported in tests"),
-            MountableDeviceLocation::Mountpoint(mp) => mp.clone(),
-        };
-
-        let mount = MountedFilesystem::new_externally_mounted(loc);
-        MountedMassStorage {
-            mass_storage: self,
-            mount,
-        }
-    }
-}
-
 #[derive(Debug)]
 pub struct MountedMassStorage {
-    mass_storage: MassStorage,
+    mass_storage: MassStorageConfig,
     mount: MountedFilesystem,
 }
 
@@ -104,8 +79,8 @@ impl Staging for MountedMassStorage {
     }
 }
 
-impl MountablePeripheral for MassStorage {
-    type Output = MountedMassStorage;
+impl MountableFilesystem for MassStorageConfig {
+    type Target = MountedMassStorage;
 
     fn location(&self) -> &MountableDeviceLocation {
         &self.location
@@ -113,7 +88,7 @@ impl MountablePeripheral for MassStorage {
 }
 
 impl MountableKind for MountedMassStorage {
-    type This = MassStorage;
+    type This = MassStorageConfig;
 
     fn from_mounted_parts(this: Self::This, mount: MountedFilesystem) -> Self {
         MountedMassStorage {
@@ -158,7 +133,7 @@ mod tests {
 
     #[test]
     fn test_mass_storage_loads_files() {
-        let mass_storage = MassStorage {
+        let mass_storage = MassStorageConfig {
             name: "data".into(),
             location: MountableDeviceLocation::from_mountpoint("test-data/mass_storage".into()),
             extensions: extensions(),
@@ -178,7 +153,7 @@ mod tests {
         let source = test_helpers::test_data("mass_storage");
         fix_filetimes(&source.path()).unwrap();
 
-        let mass_storage = MassStorage {
+        let mass_storage = MassStorageConfig {
             name: "data".into(),
             location: MountableDeviceLocation::from_mountpoint(source.path().to_path_buf()),
             extensions: extensions(),

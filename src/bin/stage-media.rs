@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate log;
+
 use clap::{App, Arg};
 use std::path::PathBuf;
 
@@ -6,6 +9,7 @@ use archiver::config;
 use archiver::ctx::Ctx;
 use archiver::manual_file::ManualFile;
 use archiver::staging;
+use archiver::mountable::Mountable;
 
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
     cli::base_opts()
@@ -31,8 +35,11 @@ fn main() {
             .expect("Couldn't convert device name to str")
             .to_string();
 
+        let staging = ctx.staging().mount()?;
+        info!("Staging to: {:?}", &staging);
+
         for file in ManualFile::iter_from(path) {
-            staging::stage_file(file, &ctx.staging, &device_name)?;
+            staging::stage_file(file, &staging, &device_name)?;
         }
 
         Ok(())

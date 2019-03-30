@@ -5,7 +5,7 @@ use rocket_contrib::templates::Template;
 use rocket::response::{Flash, Redirect};
 use rocket::request::Form;
 
-use crate::config::StagingConfig;
+use crate::config::{MountableDeviceLocation, StagingConfig};
 use crate::web::auth::WebUser;
 use crate::web::context::Context;
 use crate::web::db::DbConn;
@@ -37,22 +37,31 @@ pub fn post_settings(user: WebUser, conn: DbConn, settings: Form<SettingsForm>) 
     }
 }
 
-#[derive(FromForm, Debug)]
+#[derive(FromForm, Debug, Serialize)]
 pub struct SettingsForm {
-    notification_email: String,
-    notification_pushover: String,
-    staging_location: String,
-    staging_type: StagingKind,
+    pub(crate) notification_email: String,
+    pub(crate) notification_pushover: String,
+    pub(crate) staging_data: String,
+    pub(crate) staging_type: StagingKind,
 }
 
 impl SettingsForm {
     /// Coerce the separate values given in the form back into a StagingConfig
-    pub fn staging(&self) -> StagingConfig {
-        let pathbuf = PathBuf::from(&self.staging_location);
-        match self.staging_type {
-            StagingKind::Device => StagingConfig::StagingDevice(pathbuf),
-            StagingKind::Directory => StagingConfig::StagingDirectory(pathbuf),
+    pub fn staging(&self) -> Option<StagingConfig> {
+        if self.staging_data.len() == 0 {
+            return None;
         }
+        let location = match self.staging_type {
+            StagingKind::None => return None,
+            StagingKind::Label => MountableDeviceLocation::Label(self.staging_data.clone()),
+            StagingKind::Mountpoint => {
+                let pathbuf = PathBuf::from(&self.staging_data);
+                MountableDeviceLocation::Mountpoint(pathbuf)
+            }
+        };
+        Some(StagingConfig {
+            location,
+        })
     }
 }
 
@@ -82,6 +91,7 @@ mod tests {
     use diesel::prelude::*;
 
     use rocket::http::{ContentType, Status};
+    use serde_urlencoded;
 
     client_for_routes!(get_settings, post_settings => client);
 
@@ -97,11 +107,18 @@ mod tests {
         assert_eq!(None, user.notify_email);
         assert_eq!(None, user.notify_pushover);
 
-        // Set some settings
+        let settings = SettingsForm {
+            notification_email: "test-value".into(),
+            notification_pushover: "another test value".into(),
+            staging_type: StagingKind::Label,
+            staging_data: "BUTTS".into(),
+        };
+        let serialized = serde_urlencoded::to_string(&settings).expect("Couldn't serialize form");
+
         let response = client
             .post("/settings")
             .header(ContentType::Form)
-            .body(r"notification_email=test-value&notification_pushover=another%20test%20value&staging_type=device&staging_location=/butts")
+            .body(serialized.as_bytes())
             .dispatch();
         assert_eq!(response.status(), Status::SeeOther);
 
@@ -114,6 +131,37 @@ mod tests {
 
         assert_eq!(Some("test-value".into()), user.notify_email);
         assert_eq!(Some("another test value".into()), user.notify_pushover);
+
+        assert_eq!(Some("BUTTS".into()), user.staging_data);
+        assert_eq!(StagingKind::Label, user.staging_type);
+
+        let settings = SettingsForm {
+            notification_email: "".into(),
+            notification_pushover: "".into(),
+            staging_type: StagingKind::None,
+            staging_data: "".into(),
+        };
+        let serialized = serde_urlencoded::to_string(&settings).expect("Couldn't serialize form");
+
+        let response = client
+            .post("/settings")
+            .header(ContentType::Form)
+            .body(serialized.as_bytes())
+            .dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
+
+        // Reload the user. There is probably a better way to do this.
+        let user = {
+            let conn = db_conn(&client);
+
+            users.filter(id.eq(user.id)).get_result::<User>(&*conn).unwrap()
+        };
+
+        assert_eq!(None, user.notify_email);
+        assert_eq!(None, user.notify_pushover);
+
+        assert_eq!(None, user.staging_data);
+        assert_eq!(StagingKind::None, user.staging_type);
     }
 
 
@@ -130,11 +178,18 @@ mod tests {
         let _s1 = signin(&client1, "test1%40email.com", "p%4055w0rd").unwrap();
         let _s2 = signin(&client2, "test2%40email.com", "p%4055w0rd").unwrap();
 
-        // Set some settings
+        let settings = SettingsForm {
+            notification_email: "lol".into(),
+            notification_pushover: "hithere".into(),
+            staging_type: StagingKind::Mountpoint,
+            staging_data: "butts".into(),
+        };
+        let serialized = serde_urlencoded::to_string(&settings).expect("Couldn't serialize form");
+
         let response = client1
             .post("/settings")
             .header(ContentType::Form)
-            .body(r"notification_email=lol&notification_pushover=hithere&staging_type=device&staging_location=/butts")
+            .body(serialized)
             .dispatch();
         assert_eq!(response.status(), Status::SeeOther);
 

@@ -12,7 +12,8 @@ use hashing_copy;
 use serde::{Deserialize, Serialize};
 use serde_json;
 
-use crate::config::MountableDeviceLocation;
+use crate::config::{MountableDeviceLocation, StagingConfig};
+use crate::mountable::{MountedFilesystem, MountableFilesystem, MountableKind};
 
 #[derive(Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub enum RemotePathDescriptor {
@@ -25,6 +26,40 @@ pub enum RemotePathDescriptor {
     },
 }
 
+impl MountableFilesystem for StagingConfig {
+    type Target = MountedStaging;
+
+    fn location(&self) -> &MountableDeviceLocation {
+        &self.location
+    }
+}
+
+impl MountableKind for MountedStaging {
+    type This = StagingConfig;
+
+    fn from_mounted_parts(this: Self::This, mount: MountedFilesystem) -> Self {
+        MountedStaging {
+            staging: this,
+            mount,
+        }
+    }
+}
+
+impl StageableLocation for MountedStaging {
+    fn relative_path(&self, path: &Path) -> PathBuf {
+        self.mount.path().join(path)
+    }
+
+    fn read_dir(&self) -> Result<fs::ReadDir, io::Error> {
+        fs::read_dir(self.mount.path())
+    }
+}
+
+#[derive(Debug)]
+pub struct MountedStaging {
+    staging: StagingConfig,
+    mount: MountedFilesystem,
+}
 
 pub trait UploadableFile {
     type Reader: Read;
@@ -208,30 +243,6 @@ impl StagedFile {
     }
 }
 
-#[derive(Debug)]
-pub struct StagingDirectory {
-    path: PathBuf,
-}
-
-impl StageableLocation for StagingDirectory {
-    fn relative_path(&self, path: &Path) -> PathBuf {
-        assert!(path.is_relative());
-        self.path.join(&path)
-    }
-
-    fn read_dir(&self) -> Result<fs::ReadDir, io::Error> {
-        fs::read_dir(&self.path)
-    }
-}
-
-impl StagingDirectory {
-    pub fn new(path: PathBuf) -> Self {
-        StagingDirectory {
-            path,
-        }
-    }
-}
-
 #[derive(Fail, Debug)]
 pub enum MountError {
     #[fail(display = "Failed to create mountpoint: {}.", _0)]
@@ -252,17 +263,6 @@ impl StagingDevice {
         }
     }
 }
-
-// impl Mountable for StagingDevice {
-//     type Mountpoint = tempfile::TempDir;
-
-//     fn set_mountpoint(&mut self, mountpoint: Self::Mountpoint) {
-//         self.mountpoint = Some(mountpoint)
-//     }
-//     fn device(&self) -> &Path {
-//         &self.device
-//     }
-// }
 
 impl Drop for StagingDevice {
     fn drop(&mut self) {

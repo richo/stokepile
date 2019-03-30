@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::fs::File;
 
 use crate::reporting::{ReportEntry, UploadReport, UploadStatus};
@@ -11,12 +12,45 @@ use chrono::prelude::*;
 const MAX_RETRIES: usize = 3;
 
 #[derive(Debug)]
+pub struct MaybeStorageAdaptor {
+    name: String,
+    adaptor: Result<Box<dyn StorageAdaptor<File>>, Error>,
+}
+
+impl MaybeStorageAdaptor {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn adaptor(&self) -> &Result<Box<dyn StorageAdaptor<File>>, Error> {
+        &self.adaptor
+    }
+
+    #[allow(non_snake_case)]
+    pub fn Ok<T>(adaptor: T) -> MaybeStorageAdaptor
+    where T: 'static + StorageAdaptor<File> {
+        MaybeStorageAdaptor {
+            name: adaptor.name(),
+            adaptor: Ok(Box::new(adaptor)),
+        }
+    }
+
+    #[allow(non_snake_case)]
+    pub fn Err(name: String, error: Error) -> MaybeStorageAdaptor {
+        MaybeStorageAdaptor {
+            name,
+            adaptor: Err(error),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum StorageStatus {
     Success,
     Failure,
 }
 
-pub trait StorageAdaptor<T>: Send {
+pub trait StorageAdaptor<T>: Send + Debug {
     fn upload(
         &self,
         reader: T,
@@ -32,7 +66,7 @@ pub trait StorageAdaptor<T>: Send {
 // TODO(richo) Make this use StageableLocation to find the files.
 pub fn upload_from_staged(
     staged: &dyn StageableLocation,
-    adaptors: &[Box<dyn StorageAdaptor<File>>],
+    adaptors: &[MaybeStorageAdaptor],
 ) -> Result<UploadReport, Error> {
     let mut report: UploadReport = Default::default();
     info!("Starting upload from {:?}", &staged);
@@ -41,6 +75,14 @@ pub fn upload_from_staged(
         let results: Vec<_> = adaptors
             .iter()
             .map(|ad| {
+                // Does it actually make sense to use Errored when it was a mount failure?
+                // dunno but we're doing it.
+                let ad = match ad.adaptor() {
+                    Ok(ad) => ad,
+                    // TODO(richo) throwing away the info with format_err is a little blunt
+                    Err(e) => return (ad.name().to_string(), UploadStatus::Errored(format_err!("Failed to get adaptor: {:?}", e))),
+                };
+
                 let start = Utc::now();
                 info!("Starting {} adaptor for {:?}", ad.name(), &staged_file.content_path);
                 info!("Checking if file already exists");
@@ -66,7 +108,7 @@ pub fn upload_from_staged(
                         }
                         Err(error) => {
                             error!(
-                                "Attempt {} of upload of {:?} failed: {:?}",
+                               "Attempt {} of upload of {:?} failed: {:?}",
                                 &i, &staged_file.content_path, &error
                             );
                             Some(error)
@@ -105,6 +147,7 @@ mod tests {
     /// A storage adaptor that will succeed on the nth attempt
     // TODO(richo) It's probably a fairly small problem to make this Sync and suddenly parrallel
     // uploads are right there on the horizon.
+    #[derive(Debug)]
     struct TemporarilyBrokenStorageAdaptor {
         attempts: Cell<usize>,
         successful_attempt: usize,
@@ -160,7 +203,7 @@ mod tests {
 
         let uploader = TemporarilyBrokenStorageAdaptor::new(4);
 
-        upload_from_staged(&data, &[Box::new(uploader)]).expect("Didn't upload successfully");
+        upload_from_staged(&data, &[MaybeStorageAdaptor::Ok(uploader)]).expect("Didn't upload successfully");
         assert_eq!(10, files.len());
     }
 
@@ -172,7 +215,7 @@ mod tests {
 
         let uploader = TemporarilyBrokenStorageAdaptor::new(2);
 
-        let report = upload_from_staged(&data, &[Box::new(uploader)]).expect("Didn't upload successfully");
+        let report = upload_from_staged(&data, &[MaybeStorageAdaptor::Ok(uploader)]).expect("Didn't upload successfully");
         println!("{}", report.to_plaintext().unwrap());
         // TODO(richo) why isn't this actually deleting anything
         // assert_eq!(0, files.len());

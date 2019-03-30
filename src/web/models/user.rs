@@ -4,12 +4,10 @@ use diesel::prelude::*;
 use super::*;
 use crate::web::schema::users;
 use crate::web::routes::settings::SettingsForm;
-use crate::config::StagingConfig;
+use crate::config::{MountableDeviceLocation, StagingConfig};
 
 use rocket::http::RawStr;
 use rocket::request::FromFormValue;
-
-use std::path::PathBuf;
 
 #[derive(Identifiable, Queryable, Debug, Serialize)]
 pub struct User {
@@ -20,13 +18,17 @@ pub struct User {
     pub notify_email: Option<String>,
     pub notify_pushover: Option<String>,
     pub staging_type: StagingKind,
-    pub staging_location: Option<String>,
+    pub staging_data: Option<String>,
 }
 
-#[derive(Debug, DbEnum, Serialize)]
+#[derive(Debug, DbEnum, Serialize, PartialEq)]
+// We can't reuse this directly, without pulling all of the web stuff into the client, so instead
+// we're going to have a mirror struct and some smoke unit tests that break if they're not kept in
+// sync
 pub enum StagingKind {
-    Device,
-    Directory,
+    None,
+    Mountpoint,
+    Label,
 }
 
 impl<'v> FromFormValue<'v> for StagingKind {
@@ -35,8 +37,9 @@ impl<'v> FromFormValue<'v> for StagingKind {
     fn from_form_value(form_value: &'v RawStr) -> Result<StagingKind, Self::Error> {
         let decoded = form_value.url_decode();
         match decoded {
-            Ok(ref kind) if kind == "device" => Ok(StagingKind::Device),
-            Ok(ref kind) if kind == "directory" => Ok(StagingKind::Directory),
+            Ok(ref kind) if kind == "None" => Ok(StagingKind::None),
+            Ok(ref kind) if kind == "Label" => Ok(StagingKind::Label),
+            Ok(ref kind) if kind == "Mountpoint" => Ok(StagingKind::Mountpoint),
             _ => Err(format!("unknown staging_kind {}", form_value)),
         }
     }
@@ -105,29 +108,33 @@ impl User {
     }
 
     pub fn staging(&self) -> Option<StagingConfig> {
-        match &self.staging_location {
-            Some(location) => {
-                let location = PathBuf::from(location);
-                match self.staging_type {
-                    StagingKind::Directory => Some(StagingConfig::StagingDirectory(location)),
-                    StagingKind::Device => Some(StagingConfig::StagingDevice(location)),
-                }
-            },
+        let loc = match &self.staging_data {
+            Some(loc) => loc,
             None => return None,
-        }
+        };
+        let location = match &self.staging_type {
+            StagingKind::None => return None,
+            StagingKind::Label => MountableDeviceLocation::Label(loc.to_owned()),
+            StagingKind::Mountpoint => MountableDeviceLocation::Mountpoint(loc.into()),
+        };
+        Some(StagingConfig {
+            location,
+        })
     }
 
     pub fn update_settings(&self, settings: &SettingsForm, conn: &PgConnection) -> QueryResult<usize> {
         use diesel::update;
         use crate::web::schema::users::dsl::*;
 
-        let staging = settings.staging();
+        let (ty, data) = settings.staging()
+            .map(|x| (x.kind_for_db(), Some(x.data_for_db())))
+            .unwrap_or_else(|| (StagingKind::None, None));
         update(self)
             .set((
                     notify_email.eq(settings.notification_email()),
                     notify_pushover.eq(settings.notification_pushover()),
-                    staging_type.eq(staging.kind()),
-                    staging_location.eq(staging.location().to_string_lossy())
+                    staging_type.eq(ty),
+                    staging_data.eq(data)
             ))
             .execute(conn)
     }
@@ -138,8 +145,8 @@ impl User {
 
         update(self)
             .set((
-                    staging_type.eq(staging.kind()),
-                    staging_location.eq(staging.location().to_string_lossy())
+                    staging_type.eq(staging.kind_for_db()),
+                    staging_data.eq(staging.data_for_db())
             ))
             .execute(conn)
     }
@@ -168,5 +175,32 @@ impl<'a> NewUser<'a> {
         insert_into(users::table)
             .values(self)
             .get_result::<User>(conn)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::MountableDeviceLocation;
+
+    #[test]
+    fn test_staging_kinds_are_in_sync() {
+        // These don't have to run, we just want the definitions
+        fn one_way(sk: StagingKind) {
+            match sk {
+                StagingKind::None => {},
+                StagingKind::Label => {},
+                StagingKind::Mountpoint => {},
+            }
+        }
+
+        fn other_way(ml: MountableDeviceLocation) {
+            match ml {
+                MountableDeviceLocation::Label(_) => {},
+                MountableDeviceLocation::Mountpoint(_) => {},
+            }
+        }
+        // If you find yourself looking at this test, it's because one of those enums was updated
+        // without the other.
     }
 }

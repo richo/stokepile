@@ -2,9 +2,8 @@
 # Comment out any section to disable that feature.
 
 [archiver]
-staging_directory = "/test"
-
-storage_backend="dropbox"
+[staging]
+mountpoint = "/test"
 
 [dropbox]
 token="DROPBOX_TOKEN_GOES_HERE"
@@ -30,7 +29,6 @@ extensions=["mp4"]
 [[flysight]]
 name = "nonexistant_fs"
 mountpoint="test-data/nonexistant_fs"
-extensions=["ogv"]
 
 [[mass_storage]]
 name = "nonexistant_ms"

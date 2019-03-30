@@ -70,7 +70,7 @@ impl ArchiverClient {
             Err(ClientError::ServerError(resp.text()?))?;
         }
 
-        resp.text()?.parse()
+        Ok(resp.text()?.parse()?)
     }
 
     pub fn send_notification(&self, msg: &str) -> Result<(), Error> {

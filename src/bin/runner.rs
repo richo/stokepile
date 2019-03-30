@@ -8,6 +8,7 @@ use archiver::config;
 use archiver::ctx::Ctx;
 use archiver::device;
 use archiver::mailer::MailReport;
+use archiver::mountable::Mountable;
 use archiver::storage;
 
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
@@ -58,20 +59,20 @@ fn main() {
         let backends = ctx.cfg.backends();
         info!("Configured backends:");
         for backend in &backends {
-            info!("  {}", backend.name());
+            info!("  {:?}", backend);
         }
         info!("");
 
+        let staging = ctx.staging().mount()?;
+        info!("Staging to {:?}", &staging);
+
         for device in devices {
             let msg = format!("Finished staging: {}", device.name());
-            device.stage_files(ctx.staging())?;
+            device.stage_files(&staging)?;
             maybe_notify(&msg);
         }
 
-        // Run the uploader thread syncronously as a smoketest for the daemon mode
-        // This is fine for now, we have to lift this into the trait
-        let staging = ctx.staging();
-        let report = storage::upload_from_staged(staging, &backends)?;
+        let report = storage::upload_from_staged(&staging, &backends)?;
 
         maybe_notify("Finished uploading media");
 

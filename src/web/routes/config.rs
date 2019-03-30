@@ -1,3 +1,5 @@
+use failure::Error;
+
 use rocket::get;
 use rocket::response::content::Content;
 use rocket::http::ContentType;
@@ -40,6 +42,7 @@ pub fn get_config(user: AuthenticatedUser, conn: DbConn) -> Result<Content<Strin
             format!("Error connecting to the DB: {}", e),
         )
     })?;
+
     for device in devices {
         match device.into() {
             DeviceConfig::Gopro(gopro) => config = config.gopro(gopro),
@@ -53,19 +56,23 @@ pub fn get_config(user: AuthenticatedUser, conn: DbConn) -> Result<Content<Strin
         config = config.staging(staging);
     }
 
-    match config.finish().map(|c| c.to_toml()) {
-        Ok(Ok(config)) => Ok(Content(
-            ContentType::new("application", "toml"),
-            config,
-        )),
-        Ok(Err(error)) |
-        Err(error) => Err(Flash::error(
+    fn build_flash_error(error: Error) -> Flash<Redirect> {
+        Flash::error(
             Redirect::to("/"),
             format!(
                 "There was a problem generating configuration for you: {}",
                 error
             ),
+            )
+    }
+
+    match config.finish().map(|c| c.to_toml()) {
+        Ok(Ok(config)) => Ok(Content(
+            ContentType::new("application", "toml"),
+            config,
         )),
+        Ok(Err(error)) => Err(build_flash_error(error)),
+        Err(error) => Err(build_flash_error(error.into())),
     }
 }
 
@@ -78,8 +85,10 @@ mod tests {
     use crate::web::models::NewIntegration;
     use crate::web::models::NewKey;
     use crate::web::models::NewDevice;
+    use crate::web::routes::settings::SettingsForm;
+    use crate::web::models::extra::StagingKind;
 
-    use crate::config::{Config, FlysightConfig};
+    use crate::config::{Config, FlysightConfig, MountableDeviceLocation};
 
     client_for_routes!(get_config => client);
 
@@ -126,7 +135,8 @@ mod tests {
         assert_eq!(response.status(), Status::Ok);
         let config: Config =
             response.body_string().expect("Didn't recieve a body").parse().unwrap();
-        let backend_names: Vec<_> = config.backends().iter().map(|b| b.name()).collect();
+        let backends = config.backends();
+        let backend_names: Vec<_> = backends.iter().map(|b| b.name()).collect();
         assert_eq!(&backend_names, &["dropbox"]);
     }
 
@@ -158,7 +168,8 @@ mod tests {
         assert_eq!(response.status(), Status::Ok);
         let config: Config =
             response.body_string().expect("Didn't recieve a body").parse().unwrap();
-        let backend_names: Vec<_> = config.backends().iter().map(|b| b.name()).collect();
+        let backends = config.backends();
+        let backend_names: Vec<_> = backends.iter().map(|b| b.name()).collect();
         assert_eq!(&backend_names, &["dropbox"]);
     }
 
@@ -231,12 +242,68 @@ mod tests {
         assert_eq!(response.status(), Status::Ok);
         let config: Config =
             response.body_string().expect("Didn't recieve a body").parse().unwrap();
-        let backend_names: Vec<_> = config.backends().iter().map(|b| b.name()).collect();
+        let backends = config.backends();
+        let backend_names: Vec<_> = backends.iter().map(|b| b.name()).collect();
         assert_eq!(&backend_names, &["dropbox"]);
 
         let empty_flysights: Vec<FlysightConfig> = vec![];
         assert_eq!(config.flysights(), &empty_flysights);
         assert_eq!(config.mass_storages().len(), 1);
         assert_eq!(config.gopros().len(), 1);
+    }
+
+    #[test]
+    fn test_get_config_with_staging() {
+        let client = client();
+
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+        signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
+
+        {
+            let conn = db_conn(&client);
+
+            NewIntegration::new(&user, "dropbox", "test_oauth_token")
+                .create(&*conn)
+                .unwrap();
+        }
+
+        {
+            let conn = db_conn(&client);
+            user.update_settings(&SettingsForm {
+                notification_email: "test@email.com".into(),
+                notification_pushover: "fake-api-key".into(),
+                staging_data: "/tmp/whatever".into(),
+                staging_type: StagingKind::Mountpoint,
+            }, &*conn).unwrap();
+        }
+
+        let req = client.get("/config");
+
+        let mut response = req.dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        let config: Config =
+            response.body_string().expect("Didn't recieve a body").parse().unwrap();
+
+        // assert!(config.notifier().is_some());
+
+        assert_eq!(config.staging().location,
+                   MountableDeviceLocation::Mountpoint("/tmp/whatever".into()));
+
+        {
+            let conn = db_conn(&client);
+            user.update_settings(&SettingsForm {
+                notification_email: "test@email.com".into(),
+                notification_pushover: "fake-api-key".into(),
+                staging_data: "".into(),
+                staging_type: StagingKind::Mountpoint,
+            }, &*conn).unwrap();
+        }
+
+        let req = client.get("/config");
+
+        let response = req.dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
+
+        // TODO(richo) assert the body of the flash message
     }
 }

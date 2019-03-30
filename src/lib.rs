@@ -20,7 +20,7 @@ extern crate log;
 #[macro_use]
 extern crate redacted_debug;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "web"))]
 macro_rules! client_for_routes {
     ($($route:ident),+ => $client:ident) => {
         fn $client() -> rocket::local::Client {
@@ -91,10 +91,6 @@ pub mod messages;
 
 /// Contains machinery relating to mounting and unmounting devices.
 pub mod mountable;
-
-/// Contains the `MountablePeripheral` trait, common to `flysight`s and `mass_storage`s. This is
-/// simply the glue that makes it easy to check if they're currently present.
-mod peripheral;
 
 /// Our bindings to the ptp crate, which we use to talk to devices like Gopros over USB, allowing
 /// us to avoid having to pull the SD card in order to upload footage.
