@@ -88,12 +88,12 @@ impl Oauth2Config {
     }
     fn google(property: GoogleProperty) -> Oauth2Config {
         let client_id = ClientId::new(
-            env::var("ARCHIVER_YOUTUBE_APP_KEY")
-                .expect("Missing the ARCHIVER_YOUTUBE_APP_KEY environment variable."),
+            env::var("ARCHIVER_GOOGLE_APP_KEY")
+                .expect("Missing the ARCHIVER_GOOGLE_APP_KEY environment variable."),
         );
         let client_secret = ClientSecret::new(
-            env::var("ARCHIVER_YOUTUBE_APP_SECRET")
-                .expect("Missing the ARCHIVER_YOUTUBE_APP_SECRET environment variable."),
+            env::var("ARCHIVER_GOOGLE_APP_SECRET")
+                .expect("Missing the ARCHIVER_GOOGLE_APP_SECRET environment variable."),
         );
         let auth_url = AuthUrl::new(
             Url::parse("https://accounts.google.com/o/oauth2/v2/auth?access_type=offline")
@@ -105,7 +105,10 @@ impl Oauth2Config {
         );
         let redirect_url = RedirectUrl::new(
             BASE_URL
-                .join("/integration/finish?provider=youtube")
+                .join(match property {
+                    GoogleProperty::Youtube => "/integration/finish?provider=youtube",
+                    GoogleProperty::GoogleDrive => "/integration/finish?provider=drive",
+                })
                 .expect("Invalid redirect URL"),
         );
 
