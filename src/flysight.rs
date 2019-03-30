@@ -99,22 +99,6 @@ impl MountableKind for MountedFlysight {
     }
 }
 
-impl FlysightConfig {
-    #[cfg(test)]
-    fn mount_for_test(self) -> MountedFlysight {
-        let loc = match &self.location {
-            MountableDeviceLocation::Label(_) => panic!("Labels not supported in tests"),
-            MountableDeviceLocation::Mountpoint(mp) => mp.clone(),
-        };
-
-        let mount = MountedFilesystem::new_externally_mounted(loc);
-        MountedFlysight {
-            flysight: self,
-            mount,
-        }
-    }
-}
-
 impl Staging for MountedFlysight {
     type FileType = FlysightFile;
 

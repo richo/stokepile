@@ -10,22 +10,6 @@ use chrono::prelude::*;
 use failure::Error;
 use walkdir::WalkDir;
 
-impl MassStorageConfig {
-    #[cfg(test)]
-    fn mount_for_test(self) -> MountedMassStorage {
-        let loc = match &self.location {
-            MountableDeviceLocation::Label(_) => panic!("Labels not supported in tests"),
-            MountableDeviceLocation::Mountpoint(mp) => mp.clone(),
-        };
-
-        let mount = MountedFilesystem::new_externally_mounted(loc);
-        MountedMassStorage {
-            mass_storage: self,
-            mount,
-        }
-    }
-}
-
 #[derive(Debug)]
 pub struct MountedMassStorage {
     mass_storage: MassStorageConfig,

@@ -162,6 +162,17 @@ pub trait MountableFilesystem: Sized {
         Ok(Self::Target::from_mounted_parts(self, mount))
     }
 
+    #[cfg(test)]
+    fn mount_for_test(self) -> Self::Target {
+        let loc = match self.location() {
+            MountableDeviceLocation::Label(_) => panic!("Labels not supported in tests"),
+            MountableDeviceLocation::Mountpoint(mp) => mp.clone(),
+        };
+
+        let mount = MountedFilesystem::new_externally_mounted(loc);
+        Self::Target::from_mounted_parts(self, mount)
+    }
+
     #[cfg(platform = "macos")]
     fn mount_filesystem(&self) -> Result<MountedFilesystem, Error> {
         match self.location() {

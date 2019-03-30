@@ -48,22 +48,6 @@ impl MountableKind for MountedLocalBackup {
     }
 }
 
-impl LocalBackupConfig {
-    #[cfg(test)]
-    fn mount_for_test(self) -> MountedLocalBackup {
-        let loc = match &self.location {
-            MountableDeviceLocation::Label(_) => panic!("Labels not supported in tests"),
-            MountableDeviceLocation::Mountpoint(mp) => mp.clone(),
-        };
-
-        let mount = MountedFilesystem::new_externally_mounted(loc);
-        MountedLocalBackup {
-            local_backup: self,
-            mount,
-        }
-    }
-}
-
 impl<T> StorageAdaptor<T> for MountedLocalBackup
 where
     T: Read,
