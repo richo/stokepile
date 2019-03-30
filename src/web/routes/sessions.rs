@@ -2,7 +2,7 @@ use crate::web::db::DbConn;
 use crate::web::auth::WebUser;
 use crate::web::ROCKET_ENV;
 use crate::web::context::Context;
-use crate::messages;
+use crate::messages::{self, Oauth2Provider, RefreshToken};
 
 use rocket::http::RawStr;
 use rocket::http::{Cookie, Cookies, SameSite};
@@ -10,6 +10,7 @@ use rocket::request::{FlashMessage, Form, FromFormValue};
 use rocket::response::{Flash, Redirect};
 use rocket_contrib::json::Json;
 use rocket_contrib::templates::Template;
+use oauth2::TokenResponse;
 
 use crate::web::models::{
     NewKey, NewSession, NewUser, User,
@@ -104,23 +105,27 @@ pub fn signin_json(
     }
 }
 
-#[get("/refresh_token", format = "json", data = "<signin>")]
 /// Allows an authenticated user to fetch a refresh token for a given service, which will then
 /// allow them to interact with the given service.
 ///
 /// This is mostly for google properties which don't support long lived API keys.
+#[get("/refresh_token/<provider>")]
 pub fn refresh_token(
     conn: DbConn,
-    signin: Json<messages::RefreshToken>,
-) -> Json<messages::RefreshTokenResp> {
-    match User::by_credentials(&*conn, &signin.0.email, &signin.0.password) {
-        Some(user) => {
-            let key = NewKey::new(&user).create(&*conn).unwrap();
-            Json(messages::JsonSignInResp::Token(key.token))
-        }
-        None => Json(messages::JsonSignInResp::Error(
-            "Incorrect username or password.".to_string(),
-        )),
+    provider: Oauth2Provider,
+) -> Json<RefreshToken> {
+    let client = provider.client();
+    let refresh_token = match unimplemented!() {
+        Some(refresh_token) => refresh_token,
+        None => return Json(RefreshToken::NotConfigured),
+    };
+    // TODO(richo) figure out what
+    match client.exchange_refresh_token(refresh_token) {
+        // Do we need to store the new refresh token somewhere?
+        // We also definitely do need to cache this token since goog apparantly don't like being
+        // pummeled
+        Ok(token) => Json(RefreshToken::Token(token.access_token())),
+        Err(error) => Json(RefreshToken::Error(error.to_string())),
     }
 }
 

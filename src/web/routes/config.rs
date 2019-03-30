@@ -8,7 +8,7 @@ use rocket::response::{Flash, Redirect};
 use crate::config::{Config, DeviceConfig};
 use crate::web::auth::AuthenticatedUser;
 use crate::web::db::DbConn;
-use crate::web::oauth::Oauth2Provider;
+use crate::messages::Oauth2Provider;
 
 #[get("/config")]
 pub fn get_config(user: AuthenticatedUser, conn: DbConn) -> Result<Content<String>, Flash<Redirect>> {

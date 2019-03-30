@@ -3,7 +3,9 @@ use oauth2::prelude::*;
 use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, Scope, TokenUrl};
 
 use rocket::http::RawStr;
-use rocket::request::FromFormValue;
+use rocket::request::{FromFormValue, FromParam};
+
+use crate::messages::Oauth2Provider;
 
 use std::env;
 use url::Url;
@@ -107,7 +109,7 @@ impl Oauth2Config {
             BASE_URL
                 .join(match property {
                     GoogleProperty::Youtube => "/integration/finish?provider=youtube",
-                    GoogleProperty::GoogleDrive => "/integration/finish?provider=drive",
+                    GoogleProperty::Drive=> "/integration/finish?provider=drive",
                 })
                 .expect("Invalid redirect URL"),
         );
@@ -179,14 +181,6 @@ impl Oauth2Config {
     }
 }
 
-#[derive(Debug)]
-pub enum Oauth2Provider {
-    Dropbox,
-    YouTube,
-    GoogleDrive,
-    Vimeo,
-}
-
 impl Oauth2Provider {
     pub fn providers() -> &'static [Oauth2Provider] {
         static VARIANTS: &'static [Oauth2Provider] = &[
@@ -228,6 +222,7 @@ impl Oauth2Provider {
     }
 }
 
+// TODO(richo) lol dedupe these
 impl<'v> FromFormValue<'v> for Oauth2Provider {
     type Error = String;
 
@@ -239,6 +234,21 @@ impl<'v> FromFormValue<'v> for Oauth2Provider {
             Ok(ref provider) if provider == "drive" => Ok(Oauth2Provider::GoogleDrive),
             Ok(ref provider) if provider == "vimeo" => Ok(Oauth2Provider::Vimeo),
             _ => Err(format!("unknown provider {}", form_value)),
+        }
+    }
+}
+
+impl<'r> FromParam<'r> for Oauth2Provider {
+    type Error = String;
+
+    fn from_param(param: &'r RawStr) -> Result<Self, Self::Error> {
+        let decoded = param.url_decode();
+        match decoded {
+            Ok(ref provider) if provider == "dropbox" => Ok(Oauth2Provider::Dropbox),
+            Ok(ref provider) if provider == "youtube" => Ok(Oauth2Provider::YouTube),
+            Ok(ref provider) if provider == "drive" => Ok(Oauth2Provider::GoogleDrive),
+            Ok(ref provider) if provider == "vimeo" => Ok(Oauth2Provider::Vimeo),
+            _ => Err(format!("unknown provider {}", param)),
         }
     }
 }

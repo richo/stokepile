@@ -7,7 +7,7 @@ use oauth2::CsrfToken;
 use crate::web::auth::WebUser;
 use crate::web::db::DbConn;
 use crate::web::models::{Integration, NewIntegration};
-use crate::web::oauth::Oauth2Provider;
+use crate::messages::Oauth2Provider;
 
 #[derive(FromForm, Debug)]
 pub struct DisconnectForm {
