@@ -104,6 +104,26 @@ pub fn signin_json(
     }
 }
 
+#[get("/refresh_token", format = "json", data = "<signin>")]
+/// Allows an authenticated user to fetch a refresh token for a given service, which will then
+/// allow them to interact with the given service.
+///
+/// This is mostly for google properties which don't support long lived API keys.
+pub fn refresh_token(
+    conn: DbConn,
+    signin: Json<messages::RefreshToken>,
+) -> Json<messages::RefreshTokenResp> {
+    match User::by_credentials(&*conn, &signin.0.email, &signin.0.password) {
+        Some(user) => {
+            let key = NewKey::new(&user).create(&*conn).unwrap();
+            Json(messages::JsonSignInResp::Token(key.token))
+        }
+        None => Json(messages::JsonSignInResp::Error(
+            "Incorrect username or password.".to_string(),
+        )),
+    }
+}
+
 #[derive(Debug, FromForm)]
 pub struct ExpireKeyForm {
     key_id: i32,
