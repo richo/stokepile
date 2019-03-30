@@ -18,11 +18,11 @@ pub struct MaybeStorageAdaptor {
 }
 
 impl MaybeStorageAdaptor {
-    fn name(&self) -> &str {
+    pub fn name(&self) -> &str {
         &self.name
     }
 
-    fn adaptor(&self) -> &Result<Box<dyn StorageAdaptor<File>>, Error> {
+    pub fn adaptor(&self) -> &Result<Box<dyn StorageAdaptor<File>>, Error> {
         &self.adaptor
     }
 

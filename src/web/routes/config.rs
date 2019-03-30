@@ -135,7 +135,8 @@ mod tests {
         assert_eq!(response.status(), Status::Ok);
         let config: Config =
             response.body_string().expect("Didn't recieve a body").parse().unwrap();
-        let backend_names: Vec<_> = config.backends().iter().map(|b| b.name()).collect();
+        let backends = config.backends();
+        let backend_names: Vec<_> = backends.iter().map(|b| b.name()).collect();
         assert_eq!(&backend_names, &["dropbox"]);
     }
 
@@ -167,7 +168,8 @@ mod tests {
         assert_eq!(response.status(), Status::Ok);
         let config: Config =
             response.body_string().expect("Didn't recieve a body").parse().unwrap();
-        let backend_names: Vec<_> = config.backends().iter().map(|b| b.name()).collect();
+        let backends = config.backends();
+        let backend_names: Vec<_> = backends.iter().map(|b| b.name()).collect();
         assert_eq!(&backend_names, &["dropbox"]);
     }
 
@@ -240,7 +242,8 @@ mod tests {
         assert_eq!(response.status(), Status::Ok);
         let config: Config =
             response.body_string().expect("Didn't recieve a body").parse().unwrap();
-        let backend_names: Vec<_> = config.backends().iter().map(|b| b.name()).collect();
+        let backends = config.backends();
+        let backend_names: Vec<_> = backends.iter().map(|b| b.name()).collect();
         assert_eq!(&backend_names, &["dropbox"]);
 
         let empty_flysights: Vec<FlysightConfig> = vec![];
