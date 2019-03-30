@@ -180,6 +180,7 @@ impl Oauth2Config {
 pub enum Oauth2Provider {
     Dropbox,
     YouTube,
+    GoogleDrive,
     Vimeo,
 }
 
@@ -188,6 +189,7 @@ impl Oauth2Provider {
         static VARIANTS: &'static [Oauth2Provider] = &[
             Oauth2Provider::Dropbox,
             Oauth2Provider::YouTube,
+            Oauth2Provider::GoogleDrive,
             Oauth2Provider::Vimeo,
         ];
         VARIANTS
@@ -197,6 +199,7 @@ impl Oauth2Provider {
         match self {
             Oauth2Provider::Dropbox => "dropbox",
             Oauth2Provider::YouTube => "youtube",
+            Oauth2Provider::GoogleDrive => "drive",
             Oauth2Provider::Vimeo => "vimeo",
         }
     }
@@ -205,6 +208,7 @@ impl Oauth2Provider {
         match self {
             Oauth2Provider::Dropbox => "Dropbox",
             Oauth2Provider::YouTube => "YouTube",
+            Oauth2Provider::GoogleDrive => "Google Drive",
             Oauth2Provider::Vimeo => "Vimeo",
         }
     }
@@ -213,6 +217,7 @@ impl Oauth2Provider {
         let config: &Oauth2Config = match self {
             Oauth2Provider::Dropbox => &*DROPBOX_CONFIG,
             Oauth2Provider::YouTube => &*YOUTUBE_CONFIG,
+            Oauth2Provider::GoogleDrive => &*GOOGLE_DRIVE_CONFIG,
             Oauth2Provider::Vimeo => &*VIMEO_CONFIG,
         };
 
@@ -228,6 +233,7 @@ impl<'v> FromFormValue<'v> for Oauth2Provider {
         match decoded {
             Ok(ref provider) if provider == "dropbox" => Ok(Oauth2Provider::Dropbox),
             Ok(ref provider) if provider == "youtube" => Ok(Oauth2Provider::YouTube),
+            Ok(ref provider) if provider == "drive" => Ok(Oauth2Provider::GoogleDrive),
             Ok(ref provider) if provider == "vimeo" => Ok(Oauth2Provider::Vimeo),
             _ => Err(format!("unknown provider {}", form_value)),
         }
