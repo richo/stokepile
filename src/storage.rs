@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::fs::File;
 
 use crate::reporting::{ReportEntry, UploadReport, UploadStatus};
@@ -16,7 +17,7 @@ pub enum StorageStatus {
     Failure,
 }
 
-pub trait StorageAdaptor<T>: Send {
+pub trait StorageAdaptor<T>: Send + Debug {
     fn upload(
         &self,
         reader: T,
@@ -32,15 +33,22 @@ pub trait StorageAdaptor<T>: Send {
 // TODO(richo) Make this use StageableLocation to find the files.
 pub fn upload_from_staged(
     staged: &dyn StageableLocation,
-    adaptors: &[Box<dyn StorageAdaptor<File>>],
+    adaptors: Vec<Result<Box<dyn StorageAdaptor<File>>, Error>>,
 ) -> Result<UploadReport, Error> {
     let mut report: UploadReport = Default::default();
     info!("Starting upload from {:?}", &staged);
     for (staged_file, manifest) in staged.staged_files()? {
 
         let results: Vec<_> = adaptors
-            .iter()
+            .into_iter()
             .map(|ad| {
+                // Does it actually make sense to use Errored when it was a mount failure?
+                // dunno but we're doing it.
+                let ad = match ad {
+                    Ok(ad) => ad,
+                    Err(e) => return ("TODO OH SHIT WE DON'T KNOW WHAT IT'S CALLED".to_string(), UploadStatus::Errored(e)),
+                };
+
                 let start = Utc::now();
                 info!("Starting {} adaptor for {:?}", ad.name(), &staged_file.content_path);
                 info!("Checking if file already exists");
@@ -66,7 +74,7 @@ pub fn upload_from_staged(
                         }
                         Err(error) => {
                             error!(
-                                "Attempt {} of upload of {:?} failed: {:?}",
+                               "Attempt {} of upload of {:?} failed: {:?}",
                                 &i, &staged_file.content_path, &error
                             );
                             Some(error)
@@ -105,6 +113,7 @@ mod tests {
     /// A storage adaptor that will succeed on the nth attempt
     // TODO(richo) It's probably a fairly small problem to make this Sync and suddenly parrallel
     // uploads are right there on the horizon.
+    #[derive(Debug)]
     struct TemporarilyBrokenStorageAdaptor {
         attempts: Cell<usize>,
         successful_attempt: usize,
@@ -160,7 +169,7 @@ mod tests {
 
         let uploader = TemporarilyBrokenStorageAdaptor::new(4);
 
-        upload_from_staged(&data, &[Box::new(uploader)]).expect("Didn't upload successfully");
+        upload_from_staged(&data, vec![Ok(Box::new(uploader))]).expect("Didn't upload successfully");
         assert_eq!(10, files.len());
     }
 
@@ -172,7 +181,7 @@ mod tests {
 
         let uploader = TemporarilyBrokenStorageAdaptor::new(2);
 
-        let report = upload_from_staged(&data, &[Box::new(uploader)]).expect("Didn't upload successfully");
+        let report = upload_from_staged(&data, vec![Ok(Box::new(uploader))]).expect("Didn't upload successfully");
         println!("{}", report.to_plaintext().unwrap());
         // TODO(richo) why isn't this actually deleting anything
         // assert_eq!(0, files.len());

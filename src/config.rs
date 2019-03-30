@@ -8,11 +8,11 @@ use toml;
 use url;
 
 use crate::dropbox;
-use crate::local_backup::LocalBackup;
 use crate::mailer::SendgridMailer;
 use crate::pushover_notifier::PushoverNotifier;
 use crate::storage::StorageAdaptor;
 use crate::vimeo::VimeoClient;
+use crate::mountable::Mountable;
 
 
 // TODO(richo) Change this once we have a canonical domain
@@ -216,16 +216,8 @@ impl FlysightConfig {
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct LocalBackupConfig {
-    pub mountpoint: String,
-}
-
-impl LocalBackupConfig {
-    pub fn local_backup(&self) -> LocalBackup {
-        // TODO(richo) barf if there's nothing mounted exactly here?
-        LocalBackup {
-            destination: PathBuf::from(self.mountpoint.clone()),
-        }
-    }
+    #[serde(flatten)]
+    pub location: MountableDeviceLocation,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone, Hash)]
@@ -392,20 +384,26 @@ impl Config {
     }
 
     /// Returns a vec of all configured backends
-    pub fn backends(&self) -> Vec<Box<dyn StorageAdaptor<File>>> {
-        let mut out: Vec<Box<dyn StorageAdaptor<File>>> = vec![];
+    pub fn backends(&self) -> Vec<Result<Box<dyn StorageAdaptor<File>>, Error>> {
+        let mut out: Vec<Result<Box<dyn StorageAdaptor<File>>, Error>> = vec![];
         if let Some(ref locals) = self.local_backup {
             for adaptor in locals {
-                out.push(Box::new(adaptor.local_backup()));
+                // For whatever reason,
+                // out.push(adaptor.mount().map(|o| Box::new(o)));
+                // Doesnt' Just Work so instead we have to destructure by hand :(
+                match adaptor.clone().mount() {
+                    Ok(mounted) => out.push(Ok(Box::new(mounted))),
+                    Err(e) => out.push(Err(e)),
+                }
             }
         }
         if let Some(ref dropbox) = self.dropbox {
-            out.push(Box::new(dropbox::DropboxFilesClient::new(
-                dropbox.token.clone(),
-            )));
+            out.push(Ok(Box::new(
+                        dropbox::DropboxFilesClient::new(dropbox.token.clone()))));
         }
         if let Some(ref vimeo) = self.vimeo {
-            out.push(Box::new(VimeoClient::new(vimeo.token.clone())));
+            out.push(Ok(Box::new(
+                        VimeoClient::new(vimeo.token.clone()))));
         }
         out
     }
