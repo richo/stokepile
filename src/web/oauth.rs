@@ -8,16 +8,26 @@ use rocket::request::FromFormValue;
 use std::env;
 use url::Url;
 
+#[derive(Debug)]
+enum GoogleProperty {
+    Drive,
+    Youtube,
+}
+
 lazy_static! {
-    static ref DROPBOX_CONFIG: Oauth2Config = {
+    pub static ref DROPBOX_CONFIG: Oauth2Config = {
         info!("Initializing Dropbox oauth config");
         Oauth2Config::dropbox()
     };
-    static ref YOUTUBE_CONFIG: Oauth2Config = {
+    pub static ref YOUTUBE_CONFIG: Oauth2Config = {
         info!("Initializing Youtube oauth config");
-        Oauth2Config::youtube()
+        Oauth2Config::google(GoogleProperty::Youtube)
     };
-    static ref VIMEO_CONFIG: Oauth2Config = {
+    pub static ref GOOGLE_DRIVE_CONFIG: Oauth2Config = {
+        info!("Initializing Youtube oauth config");
+        Oauth2Config::google(GoogleProperty::Drive)
+    };
+    pub static ref VIMEO_CONFIG: Oauth2Config = {
         info!("Initializing Vimeo oauth config");
         Oauth2Config::vimeo()
     };
@@ -45,7 +55,7 @@ pub struct Oauth2Config {
 impl Oauth2Config {
     /// Creates a Oauth2Config configured for Dropbox, panicing on many types of failure, since
     /// they are all unrecoverable.
-    pub fn dropbox() -> Oauth2Config {
+    fn dropbox() -> Oauth2Config {
         let client_id = ClientId::new(
             env::var("ARCHIVER_DROPBOX_APP_KEY")
                 .expect("Missing the ARCHIVER_DROPBOX_APP_KEY environment variable."),
@@ -76,7 +86,7 @@ impl Oauth2Config {
             redirect_url,
         }
     }
-    pub fn youtube() -> Oauth2Config {
+    fn google(property: GoogleProperty) -> Oauth2Config {
         let client_id = ClientId::new(
             env::var("ARCHIVER_YOUTUBE_APP_KEY")
                 .expect("Missing the ARCHIVER_YOUTUBE_APP_KEY environment variable."),
@@ -86,7 +96,7 @@ impl Oauth2Config {
                 .expect("Missing the ARCHIVER_YOUTUBE_APP_SECRET environment variable."),
         );
         let auth_url = AuthUrl::new(
-            Url::parse("https://accounts.google.com/o/oauth2/v2/auth")
+            Url::parse("https://accounts.google.com/o/oauth2/v2/auth?access_type=offline")
                 .expect("Invalid authorization endpoint URL"),
         );
         let token_url = TokenUrl::new(
@@ -98,7 +108,11 @@ impl Oauth2Config {
                 .join("/integration/finish?provider=youtube")
                 .expect("Invalid redirect URL"),
         );
-        let scopes = &["https://www.googleapis.com/auth/youtube.upload"];
+
+        let scopes = match property {
+            GoogleProperty::Youtube => &["https://www.googleapis.com/auth/youtube.upload"],
+            GoogleProperty::Drive => &["https://www.googleapis.com/auth/drive.file"],
+        };
         Oauth2Config {
             client_id,
             client_secret,
@@ -108,7 +122,7 @@ impl Oauth2Config {
             redirect_url,
         }
     }
-    pub fn vimeo() -> Oauth2Config {
+    fn vimeo() -> Oauth2Config {
         let client_id = ClientId::new(
             env::var("ARCHIVER_VIMEO_APP_KEY")
                 .expect("Missing the ARCHIVER_VIMEO_APP_KEY environment variable."),
@@ -140,7 +154,7 @@ impl Oauth2Config {
             redirect_url,
         }
     }
-    pub fn client(&self) -> BasicClient {
+    fn client(&self) -> BasicClient {
         let Oauth2Config {
             client_id,
             client_secret,

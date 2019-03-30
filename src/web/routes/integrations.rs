@@ -125,7 +125,7 @@ pub fn finish_integration(
 mod tests {
     use super::*;
     use crate::web::test_helpers::*;
-    use crate::web::oauth::Oauth2Config;
+    use crate::web::oauth;
 
     use rocket::http::{ContentType, Header, Status};
 
@@ -151,7 +151,7 @@ mod tests {
             .headers()
             .get_one("Location")
             .unwrap()
-            .starts_with(Oauth2Config::dropbox().auth_url.as_str()));
+            .starts_with(oauth::DROPBOX_CONFIG.auth_url.as_str()));
 
         let session = session_from_cookie(&client, session_cookie).unwrap();
         assert!(session.data.get("dropbox").unwrap().is_string());
@@ -259,7 +259,7 @@ mod tests {
             .headers()
             .get_one("Location")
             .unwrap()
-            .starts_with(Oauth2Config::dropbox().auth_url.as_str()));
+            .starts_with(oauth::DROPBOX_CONFIG.auth_url.as_str()));
 
         let session1 = session_from_cookie(&client1, s1.clone()).unwrap();
         let session2 = session_from_cookie(&client2, s2.clone()).unwrap();
