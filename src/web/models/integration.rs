@@ -10,6 +10,7 @@ pub struct Integration {
     pub user_id: i32,
     pub provider: String,
     pub access_token: String,
+    pub refresh_token: Option<String>,
 }
 
 impl Integration {
@@ -34,14 +35,16 @@ pub struct NewIntegration<'a> {
     pub user_id: i32,
     pub provider: &'a str,
     pub access_token: &'a str,
+    pub refresh_token: Option<&'a str>,
 }
 
 impl<'a> NewIntegration<'a> {
-    pub fn new(user: &User, provider: &'a str, access_token: &'a str) -> Self {
+    pub fn new(user: &User, provider: &'a str, access_token: &'a str, refresh_token: Option<&'a str>) -> Self {
         NewIntegration {
             user_id: user.id,
-            provider: provider,
-            access_token: access_token,
+            provider,
+            access_token,
+            refresh_token,
         }
     }
 

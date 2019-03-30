@@ -10,7 +10,6 @@ use rocket::request::{FlashMessage, Form, FromFormValue};
 use rocket::response::{Flash, Redirect};
 use rocket_contrib::json::Json;
 use rocket_contrib::templates::Template;
-use oauth2::TokenResponse;
 
 use crate::web::models::{
     NewKey, NewSession, NewUser, User,
