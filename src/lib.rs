@@ -28,6 +28,7 @@ macro_rules! client_for_routes {
                 // We always implicitly allow signin since there isn't currently another way to get
                 // an authenticated session
                 crate::web::routes::sessions::post_signin,
+                crate::web::routes::sessions::signin_json,
 
                 $($route),+
             ];

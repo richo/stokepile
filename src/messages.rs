@@ -1,4 +1,5 @@
 /// This module contains message types which are shared between web and the client.
+use failure::Error;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct JsonSignIn {
@@ -10,6 +11,16 @@ pub struct JsonSignIn {
 pub enum JsonSignInResp {
     Token(String),
     Error(String),
+}
+
+impl JsonSignInResp {
+    pub fn into_result(self) -> Result<String, Error> {
+        // TODO(richo) can we just serialize Error's ?
+        match self {
+            JsonSignInResp::Token(token) => Ok(token),
+            JsonSignInResp::Error(error) => Err(format_err!("{:?}", error)),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
