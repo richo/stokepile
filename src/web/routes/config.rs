@@ -124,7 +124,7 @@ mod tests {
         {
             let conn = db_conn(&client);
 
-            NewIntegration::new(&user, "dropbox", "test_oauth_token")
+            NewIntegration::new(&user, "dropbox", "test_oauth_token", None)
                 .create(&*conn)
                 .unwrap();
         }
@@ -149,7 +149,7 @@ mod tests {
         {
             let conn = db_conn(&client);
 
-            NewIntegration::new(&user, "dropbox", "test_oauth_token")
+            NewIntegration::new(&user, "dropbox", "test_oauth_token", None)
                 .create(&*conn)
                 .unwrap();
         }
@@ -182,7 +182,7 @@ mod tests {
         {
             let conn = db_conn(&client);
 
-            NewIntegration::new(&user, "dropbox", "test_oauth_token")
+            NewIntegration::new(&user, "dropbox", "test_oauth_token", None)
                 .create(&*conn)
                 .unwrap();
         }
@@ -217,7 +217,7 @@ mod tests {
         {
             let conn = db_conn(&client);
 
-            NewIntegration::new(&user, "dropbox", "test_oauth_token")
+            NewIntegration::new(&user, "dropbox", "test_oauth_token", None)
                 .create(&*conn)
                 .unwrap();
         }
@@ -262,7 +262,7 @@ mod tests {
         {
             let conn = db_conn(&client);
 
-            NewIntegration::new(&user, "dropbox", "test_oauth_token")
+            NewIntegration::new(&user, "dropbox", "test_oauth_token", None)
                 .create(&*conn)
                 .unwrap();
         }

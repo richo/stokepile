@@ -104,9 +104,10 @@ pub fn finish_integration(
             // values about?
             let access_token = token.access_token().secret();
             let refresh_token = token.refresh_token().map(|v| v.secret().as_str());
-            NewIntegration::new(&user.user, resp.provider.name(), &access_token, refresh_token)
+            let integration = NewIntegration::new(&user.user, resp.provider.name(), &access_token, refresh_token)
                 .create(&*conn)
-                .ok()
+                .ok();
+            integration
         })
     };
 
@@ -175,7 +176,7 @@ mod tests {
         let integration_id = {
             let conn = db_conn(&client);
 
-            NewIntegration::new(&user, "dropbox", "test_oauth_token")
+            NewIntegration::new(&user, "dropbox", "test_oauth_token", None)
                 .create(&*conn)
                 .unwrap()
                 .id
@@ -224,8 +225,10 @@ mod tests {
 
         let conn = db_conn(&client);
 
+        let integrations = user.integrations(&*conn);
+
         assert_eq!(
-            user.integrations(&*conn)
+            integrations
                 .unwrap()
                 .first()
                 .unwrap()
