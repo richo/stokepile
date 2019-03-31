@@ -11,6 +11,7 @@ pub struct Integration {
     pub provider: String,
     pub access_token: String,
     pub refresh_token: Option<String>,
+    pub refreshed: chrono::naive::NaiveDateTime,
 }
 
 impl Integration {

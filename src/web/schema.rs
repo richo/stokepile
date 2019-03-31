@@ -17,6 +17,7 @@ table! {
         provider -> Text,
         access_token -> Text,
         refresh_token -> Nullable<Text>,
+        refreshed -> Timestamp,
     }
 }
 
