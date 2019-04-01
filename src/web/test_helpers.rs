@@ -8,6 +8,8 @@ use crate::web::models::NewUser;
 use crate::web::models::Session;
 use crate::web::models::User;
 
+use crate::messages;
+
 use crate::config::{MountableDeviceLocation, StagingConfig};
 
 pub fn db_conn(client: &Client) -> DbConn {
@@ -35,6 +37,22 @@ pub fn signin(client: &Client, username: &str, password: &str) -> Option<String>
 
     let response = req.dispatch();
     return get_set_cookie(response, "sid");
+}
+
+pub fn signin_api(client: &Client, username: &str, password: &str) -> Option<String> {
+    let json = serde_json::to_string(&messages::JsonSignIn {
+        email: username.into(),
+        password: password.into(),
+    }).expect("couldn't serialize login info");
+    let req = client
+        .post("/json/signin")
+        .header(ContentType::JSON)
+        .body(json);
+
+    let mut response = req.dispatch();
+    let body: messages::JsonSignInResp =
+        serde_json::from_str(&response.body_string().expect("Didn't recieve a body")).unwrap();
+    body.into_result().ok()
 }
 
 pub fn create_user(client: &Client, username: &str, password: &str) -> User {

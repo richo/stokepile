@@ -43,3 +43,6 @@ subject = "archiver upload report"
 [pushover]
 token = "TOKEN_GOES_HERE"
 recipient = "USER_TOKEN_GOES_HERE"
+
+[web_notifications]
+enabled = true

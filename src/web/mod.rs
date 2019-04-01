@@ -48,6 +48,8 @@ pub fn configure_rocket() -> Rocket {
 
                 routes::index::index,
 
+                routes::notifications::notification_send,
+
                 routes::integrations::connect_integration,
                 routes::integrations::disconnect_integration,
                 routes::integrations::finish_integration,

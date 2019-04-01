@@ -28,6 +28,7 @@ macro_rules! client_for_routes {
                 // We always implicitly allow signin since there isn't currently another way to get
                 // an authenticated session
                 crate::web::routes::sessions::post_signin,
+                crate::web::routes::sessions::signin_json,
 
                 $($route),+
             ];
@@ -117,6 +118,9 @@ pub mod storage;
 pub mod vimeo;
 
 mod version;
+
+/// A notifier that pushes notifications out via the web service.
+mod web_notifier;
 
 /// What version of archiver do you have :)
 pub use crate::version::VERSION;
