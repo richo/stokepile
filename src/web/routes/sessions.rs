@@ -355,12 +355,12 @@ mod tests {
         let token = signin_api(&client, "test@email.com", "p@55w0rd")
             .expect("Couldn't signin");
 
-    let mut req = client
-        .get("/refresh_token/dropbox")
-        .header(ContentType::JSON)
-        .dispatch();
-    let body = &req.body_string().expect("didn't get a body");
-    info!("{}", &body);
+        let mut req = client
+            .get("/refresh_token/youtube")
+            .header(ContentType::JSON)
+            .dispatch();
+        let body = &req.body_string().expect("didn't get a body");
+        info!("{}", &body);
 
         let refresh: messages::RefreshToken =
             serde_json::from_str(&body).expect("Couldn't deserialize");
