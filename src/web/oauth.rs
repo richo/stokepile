@@ -222,19 +222,24 @@ impl Oauth2Provider {
     }
 }
 
-// TODO(richo) lol dedupe these
-impl<'v> FromFormValue<'v> for Oauth2Provider {
-    type Error = String;
-
-    fn from_form_value(form_value: &'v RawStr) -> Result<Oauth2Provider, Self::Error> {
-        let decoded = form_value.url_decode();
+impl Oauth2Provider {
+    fn parse<'v>(from: &'v RawStr) -> Result<Oauth2Provider, String> {
+        let decoded = from.url_decode();
         match decoded {
             Ok(ref provider) if provider == "dropbox" => Ok(Oauth2Provider::Dropbox),
             Ok(ref provider) if provider == "youtube" => Ok(Oauth2Provider::YouTube),
             Ok(ref provider) if provider == "drive" => Ok(Oauth2Provider::GoogleDrive),
             Ok(ref provider) if provider == "vimeo" => Ok(Oauth2Provider::Vimeo),
-            _ => Err(format!("unknown provider {}", form_value)),
+            _ => Err(format!("unknown provider {}", from)),
         }
+    }
+}
+
+impl<'v> FromFormValue<'v> for Oauth2Provider {
+    type Error = String;
+
+    fn from_form_value(form_value: &'v RawStr) -> Result<Oauth2Provider, Self::Error> {
+        Self::parse(form_value)
     }
 }
 
@@ -242,13 +247,6 @@ impl<'r> FromParam<'r> for Oauth2Provider {
     type Error = String;
 
     fn from_param(param: &'r RawStr) -> Result<Self, Self::Error> {
-        let decoded = param.url_decode();
-        match decoded {
-            Ok(ref provider) if provider == "dropbox" => Ok(Oauth2Provider::Dropbox),
-            Ok(ref provider) if provider == "youtube" => Ok(Oauth2Provider::YouTube),
-            Ok(ref provider) if provider == "drive" => Ok(Oauth2Provider::GoogleDrive),
-            Ok(ref provider) if provider == "vimeo" => Ok(Oauth2Provider::Vimeo),
-            _ => Err(format!("unknown provider {}", param)),
-        }
+        Self::parse(param)
     }
 }
