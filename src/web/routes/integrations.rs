@@ -1,3 +1,4 @@
+use failure::Error;
 use rocket::request::Form;
 use rocket::response::{Flash, Redirect};
 
@@ -85,47 +86,51 @@ pub fn finish_integration(
     resp: Form<Oauth2Response>,
     conn: DbConn,
 ) -> Result<Flash<Redirect>, Flash<Redirect>> {
-    let integration: Option<Integration> = if user
+    let integration: Result<Integration, Error> = if user
         .session
         .data
         .get(resp.provider.name())
-        .map(|state| state.as_str())
-        != Some(Some(&resp.state))
+        .and_then(|state| state.as_str())
+        != Some(&resp.state)
     {
         warn!(
             "user {:?} oauth state didn't match for provider: {:?}",
             user.user.id, resp.provider
         );
-        None
+        Err(format_err!("Oauth state didn't match"))
     } else {
         let client = resp.provider.client();
-        client.exchange_code(AuthorizationCode::new(resp.code.clone())).ok().and_then(|token| {
+        client.exchange_code(AuthorizationCode::new(resp.code.clone()))
+            .map_err(|e| e.into())
+            .and_then(|token| {
             // TODO(richo) Can we abuse serde to do this for us without having to carry these
             // values about?
             let access_token = token.access_token().secret();
             let refresh_token = token.refresh_token().map(|v| v.secret().as_str());
-            let integration = NewIntegration::new(&user.user, resp.provider.name(), &access_token, refresh_token)
+            NewIntegration::new(&user.user, resp.provider.name(), &access_token, refresh_token)
                 .create(&*conn)
-                .ok();
-            integration
+                .map_err(|e| e.into())
         })
     };
 
     match integration {
-        Some(_) => Ok(Flash::success(
+        Ok(_) => Ok(Flash::success(
             Redirect::to("/"),
             format!(
                 "{} has been connected to your account.",
                 resp.provider.display_name()
             ),
         )),
-        None => Err(Flash::error(
+        Err(e) => {
+            error!("Error creating integration for user {:?}: {:?}",
+                   &user.user.id, e);
+
+            Err(Flash::error(
             Redirect::to("/"),
             format!(
                 "There was a problem connecting {} to your account.",
-                resp.provider.display_name()
-            ),
-        )),
+                resp.provider.display_name())))
+        },
     }
 }
 
