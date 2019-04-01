@@ -33,9 +33,7 @@ lazy_static! {
         info!("Initializing Vimeo oauth config");
         Oauth2Config::vimeo()
     };
-}
 
-lazy_static! {
     static ref BASE_URL: Url = Url::parse(
         &env::var("ARCHIVER_BASE_URL")
             .expect("Missing the ARCHIVER_BASE_URL environment variable."),
