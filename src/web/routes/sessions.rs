@@ -167,7 +167,7 @@ mod tests {
 
     use rocket::http::{ContentType, Status};
 
-    client_for_routes!(get_signin, signout, expire_key, signin_json => client);
+    client_for_routes!(get_signin, signout, expire_key => client);
 
     #[test]
     fn test_signin() {

@@ -10,18 +10,19 @@ use url;
 
 use crate::dropbox;
 use crate::mailer::SendgridMailer;
-use crate::pushover_notifier::PushoverNotifier;
+use crate::pushover_notifier::{Notify, PushoverNotifier};
+use crate::web_notifier::WebNotifier;
 use crate::vimeo::VimeoClient;
 use crate::mountable::{Mountable, MountableFilesystem};
 use crate::storage::MaybeStorageAdaptor;
 
 
 // TODO(richo) Change this once we have a canonical domain
-pub static DEFAULT_API_BASE: &'static str = "https://onatopp.psych0tik.net";
+pub static DEFAULT_API_BASE: &'static str = "https://archiver-web.onrender.com/";
 pub static TOKEN_FILE_NAME: &'static str = ".archiver-token";
 
-#[derive(Debug)]
-pub struct AccessToken(String);
+#[derive(RedactedDebug)]
+pub struct AccessToken(#[redacted] String);
 
 #[cfg(test)]
 lazy_static! {
@@ -106,6 +107,7 @@ pub struct Config {
     // gswoop: Option<GswoopConfig>,
     sendgrid: Option<SendgridConfig>,
     pushover: Option<PushoverConfig>,
+    web_notifications: Option<WebNotificationsConfig>,
 }
 
 #[derive(Debug, Default)]
@@ -122,6 +124,7 @@ pub struct ConfigBuilder {
     // gswoop: Option<GswoopConfig>,
     sendgrid: Option<SendgridConfig>,
     pushover: Option<PushoverConfig>,
+    web_notifications: Option<WebNotificationsConfig>,
 }
 
 lazy_static! {
@@ -242,6 +245,11 @@ pub struct MassStorageConfig {
     #[serde(flatten)]
     pub location: MountableDeviceLocation,
     pub extensions: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
+pub struct WebNotificationsConfig {
+    pub enabled: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
@@ -376,12 +384,21 @@ impl Config {
         }
     }
 
-    pub fn notifier(&self) -> Option<PushoverNotifier> {
+    pub fn notifier(&self) -> Option<Box<dyn Notify>> {
+        // Loool
+        if let Some(ref web) = self.web_notifications {
+            if web.enabled {
+                if let Ok(notifier) = WebNotifier::new(&self) {
+                    return Some(Box::new(notifier));
+                }
+            }
+        }
+
         if let Some(ref pshvr) = self.pushover {
-            return Some(PushoverNotifier::new(
+            return Some(Box::new(PushoverNotifier::new(
                 pshvr.token.clone(),
                 pshvr.recipient.clone(),
-            ));
+            )));
         }
         None
     }
@@ -507,6 +524,15 @@ impl ConfigBuilder {
         self
     }
 
+    /// Configure and enable pushover for this config
+    // TODO(richo) Should only have one called notifications. Or should both work?
+    pub fn web_notifications(mut self) -> Self {
+        self.web_notifications = Some(WebNotificationsConfig {
+            enabled: true
+        });
+        self
+    }
+
     /// Configure and enable sendgrid for this config
     pub fn sendgrid(mut self, sendgrid: SendgridConfig) -> Self {
         self.sendgrid = Some(sendgrid);
@@ -530,6 +556,7 @@ impl ConfigBuilder {
             mass_storage: self.mass_storage,
             sendgrid: self.sendgrid,
             pushover: self.pushover,
+            web_notifications: self.web_notifications,
         })
     }
 }
@@ -597,6 +624,13 @@ mod tests {
             Some(PushoverConfig {
                 token: "TOKEN_GOES_HERE".into(),
                 recipient: "USER_TOKEN_GOES_HERE".into(),
+            })
+        );
+
+        assert_eq!(
+            config.web_notifications,
+            Some(WebNotificationsConfig {
+                enabled: true,
             })
         );
 

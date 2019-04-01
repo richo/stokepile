@@ -5,6 +5,8 @@ use rocket_contrib::templates::Template;
 
 use crate::web::db::init_pool;
 
+use logging::RequestLogger;
+
 pub mod auth;
 pub mod context;
 pub mod db;
@@ -12,6 +14,7 @@ pub mod models;
 pub mod oauth;
 pub mod routes;
 pub mod schema;
+mod logging;
 
 lazy_static! {
     pub static ref ROCKET_ENV: Environment = Environment::active().expect("Could not get ROCKET_ENV.");
@@ -45,6 +48,8 @@ pub fn configure_rocket() -> Rocket {
 
                 routes::index::index,
 
+                routes::notifications::notification_send,
+
                 routes::integrations::connect_integration,
                 routes::integrations::disconnect_integration,
                 routes::integrations::finish_integration,
@@ -54,6 +59,7 @@ pub fn configure_rocket() -> Rocket {
             ],
         )
         .mount("/static", StaticFiles::from("web/static"))
+        .attach(RequestLogger::new())
         .attach(Template::custom(|engines| {
             engines.handlebars.register_helper("maybe_selected", Box::new(maybe_selected));
         }))
@@ -66,6 +72,7 @@ pub fn create_test_rocket(routes: Vec<rocket::Route>) -> Rocket {
             "/",
             routes,
         )
+        .attach(RequestLogger::new())
         .attach(Template::custom(|engines| {
             engines.handlebars.register_helper("maybe_selected", Box::new(maybe_selected));
         }))

@@ -30,11 +30,11 @@ fn main() {
                 config::DEFAULT_API_BASE.to_string()
             },
         };
-        let token = config::AccessToken::load()?;
         info!("Creating client");
-        let client = client::ArchiverClient::new(&base)?;
+        let mut client = client::ArchiverClient::new(&base)?;
+        client.load_token()?;
         info!("Fetching config from {}", &base);
-        let config = client.fetch_config(token)?;
+        let config = client.fetch_config()?;
         let filename = matches.value_of("config").unwrap_or("archiver.toml");
         let mut fh = File::create(&filename)?;
         fh.write_all(config.to_toml()?.as_bytes())?;
