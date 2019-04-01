@@ -341,4 +341,19 @@ mod tests {
             "Didn't get an error"
         );
     }
+
+    #[test]
+    fn test_google_credentials_refresh() {
+        panic!()
+    }
+
+    #[test]
+    fn test_integrations_not_configured_dtrt() {
+        panic!()
+    }
+
+    #[test]
+    fn test_unrefreshable_credentials_just_return_the_token() {
+        panic!()
+    }
 }
