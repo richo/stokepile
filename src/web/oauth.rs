@@ -1,9 +1,12 @@
 use oauth2::basic::BasicClient;
 use oauth2::prelude::*;
 use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, Scope, TokenUrl};
+use oauth2::TokenResponse;
 
 use rocket::http::RawStr;
 use rocket::request::{FromFormValue, FromParam};
+
+use failure::Error;
 
 use crate::messages::Oauth2Provider;
 
@@ -231,6 +234,28 @@ impl Oauth2Provider {
             _ => Err(format!("unknown provider {}", from)),
         }
     }
+}
+
+/// Exchange a code returned by an oauth provider, yielding an access token and maybe a refresh
+/// token.
+#[cfg(not(test))]
+pub fn exchange_oauth_code<'a>(provider: &Oauth2Provider, code: &str) -> Result<(String, Option<String>), Error> {
+    let client = provider.client();
+    client.exchange_code(AuthorizationCode::new(code.to_string()))
+        .map_err(|e| e.into())
+        .map(|token| {
+            // TODO(richo) Can we abuse serde to do this for us without having to carry these
+            // values about?
+            (
+                token.access_token().secret().to_string(),
+                token.refresh_token().map(|v| v.secret().clone())
+            )
+        })
+}
+
+#[cfg(test)]
+pub fn exchange_oauth_code<'a>(provider: &Oauth2Provider, code: &str) -> Result<(String, Option<String>), Error> {
+    Ok(("access_token".into(), Some("refresh_token".into())))
 }
 
 impl<'v> FromFormValue<'v> for Oauth2Provider {

@@ -3,8 +3,9 @@ use rocket::request::Form;
 use rocket::response::{Flash, Redirect};
 
 use oauth2::prelude::*;
-use oauth2::{AuthorizationCode, CsrfToken, TokenResponse};
+use oauth2::CsrfToken;
 
+use crate::web::oauth;
 use crate::web::auth::WebUser;
 use crate::web::db::DbConn;
 use crate::web::models::{Integration, NewIntegration};
@@ -99,15 +100,10 @@ pub fn finish_integration(
         );
         Err(format_err!("Oauth state didn't match"))
     } else {
-        let client = resp.provider.client();
-        client.exchange_code(AuthorizationCode::new(resp.code.clone()))
-            .map_err(|e| e.into())
-            .and_then(|token| {
-            // TODO(richo) Can we abuse serde to do this for us without having to carry these
-            // values about?
-            let access_token = token.access_token().secret();
-            let refresh_token = token.refresh_token().map(|v| v.secret().as_str());
-            NewIntegration::new(&user.user, resp.provider.name(), &access_token, refresh_token)
+        oauth::exchange_oauth_code(&resp.provider, &resp.code)
+            .and_then(|(access_token, refresh_token)| {
+                let refresh_token = refresh_token.as_ref().map(String::as_str);
+                NewIntegration::new(&user.user, resp.provider.name(), &access_token, refresh_token)
                 .create(&*conn)
                 .map_err(|e| e.into())
         })
