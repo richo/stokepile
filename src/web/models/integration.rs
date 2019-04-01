@@ -1,3 +1,4 @@
+use chrono::prelude::*;
 use diesel::prelude::*;
 
 use super::*;
@@ -37,6 +38,7 @@ pub struct NewIntegration<'a> {
     pub provider: &'a str,
     pub access_token: &'a str,
     pub refresh_token: Option<&'a str>,
+    pub refreshed: chrono::naive::NaiveDateTime,
 }
 
 impl<'a> NewIntegration<'a> {
@@ -46,6 +48,7 @@ impl<'a> NewIntegration<'a> {
             provider,
             access_token,
             refresh_token,
+            refreshed: Utc::now().naive_utc(),
         }
     }
 

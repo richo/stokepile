@@ -1,7 +1,7 @@
 use oauth2::basic::BasicClient;
 use oauth2::prelude::*;
 use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, Scope, TokenUrl};
-use oauth2::TokenResponse;
+use oauth2::{AuthorizationCode, TokenResponse};
 
 use rocket::http::RawStr;
 use rocket::request::{FromFormValue, FromParam};
@@ -255,7 +255,7 @@ pub fn exchange_oauth_code<'a>(provider: &Oauth2Provider, code: &str) -> Result<
 
 #[cfg(test)]
 pub fn exchange_oauth_code<'a>(provider: &Oauth2Provider, code: &str) -> Result<(String, Option<String>), Error> {
-    Ok(("access_token".into(), Some("refresh_token".into())))
+    Ok(("test_access_token".into(), Some("test_refresh_token".into())))
 }
 
 impl<'v> FromFormValue<'v> for Oauth2Provider {

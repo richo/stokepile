@@ -226,15 +226,21 @@ mod tests {
 
         let conn = db_conn(&client);
 
-        let integrations = user.integrations(&*conn);
+        let integrations = user.integrations(&*conn)
+                .unwrap();
+        let integration = integrations
+                .first()
+                .unwrap();
 
         assert_eq!(
-            integrations
-                .unwrap()
-                .first()
-                .unwrap()
+            &integration
                 .access_token,
-            "test_oauth_token"
+            "test_access_token"
+        );
+        assert_eq!(
+            &integration
+                .refresh_token,
+            &Some("test_refresh_token".into())
         );
     }
 
