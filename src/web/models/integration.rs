@@ -3,6 +3,7 @@ use diesel::prelude::*;
 
 use super::*;
 use crate::web::schema::integrations;
+use oauth2::RefreshToken;
 
 #[derive(Identifiable, Queryable, Associations, Debug)]
 #[belongs_to(User)]
@@ -28,6 +29,11 @@ impl Integration {
         use diesel::delete;
 
         delete(self).execute(conn)
+    }
+
+    pub fn refresh_token(&self) -> Option<RefreshToken> {
+        use oauth2::prelude::SecretNewType;
+        self.refresh_token.as_ref().map(|t| RefreshToken::new(t.to_owned()))
     }
 }
 

@@ -1,8 +1,10 @@
 use crate::web::db::DbConn;
-use crate::web::auth::WebUser;
+use crate::web::auth::{WebUser, ApiUser};
 use crate::web::ROCKET_ENV;
 use crate::web::context::Context;
 use crate::messages::{self, Oauth2Provider, RefreshToken};
+use oauth2::prelude::*;
+use oauth2::TokenResponse;
 
 use rocket::http::RawStr;
 use rocket::http::{Cookie, Cookies, SameSite};
@@ -112,20 +114,28 @@ pub fn signin_json(
 pub fn refresh_token(
     conn: DbConn,
     provider: Oauth2Provider,
-) -> Json<RefreshToken> {
+    user: ApiUser,
+) -> Result<Json<RefreshToken>, Json<RefreshToken>> {
     let client = provider.client();
-    let refresh_token = match unimplemented!() {
-        Some(refresh_token) => refresh_token,
-        None => return Json(RefreshToken::NotConfigured),
-    };
-    // TODO(richo) figure out what
-    match client.exchange_refresh_token(refresh_token) {
-        // Do we need to store the new refresh token somewhere?
-        // We also definitely do need to cache this token since goog apparantly don't like being
-        // pummeled
-        // Ok(token) => Json(RefreshToken::Token(token.access_token())),
-        Ok(token) => Json(unimplemented!()),
-        Err(error) => Json(RefreshToken::Error(error.to_string())),
+
+    let integrations = user.user.integrations(&*conn).map_err(|e| {
+        Json(RefreshToken::Error(e.to_string()))
+    })?;
+
+    if let Some(integration) = integrations.iter().find(|ref x| x.provider == provider.name()) {
+        let refresh_token = integration.refresh_token()
+            .ok_or(Json(RefreshToken::NotConfigured))?;
+        // TODO(richo) definitely take this logic and put it elsewhere
+        match client.exchange_refresh_token(&refresh_token) {
+            // TODO(richo) Store the updated stuff
+            // Do we need to store the new refresh token somewhere?
+            // We also definitely do need to cache this token since goog apparantly don't like being
+            // pummeled
+            Ok(token) => Ok(Json(RefreshToken::Token(token.access_token().secret().to_owned()))),
+            Err(error) => Ok(Json(RefreshToken::Error(error.to_string()))),
+        }
+    } else {
+        Ok(Json(RefreshToken::NotConfigured))
     }
 }
 
