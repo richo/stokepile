@@ -359,10 +359,11 @@ mod tests {
         .get("/refresh_token/dropbox")
         .header(ContentType::JSON)
         .dispatch();
+    let body = &req.body_string().expect("didn't get a body");
+    info!("{}", &body);
 
         let refresh: messages::RefreshToken =
-            serde_json::from_str(&req.body_string().expect("didn't get a body"))
-                .expect("Couldn't deserialize");
+            serde_json::from_str(&body).expect("Couldn't deserialize");
         assert_eq!(refresh, messages::RefreshToken::NotConfigured);
     }
 
