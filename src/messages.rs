@@ -31,7 +31,7 @@ impl JsonSignInResp {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub enum RefreshToken {
     Token(String),
     NotConfigured,

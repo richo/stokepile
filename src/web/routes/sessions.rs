@@ -167,7 +167,7 @@ mod tests {
 
     use rocket::http::{ContentType, Status};
 
-    client_for_routes!(get_signin, signout, expire_key => client);
+    client_for_routes!(get_signin, signout, expire_key, refresh_token => client);
 
     #[test]
     fn test_signin() {
@@ -349,7 +349,21 @@ mod tests {
 
     #[test]
     fn test_integrations_not_configured_dtrt() {
-        panic!()
+        let client = client();
+        let _user = create_user(&client, "test@email.com", "p@55w0rd");
+
+        let token = signin_api(&client, "test@email.com", "p@55w0rd")
+            .expect("Couldn't signin");
+
+    let mut req = client
+        .get("/refresh_token/dropbox")
+        .header(ContentType::JSON)
+        .dispatch();
+
+        let refresh: messages::RefreshToken =
+            serde_json::from_str(&req.body_string().expect("didn't get a body"))
+                .expect("Couldn't deserialize");
+        assert_eq!(refresh, messages::RefreshToken::NotConfigured);
     }
 
     #[test]

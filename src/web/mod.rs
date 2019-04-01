@@ -40,6 +40,7 @@ pub fn configure_rocket() -> Rocket {
                 routes::sessions::signin_json,
                 routes::sessions::signout,
                 routes::sessions::expire_key,
+                routes::sessions::refresh_token,
 
                 routes::settings::get_settings,
                 routes::settings::post_settings,
