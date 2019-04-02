@@ -112,9 +112,9 @@ pub fn signin_json(
 /// This is mostly for google properties which don't support long lived API keys.
 #[get("/refresh_token/<provider>")]
 pub fn refresh_token(
-    conn: DbConn,
-    provider: Oauth2Provider,
     user: ApiUser,
+    provider: Oauth2Provider,
+    conn: DbConn,
 ) -> Result<Json<RefreshToken>, Json<RefreshToken>> {
     let client = provider.client();
 
@@ -165,7 +165,7 @@ mod tests {
     use super::*;
     use crate::web::test_helpers::*;
 
-    use rocket::http::{ContentType, Status};
+    use rocket::http::{Header, ContentType, Status};
 
     client_for_routes!(get_signin, signout, expire_key, refresh_token => client);
 
@@ -349,8 +349,9 @@ mod tests {
 
     #[test]
     fn test_integrations_not_configured_dtrt() {
+        init_env();
         let client = client();
-        let _user = create_user(&client, "test@email.com", "p@55w0rd");
+        create_user(&client, "test@email.com", "p@55w0rd");
 
         let token = signin_api(&client, "test@email.com", "p@55w0rd")
             .expect("Couldn't signin");
@@ -358,6 +359,7 @@ mod tests {
         let mut req = client
             .get("/refresh_token/youtube")
             .header(ContentType::JSON)
+            .header(Header::new("Authorization", format!("Bearer: {}", token)))
             .dispatch();
         let body = &req.body_string().expect("didn't get a body");
         info!("{}", &body);
@@ -370,5 +372,20 @@ mod tests {
     #[test]
     fn test_unrefreshable_credentials_just_return_the_token() {
         panic!()
+    }
+
+    #[test]
+    fn test_unknown_providers_404() {
+        init_env();
+        let client = client();
+        create_user(&client, "test@email.com", "p@55w0rd");
+        let token = signin_api(&client, "test@email.com", "p@55w0rd")
+            .expect("Couldn't signin");
+        let mut response = client
+            .get("/refresh_token/unknown_provider")
+            .header(ContentType::JSON)
+            .header(Header::new("Authorization", format!("Bearer: {}", token)))
+            .dispatch();
+        assert_eq!(response.status(), Status::NotFound);
     }
 }
