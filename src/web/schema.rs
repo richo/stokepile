@@ -11,6 +11,14 @@ table! {
 }
 
 table! {
+    email_confirmations (id) {
+        id -> Int4,
+        user_id -> Int4,
+        token -> Text,
+    }
+}
+
+table! {
     integrations (id) {
         id -> Int4,
         user_id -> Int4,
@@ -55,12 +63,14 @@ table! {
 }
 
 joinable!(devices -> users (user_id));
+joinable!(email_confirmations -> users (user_id));
 joinable!(integrations -> users (user_id));
 joinable!(keys -> users (user_id));
 joinable!(sessions -> users (user_id));
 
 allow_tables_to_appear_in_same_query!(
     devices,
+    email_confirmations,
     integrations,
     keys,
     sessions,
