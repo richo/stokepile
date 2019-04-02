@@ -117,14 +117,13 @@ pub fn refresh_token(
     conn: DbConn,
 ) -> Result<Json<RefreshToken>, Json<RefreshToken>> {
     let client = provider.client();
-
     let integrations = user.user.integrations(&*conn).map_err(|e| {
         Json(RefreshToken::Error(e.to_string()))
     })?;
 
     if let Some(integration) = integrations.iter().find(|ref x| x.provider == provider.name()) {
         let refresh_token = integration.refresh_token()
-            .ok_or(Json(RefreshToken::NotConfigured))?;
+            .ok_or(Json(RefreshToken::Token(integration.access_token.clone())))?;
         // TODO(richo) definitely take this logic and put it elsewhere
         match client.exchange_refresh_token(&refresh_token) {
             // TODO(richo) Store the updated stuff
@@ -164,6 +163,7 @@ pub fn expire_key(
 mod tests {
     use super::*;
     use crate::web::test_helpers::*;
+    use crate::web::models::NewIntegration;
 
     use rocket::http::{Header, ContentType, Status};
 
@@ -342,9 +342,38 @@ mod tests {
         );
     }
 
+    // #[test]
+    // fn test_google_credentials_refresh() {
+    //     init_env();
+    //     let client = client();
+    //     let user = create_user(&client, "test@email.com", "p@55w0rd");
+
+    //     let token = signin_api(&client, "test@email.com", "p@55w0rd")
+    //         .expect("Couldn't signin");
+
+    //     {
+    //         let conn = db_conn(&client);
+
+    //         NewIntegration::new(&user, "youtube", "test_oauth_token", Some("refresh_token"))
+    //             .create(&*conn)
+    //             .unwrap();
+    //     }
+
+    //     let mut response = client
+    //         .get("/refresh_token/youtube")
+    //         .header(ContentType::JSON)
+    //         .header(Header::new("Authorization", format!("Bearer: {}", token)))
+    //         .dispatch();
+    //     assert_eq!(response.status(), Status::Ok);
+    //     let body = &response.body_string().expect("didn't get a body");
+    //     let refresh: messages::RefreshToken =
+    //         serde_json::from_str(&body).expect("Couldn't deserialize");
+    //     assert_eq!(refresh, messages::RefreshToken::Token("test_access_token".into()));
+    // }
+
     #[test]
-    fn test_google_credentials_refresh() {
-        panic!()
+    fn test_refreshed_tokens_are_persisted() {
+
     }
 
     #[test]
@@ -362,7 +391,6 @@ mod tests {
             .header(Header::new("Authorization", format!("Bearer: {}", token)))
             .dispatch();
         let body = &req.body_string().expect("didn't get a body");
-        info!("{}", &body);
 
         let refresh: messages::RefreshToken =
             serde_json::from_str(&body).expect("Couldn't deserialize");
@@ -371,7 +399,31 @@ mod tests {
 
     #[test]
     fn test_unrefreshable_credentials_just_return_the_token() {
-        panic!()
+        init_env();
+        let client = client();
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+
+        let token = signin_api(&client, "test@email.com", "p@55w0rd")
+            .expect("Couldn't signin");
+
+        {
+            let conn = db_conn(&client);
+
+            NewIntegration::new(&user, "dropbox", "test_oauth_token", None)
+                .create(&*conn)
+                .unwrap();
+        }
+
+        let mut response = client
+            .get("/refresh_token/dropbox")
+            .header(ContentType::JSON)
+            .header(Header::new("Authorization", format!("Bearer: {}", token)))
+            .dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        let body = &response.body_string().expect("didn't get a body");
+        let refresh: messages::RefreshToken =
+            serde_json::from_str(&body).expect("Couldn't deserialize");
+        assert_eq!(refresh, messages::RefreshToken::Token("test_oauth_token".into()));
     }
 
     #[test]

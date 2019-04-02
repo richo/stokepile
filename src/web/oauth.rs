@@ -240,6 +240,7 @@ impl Oauth2Provider {
 /// token.
 #[cfg(not(test))]
 pub fn exchange_oauth_code<'a>(provider: &Oauth2Provider, code: &str) -> Result<(String, Option<String>), Error> {
+    info!("Invoked live excahnge_auth_code");
     let client = provider.client();
     client.exchange_code(AuthorizationCode::new(code.to_string()))
         .map_err(|e| e.into())
@@ -255,6 +256,7 @@ pub fn exchange_oauth_code<'a>(provider: &Oauth2Provider, code: &str) -> Result<
 
 #[cfg(test)]
 pub fn exchange_oauth_code<'a>(provider: &Oauth2Provider, code: &str) -> Result<(String, Option<String>), Error> {
+    info!("Invoked test excahnge_auth_code");
     Ok(("test_access_token".into(), Some("test_refresh_token".into())))
 }
 
