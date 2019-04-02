@@ -1,7 +1,7 @@
 use oauth2::basic::BasicClient;
 use oauth2::prelude::*;
 use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, Scope, TokenUrl};
-use oauth2::{AuthorizationCode, TokenResponse};
+use oauth2::TokenResponse;
 
 use rocket::http::RawStr;
 use rocket::request::{FromFormValue, FromParam};
@@ -240,6 +240,8 @@ impl Oauth2Provider {
 /// token.
 #[cfg(not(test))]
 pub fn exchange_oauth_code<'a>(provider: &Oauth2Provider, code: &str) -> Result<(String, Option<String>), Error> {
+    use oauth2::AuthorizationCode;
+
     info!("Invoked live excahnge_auth_code");
     let client = provider.client();
     client.exchange_code(AuthorizationCode::new(code.to_string()))

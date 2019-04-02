@@ -195,7 +195,6 @@ impl DropboxFilesClient {
         })?;
         let headers = HeaderMap::new();
         let mut res = self.request(("api", "2/files/get_metadata"), JSON(req), headers)?;
-        // let meta: MetadataResponse = serde_json::from_str(&res.text()?)?;
         let text = res.text()?;
         match serde_json::from_str(&text) {
             Ok(meta) => Ok(meta),
