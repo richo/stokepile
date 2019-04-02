@@ -5,7 +5,7 @@ use crate::web::context::{Context, PossibleIntegration};
 use rocket::request::FlashMessage;
 use rocket_contrib::templates::Template;
 
-use crate::web::oauth::Oauth2Provider;
+use crate::messages::Oauth2Provider;
 
 #[get("/")]
 pub fn index(user: Option<WebUser>, conn: DbConn, flash: Option<FlashMessage<'_, '_>>) -> Template {

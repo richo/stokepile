@@ -1,8 +1,10 @@
 use crate::web::db::DbConn;
-use crate::web::auth::WebUser;
+use crate::web::auth::{WebUser, ApiUser};
 use crate::web::ROCKET_ENV;
 use crate::web::context::Context;
-use crate::messages;
+use crate::messages::{self, Oauth2Provider, RefreshToken};
+use oauth2::prelude::*;
+use oauth2::TokenResponse;
 
 use rocket::http::RawStr;
 use rocket::http::{Cookie, Cookies, SameSite};
@@ -104,6 +106,38 @@ pub fn signin_json(
     }
 }
 
+/// Allows an authenticated user to fetch a refresh token for a given service, which will then
+/// allow them to interact with the given service.
+///
+/// This is mostly for google properties which don't support long lived API keys.
+#[get("/refresh_token/<provider>")]
+pub fn refresh_token(
+    user: ApiUser,
+    provider: Oauth2Provider,
+    conn: DbConn,
+) -> Result<Json<RefreshToken>, Json<RefreshToken>> {
+    let client = provider.client();
+    let integrations = user.user.integrations(&*conn).map_err(|e| {
+        Json(RefreshToken::Error(e.to_string()))
+    })?;
+
+    if let Some(integration) = integrations.iter().find(|ref x| x.provider == provider.name()) {
+        let refresh_token = integration.refresh_token()
+            .ok_or(Json(RefreshToken::Token(integration.access_token.clone())))?;
+        // TODO(richo) definitely take this logic and put it elsewhere
+        match client.exchange_refresh_token(&refresh_token) {
+            // TODO(richo) Store the updated stuff
+            // Do we need to store the new refresh token somewhere?
+            // We also definitely do need to cache this token since goog apparantly don't like being
+            // pummeled
+            Ok(token) => Ok(Json(RefreshToken::Token(token.access_token().secret().to_owned()))),
+            Err(error) => Ok(Json(RefreshToken::Error(error.to_string()))),
+        }
+    } else {
+        Ok(Json(RefreshToken::NotConfigured))
+    }
+}
+
 #[derive(Debug, FromForm)]
 pub struct ExpireKeyForm {
     key_id: i32,
@@ -129,10 +163,11 @@ pub fn expire_key(
 mod tests {
     use super::*;
     use crate::web::test_helpers::*;
+    use crate::web::models::NewIntegration;
 
-    use rocket::http::{ContentType, Status};
+    use rocket::http::{Header, ContentType, Status};
 
-    client_for_routes!(get_signin, signout, expire_key => client);
+    client_for_routes!(get_signin, signout, expire_key, refresh_token => client);
 
     #[test]
     fn test_signin() {
@@ -305,5 +340,104 @@ mod tests {
             },
             "Didn't get an error"
         );
+    }
+
+    // #[test]
+    // fn test_google_credentials_refresh() {
+    //     init_env();
+    //     let client = client();
+    //     let user = create_user(&client, "test@email.com", "p@55w0rd");
+
+    //     let token = signin_api(&client, "test@email.com", "p@55w0rd")
+    //         .expect("Couldn't signin");
+
+    //     {
+    //         let conn = db_conn(&client);
+
+    //         NewIntegration::new(&user, "youtube", "test_oauth_token", Some("refresh_token"))
+    //             .create(&*conn)
+    //             .unwrap();
+    //     }
+
+    //     let mut response = client
+    //         .get("/refresh_token/youtube")
+    //         .header(ContentType::JSON)
+    //         .header(Header::new("Authorization", format!("Bearer: {}", token)))
+    //         .dispatch();
+    //     assert_eq!(response.status(), Status::Ok);
+    //     let body = &response.body_string().expect("didn't get a body");
+    //     let refresh: messages::RefreshToken =
+    //         serde_json::from_str(&body).expect("Couldn't deserialize");
+    //     assert_eq!(refresh, messages::RefreshToken::Token("test_access_token".into()));
+    // }
+
+    #[test]
+    fn test_refreshed_tokens_are_persisted() {
+
+    }
+
+    #[test]
+    fn test_integrations_not_configured_dtrt() {
+        init_env();
+        let client = client();
+        create_user(&client, "test@email.com", "p@55w0rd");
+
+        let token = signin_api(&client, "test@email.com", "p@55w0rd")
+            .expect("Couldn't signin");
+
+        let mut req = client
+            .get("/refresh_token/youtube")
+            .header(ContentType::JSON)
+            .header(Header::new("Authorization", format!("Bearer: {}", token)))
+            .dispatch();
+        let body = &req.body_string().expect("didn't get a body");
+
+        let refresh: messages::RefreshToken =
+            serde_json::from_str(&body).expect("Couldn't deserialize");
+        assert_eq!(refresh, messages::RefreshToken::NotConfigured);
+    }
+
+    #[test]
+    fn test_unrefreshable_credentials_just_return_the_token() {
+        init_env();
+        let client = client();
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+
+        let token = signin_api(&client, "test@email.com", "p@55w0rd")
+            .expect("Couldn't signin");
+
+        {
+            let conn = db_conn(&client);
+
+            NewIntegration::new(&user, "dropbox", "test_oauth_token", None)
+                .create(&*conn)
+                .unwrap();
+        }
+
+        let mut response = client
+            .get("/refresh_token/dropbox")
+            .header(ContentType::JSON)
+            .header(Header::new("Authorization", format!("Bearer: {}", token)))
+            .dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        let body = &response.body_string().expect("didn't get a body");
+        let refresh: messages::RefreshToken =
+            serde_json::from_str(&body).expect("Couldn't deserialize");
+        assert_eq!(refresh, messages::RefreshToken::Token("test_oauth_token".into()));
+    }
+
+    #[test]
+    fn test_unknown_providers_404() {
+        init_env();
+        let client = client();
+        create_user(&client, "test@email.com", "p@55w0rd");
+        let token = signin_api(&client, "test@email.com", "p@55w0rd")
+            .expect("Couldn't signin");
+        let mut response = client
+            .get("/refresh_token/unknown_provider")
+            .header(ContentType::JSON)
+            .header(Header::new("Authorization", format!("Bearer: {}", token)))
+            .dispatch();
+        assert_eq!(response.status(), Status::NotFound);
     }
 }

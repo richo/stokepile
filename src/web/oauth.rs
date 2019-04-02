@@ -1,29 +1,42 @@
 use oauth2::basic::BasicClient;
 use oauth2::prelude::*;
 use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, Scope, TokenUrl};
+use oauth2::{AuthorizationCode, TokenResponse};
 
 use rocket::http::RawStr;
-use rocket::request::FromFormValue;
+use rocket::request::{FromFormValue, FromParam};
+
+use failure::Error;
+
+use crate::messages::Oauth2Provider;
 
 use std::env;
 use url::Url;
 
-lazy_static! {
-    static ref DROPBOX_CONFIG: Oauth2Config = {
-        info!("Initializing Dropbox oauth config");
-        Oauth2Config::dropbox()
-    };
-    static ref YOUTUBE_CONFIG: Oauth2Config = {
-        info!("Initializing Youtube oauth config");
-        Oauth2Config::youtube()
-    };
-    static ref VIMEO_CONFIG: Oauth2Config = {
-        info!("Initializing Vimeo oauth config");
-        Oauth2Config::vimeo()
-    };
+#[derive(Debug)]
+enum GoogleProperty {
+    Drive,
+    Youtube,
 }
 
 lazy_static! {
+    pub static ref DROPBOX_CONFIG: Oauth2Config = {
+        info!("Initializing Dropbox oauth config");
+        Oauth2Config::dropbox()
+    };
+    pub static ref YOUTUBE_CONFIG: Oauth2Config = {
+        info!("Initializing Youtube oauth config");
+        Oauth2Config::google(GoogleProperty::Youtube)
+    };
+    pub static ref GOOGLE_DRIVE_CONFIG: Oauth2Config = {
+        info!("Initializing Youtube oauth config");
+        Oauth2Config::google(GoogleProperty::Drive)
+    };
+    pub static ref VIMEO_CONFIG: Oauth2Config = {
+        info!("Initializing Vimeo oauth config");
+        Oauth2Config::vimeo()
+    };
+
     static ref BASE_URL: Url = Url::parse(
         &env::var("ARCHIVER_BASE_URL")
             .expect("Missing the ARCHIVER_BASE_URL environment variable."),
@@ -45,7 +58,7 @@ pub struct Oauth2Config {
 impl Oauth2Config {
     /// Creates a Oauth2Config configured for Dropbox, panicing on many types of failure, since
     /// they are all unrecoverable.
-    pub fn dropbox() -> Oauth2Config {
+    fn dropbox() -> Oauth2Config {
         let client_id = ClientId::new(
             env::var("ARCHIVER_DROPBOX_APP_KEY")
                 .expect("Missing the ARCHIVER_DROPBOX_APP_KEY environment variable."),
@@ -76,17 +89,17 @@ impl Oauth2Config {
             redirect_url,
         }
     }
-    pub fn youtube() -> Oauth2Config {
+    fn google(property: GoogleProperty) -> Oauth2Config {
         let client_id = ClientId::new(
-            env::var("ARCHIVER_YOUTUBE_APP_KEY")
-                .expect("Missing the ARCHIVER_YOUTUBE_APP_KEY environment variable."),
+            env::var("ARCHIVER_GOOGLE_APP_KEY")
+                .expect("Missing the ARCHIVER_GOOGLE_APP_KEY environment variable."),
         );
         let client_secret = ClientSecret::new(
-            env::var("ARCHIVER_YOUTUBE_APP_SECRET")
-                .expect("Missing the ARCHIVER_YOUTUBE_APP_SECRET environment variable."),
+            env::var("ARCHIVER_GOOGLE_APP_SECRET")
+                .expect("Missing the ARCHIVER_GOOGLE_APP_SECRET environment variable."),
         );
         let auth_url = AuthUrl::new(
-            Url::parse("https://accounts.google.com/o/oauth2/v2/auth")
+            Url::parse("https://accounts.google.com/o/oauth2/v2/auth?access_type=offline")
                 .expect("Invalid authorization endpoint URL"),
         );
         let token_url = TokenUrl::new(
@@ -95,10 +108,17 @@ impl Oauth2Config {
         );
         let redirect_url = RedirectUrl::new(
             BASE_URL
-                .join("/integration/finish?provider=youtube")
+                .join(match property {
+                    GoogleProperty::Youtube => "/integration/finish?provider=youtube",
+                    GoogleProperty::Drive=> "/integration/finish?provider=drive",
+                })
                 .expect("Invalid redirect URL"),
         );
-        let scopes = &["https://www.googleapis.com/auth/youtube.upload"];
+
+        let scopes = match property {
+            GoogleProperty::Youtube => &["https://www.googleapis.com/auth/youtube.upload"],
+            GoogleProperty::Drive => &["https://www.googleapis.com/auth/drive.file"],
+        };
         Oauth2Config {
             client_id,
             client_secret,
@@ -108,7 +128,7 @@ impl Oauth2Config {
             redirect_url,
         }
     }
-    pub fn vimeo() -> Oauth2Config {
+    fn vimeo() -> Oauth2Config {
         let client_id = ClientId::new(
             env::var("ARCHIVER_VIMEO_APP_KEY")
                 .expect("Missing the ARCHIVER_VIMEO_APP_KEY environment variable."),
@@ -140,7 +160,7 @@ impl Oauth2Config {
             redirect_url,
         }
     }
-    pub fn client(&self) -> BasicClient {
+    fn client(&self) -> BasicClient {
         let Oauth2Config {
             client_id,
             client_secret,
@@ -162,18 +182,12 @@ impl Oauth2Config {
     }
 }
 
-#[derive(Debug)]
-pub enum Oauth2Provider {
-    Dropbox,
-    YouTube,
-    Vimeo,
-}
-
 impl Oauth2Provider {
     pub fn providers() -> &'static [Oauth2Provider] {
         static VARIANTS: &'static [Oauth2Provider] = &[
             Oauth2Provider::Dropbox,
             Oauth2Provider::YouTube,
+            Oauth2Provider::GoogleDrive,
             Oauth2Provider::Vimeo,
         ];
         VARIANTS
@@ -183,6 +197,7 @@ impl Oauth2Provider {
         match self {
             Oauth2Provider::Dropbox => "dropbox",
             Oauth2Provider::YouTube => "youtube",
+            Oauth2Provider::GoogleDrive => "drive",
             Oauth2Provider::Vimeo => "vimeo",
         }
     }
@@ -191,6 +206,7 @@ impl Oauth2Provider {
         match self {
             Oauth2Provider::Dropbox => "Dropbox",
             Oauth2Provider::YouTube => "YouTube",
+            Oauth2Provider::GoogleDrive => "Google Drive",
             Oauth2Provider::Vimeo => "Vimeo",
         }
     }
@@ -199,6 +215,7 @@ impl Oauth2Provider {
         let config: &Oauth2Config = match self {
             Oauth2Provider::Dropbox => &*DROPBOX_CONFIG,
             Oauth2Provider::YouTube => &*YOUTUBE_CONFIG,
+            Oauth2Provider::GoogleDrive => &*GOOGLE_DRIVE_CONFIG,
             Oauth2Provider::Vimeo => &*VIMEO_CONFIG,
         };
 
@@ -206,16 +223,55 @@ impl Oauth2Provider {
     }
 }
 
+impl Oauth2Provider {
+    fn parse<'v>(from: &'v RawStr) -> Result<Oauth2Provider, String> {
+        let decoded = from.url_decode();
+        match decoded {
+            Ok(ref provider) if provider == "dropbox" => Ok(Oauth2Provider::Dropbox),
+            Ok(ref provider) if provider == "youtube" => Ok(Oauth2Provider::YouTube),
+            Ok(ref provider) if provider == "drive" => Ok(Oauth2Provider::GoogleDrive),
+            Ok(ref provider) if provider == "vimeo" => Ok(Oauth2Provider::Vimeo),
+            _ => Err(format!("unknown provider {}", from)),
+        }
+    }
+}
+
+/// Exchange a code returned by an oauth provider, yielding an access token and maybe a refresh
+/// token.
+#[cfg(not(test))]
+pub fn exchange_oauth_code<'a>(provider: &Oauth2Provider, code: &str) -> Result<(String, Option<String>), Error> {
+    info!("Invoked live excahnge_auth_code");
+    let client = provider.client();
+    client.exchange_code(AuthorizationCode::new(code.to_string()))
+        .map_err(|e| e.into())
+        .map(|token| {
+            // TODO(richo) Can we abuse serde to do this for us without having to carry these
+            // values about?
+            (
+                token.access_token().secret().to_string(),
+                token.refresh_token().map(|v| v.secret().clone())
+            )
+        })
+}
+
+#[cfg(test)]
+pub fn exchange_oauth_code<'a>(provider: &Oauth2Provider, code: &str) -> Result<(String, Option<String>), Error> {
+    info!("Invoked test excahnge_auth_code");
+    Ok(("test_access_token".into(), Some("test_refresh_token".into())))
+}
+
 impl<'v> FromFormValue<'v> for Oauth2Provider {
     type Error = String;
 
     fn from_form_value(form_value: &'v RawStr) -> Result<Oauth2Provider, Self::Error> {
-        let decoded = form_value.url_decode();
-        match decoded {
-            Ok(ref provider) if provider == "dropbox" => Ok(Oauth2Provider::Dropbox),
-            Ok(ref provider) if provider == "youtube" => Ok(Oauth2Provider::YouTube),
-            Ok(ref provider) if provider == "vimeo" => Ok(Oauth2Provider::Vimeo),
-            _ => Err(format!("unknown provider {}", form_value)),
-        }
+        Self::parse(form_value)
+    }
+}
+
+impl<'r> FromParam<'r> for Oauth2Provider {
+    type Error = String;
+
+    fn from_param(param: &'r RawStr) -> Result<Self, Self::Error> {
+        Self::parse(param)
     }
 }

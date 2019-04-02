@@ -16,6 +16,8 @@ table! {
         user_id -> Int4,
         provider -> Text,
         access_token -> Text,
+        refresh_token -> Nullable<Text>,
+        refreshed -> Timestamp,
     }
 }
 

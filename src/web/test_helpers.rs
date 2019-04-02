@@ -71,6 +71,8 @@ pub fn init_env() {
     env::set_var("ARCHIVER_BASE_URL", "http://localhost:8000/");
     env::set_var("ARCHIVER_DROPBOX_APP_KEY", "app_key");
     env::set_var("ARCHIVER_DROPBOX_APP_SECRET", "secret_key");
+    env::set_var("ARCHIVER_GOOGLE_APP_KEY", "app_key");
+    env::set_var("ARCHIVER_GOOGLE_APP_SECRET", "secret_key");
 }
 
 pub fn session_from_cookie(client: &Client, session_cookie: String) -> Option<Session> {

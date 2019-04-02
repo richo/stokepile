@@ -1,13 +1,15 @@
+use failure::Error;
 use rocket::request::Form;
 use rocket::response::{Flash, Redirect};
 
 use oauth2::prelude::*;
 use oauth2::CsrfToken;
 
+use crate::web::oauth;
 use crate::web::auth::WebUser;
 use crate::web::db::DbConn;
 use crate::web::models::{Integration, NewIntegration};
-use crate::web::oauth::Oauth2Provider;
+use crate::messages::Oauth2Provider;
 
 #[derive(FromForm, Debug)]
 pub struct DisconnectForm {
@@ -85,39 +87,46 @@ pub fn finish_integration(
     resp: Form<Oauth2Response>,
     conn: DbConn,
 ) -> Result<Flash<Redirect>, Flash<Redirect>> {
-    let integration: Option<Integration> = if user
+    let integration: Result<Integration, Error> = if user
         .session
         .data
         .get(resp.provider.name())
-        .map(|state| state.as_str())
-        != Some(Some(&resp.state))
+        .and_then(|state| state.as_str())
+        != Some(&resp.state)
     {
         warn!(
             "user {:?} oauth state didn't match for provider: {:?}",
             user.user.id, resp.provider
         );
-        None
+        Err(format_err!("Oauth state didn't match"))
     } else {
-        NewIntegration::new(&user.user, resp.provider.name(), &resp.code)
-            .create(&*conn)
-            .ok()
+        oauth::exchange_oauth_code(&resp.provider, &resp.code)
+            .and_then(|(access_token, refresh_token)| {
+                let refresh_token = refresh_token.as_ref().map(String::as_str);
+                NewIntegration::new(&user.user, resp.provider.name(), &access_token, refresh_token)
+                .create(&*conn)
+                .map_err(|e| e.into())
+        })
     };
 
     match integration {
-        Some(_) => Ok(Flash::success(
+        Ok(_) => Ok(Flash::success(
             Redirect::to("/"),
             format!(
                 "{} has been connected to your account.",
                 resp.provider.display_name()
             ),
         )),
-        None => Err(Flash::error(
+        Err(e) => {
+            error!("Error creating integration for user {:?}: {:?}",
+                   &user.user.id, e);
+
+            Err(Flash::error(
             Redirect::to("/"),
             format!(
                 "There was a problem connecting {} to your account.",
-                resp.provider.display_name()
-            ),
-        )),
+                resp.provider.display_name())))
+        },
     }
 }
 
@@ -125,7 +134,7 @@ pub fn finish_integration(
 mod tests {
     use super::*;
     use crate::web::test_helpers::*;
-    use crate::web::oauth::Oauth2Config;
+    use crate::web::oauth;
 
     use rocket::http::{ContentType, Header, Status};
 
@@ -151,7 +160,7 @@ mod tests {
             .headers()
             .get_one("Location")
             .unwrap()
-            .starts_with(Oauth2Config::dropbox().auth_url.as_str()));
+            .starts_with(oauth::DROPBOX_CONFIG.auth_url.as_str()));
 
         let session = session_from_cookie(&client, session_cookie).unwrap();
         assert!(session.data.get("dropbox").unwrap().is_string());
@@ -168,7 +177,7 @@ mod tests {
         let integration_id = {
             let conn = db_conn(&client);
 
-            NewIntegration::new(&user, "dropbox", "test_oauth_token")
+            NewIntegration::new(&user, "dropbox", "test_oauth_token", None)
                 .create(&*conn)
                 .unwrap()
                 .id
@@ -217,13 +226,21 @@ mod tests {
 
         let conn = db_conn(&client);
 
-        assert_eq!(
-            user.integrations(&*conn)
-                .unwrap()
+        let integrations = user.integrations(&*conn)
+                .unwrap();
+        let integration = integrations
                 .first()
-                .unwrap()
+                .unwrap();
+
+        assert_eq!(
+            &integration
                 .access_token,
-            "test_oauth_token"
+            "test_access_token"
+        );
+        assert_eq!(
+            &integration
+                .refresh_token,
+            &Some("test_refresh_token".into())
         );
     }
 
@@ -259,7 +276,7 @@ mod tests {
             .headers()
             .get_one("Location")
             .unwrap()
-            .starts_with(Oauth2Config::dropbox().auth_url.as_str()));
+            .starts_with(oauth::DROPBOX_CONFIG.auth_url.as_str()));
 
         let session1 = session_from_cookie(&client1, s1.clone()).unwrap();
         let session2 = session_from_cookie(&client2, s2.clone()).unwrap();
