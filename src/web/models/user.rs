@@ -19,6 +19,7 @@ pub struct User {
     pub notify_pushover: Option<String>,
     pub staging_type: StagingKind,
     pub staging_data: Option<String>,
+    pub email_confirmed: bool,
 }
 
 #[derive(Debug, DbEnum, Serialize, PartialEq)]

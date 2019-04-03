@@ -59,6 +59,7 @@ table! {
         notify_pushover -> Nullable<Varchar>,
         staging_type -> StagingKindMapping,
         staging_data -> Nullable<Varchar>,
+        email_confirmed -> Bool,
     }
 }
 
