@@ -41,6 +41,7 @@ pub fn configure_rocket() -> Rocket {
                 routes::sessions::signout,
                 routes::sessions::expire_key,
                 routes::sessions::refresh_token,
+                routes::sessions::confirm_email,
 
                 routes::settings::get_settings,
                 routes::settings::post_settings,

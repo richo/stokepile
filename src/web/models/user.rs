@@ -123,6 +123,19 @@ impl User {
         })
     }
 
+    pub fn confirm_email(&self, conn: &PgConnection) -> QueryResult<usize> {
+        use diesel::update;
+        use crate::web::schema::users::dsl::*;
+
+        update(self)
+            .set(
+                email_confirmed.eq(true)
+            )
+            .execute(conn)
+
+        // TODO(richo) remove the confirmation_token
+    }
+
     pub fn update_settings(&self, settings: &SettingsForm, conn: &PgConnection) -> QueryResult<usize> {
         use diesel::update;
         use crate::web::schema::users::dsl::*;
@@ -150,6 +163,14 @@ impl User {
                     staging_data.eq(staging.data_for_db())
             ))
             .execute(conn)
+    }
+
+    pub fn confirmation_token(&self, conn: &PgConnection) -> QueryResult<ConfirmationToken> {
+        use crate::web::schema::confirmation_tokens::dsl::*;
+
+        confirmation_tokens
+            .filter(user_id.eq(self.id))
+            .get_result(conn)
     }
 }
 

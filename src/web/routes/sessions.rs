@@ -159,6 +159,29 @@ pub fn expire_key(
         })
 }
 
+#[get("/confirm_email/<token>")]
+pub fn confirm_email(
+    user: WebUser,
+    conn: DbConn,
+    token: &RawStr,
+) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    match user.user.confirmation_token(&*conn) {
+        Ok(ref stored_token) if stored_token == token => {
+            user.user
+                .confirm_email(&*conn)
+                .map(|_| Flash::success(Redirect::to("/"), format!("Email confirmed!")))
+                .map_err(|e| {
+                    warn!("{}", e);
+                    Flash::error(Redirect::to("/"), format!("Error with your confirmation token"))
+                })
+        },
+        _ => {
+            Err(Flash::error(Redirect::to("/"), format!("Error with your confirmation token")))
+        }
+    }
+
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -16,6 +16,9 @@ pub use self::device::{Device, NewDevice};
 mod key;
 pub use self::key::{Key, NewKey};
 
+mod confirmation_tokens;
+pub use self::confirmation_tokens::{ConfirmationToken, NewConfirmationToken};
+
 pub mod extra {
     pub use super::user::{StagingKind, StagingKindMapping};
 }
