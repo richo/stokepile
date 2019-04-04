@@ -1,2 +1,2 @@
-DROP INDEX email_confirmation_by_user;
-DROP TABLE email_confirmations;
+DROP INDEX confirmation_tokens_by_user;
+DROP TABLE confirmation_tokens;
