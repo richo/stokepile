@@ -8,12 +8,27 @@ use diesel::prelude::*;
 
 use crate::web::schema::confirmation_tokens;
 
+const TOKEN_LENGTH: usize = 32;
+
 #[derive(Identifiable, Queryable, Debug, Serialize)]
 pub struct ConfirmationToken {
     pub id: i32,
     pub user_id: i32,
     #[serde(skip_serializing)]
     pub token: String,
+}
+
+impl ConfirmationToken {
+    pub fn regenerate_token(&self, conn: &PgConnection) -> QueryResult<ConfirmationToken> {
+        use diesel::update;
+        use crate::web::schema::confirmation_tokens::dsl::*;
+
+        update(self)
+            .set(
+                token.eq(random_token(TOKEN_LENGTH)),
+            )
+            .get_result(conn)
+    }
 }
 
 impl PartialEq<RawStr> for ConfirmationToken {
@@ -40,7 +55,7 @@ fn random_token(length: usize) -> String {
 
 impl NewConfirmationToken {
     pub fn new(user: &User) -> Self {
-        let token = random_token(32);
+        let token = random_token(TOKEN_LENGTH);
         NewConfirmationToken {
             user_id: user.id,
             token: token,

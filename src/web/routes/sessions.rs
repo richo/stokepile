@@ -56,7 +56,12 @@ pub fn post_signin(
             .ok_or("Incorrect username or password."),
         UserAction::SignUp => NewUser::new(&signin.email, &signin.password)
             .create(&*conn)
-            .map_err(|_| "Unable to signup"),
+            .map_err(|_| "Unable to signup")
+            .map(|user| {
+                let _ = user.send_confirmation_email(&*conn)
+                    .map_err(|e| error!("Couldn't send confirmation email {:?}", &e));
+                user
+            }),
     };
 
     match user {

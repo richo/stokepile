@@ -1,5 +1,6 @@
 use bcrypt;
 use diesel::prelude::*;
+use failure::Error;
 
 use super::*;
 use crate::web::schema::users;
@@ -137,6 +138,25 @@ impl User {
         // TODO(richo) remove the confirmation_token
     }
 
+    pub fn send_confirmation_email(&self, conn: &PgConnection) -> Result<(), Error> {
+        // There's probably a smarter way to do this with an upsert
+
+        let token = match self.raw_confirmation_token(&*conn) {
+            Ok(r) => r.regenerate_token(&*conn),
+            Err(diesel::result::Error::NotFound) => {
+                info!("No confirmation token found, generating one");
+                NewConfirmationToken::new(&self).create(&*conn)
+            },
+            Err(e) => {
+                Err(e)
+            },
+        }?;
+
+        // TODO(richo) create a mailer and send the thing
+        //
+        Ok(())
+    }
+
     pub fn update_settings(&self, settings: &SettingsForm, conn: &PgConnection) -> QueryResult<usize> {
         use diesel::update;
         use crate::web::schema::users::dsl::*;
@@ -166,21 +186,27 @@ impl User {
             .execute(conn)
     }
 
+    fn raw_confirmation_token(&self, conn: &PgConnection) -> QueryResult<ConfirmationToken> {
+        use crate::web::schema::confirmation_tokens::dsl::*;
+
+        confirmation_tokens
+            .filter(user_id.eq(self.id))
+            .get_result(&*conn)
+    }
+
     pub fn confirmation_token(&self, conn: &PgConnection) -> QueryResult<ConfirmationToken> {
         use crate::web::schema::confirmation_tokens::dsl::*;
 
-        match confirmation_tokens
-            .filter(user_id.eq(self.id))
-            .get_result(&*conn) {
-                Ok(r) => Ok(r),
-                Err(diesel::result::Error::NotFound) => {
-                    info!("No confirmation token found, generating one");
-                    NewConfirmationToken::new(&self).create(&*conn)
-                },
-                Err(e) => {
-                    Err(e)
-                },
-            }
+        match self.raw_confirmation_token(&*conn) {
+            Ok(r) => Ok(r),
+            Err(diesel::result::Error::NotFound) => {
+                info!("No confirmation token found, generating one");
+                NewConfirmationToken::new(&self).create(&*conn)
+            },
+            Err(e) => {
+                Err(e)
+            },
+        }
     }
 }
 
