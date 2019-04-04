@@ -190,7 +190,7 @@ mod tests {
 
     use rocket::http::{Header, ContentType, Status};
 
-    client_for_routes!(get_signin, signout, expire_key, refresh_token => client);
+    client_for_routes!(get_signin, signout, expire_key, refresh_token, confirm_email => client);
 
     #[test]
     fn test_signin() {
@@ -462,5 +462,31 @@ mod tests {
             .header(Header::new("Authorization", format!("Bearer: {}", token)))
             .dispatch();
         assert_eq!(response.status(), Status::NotFound);
+    }
+
+    #[test]
+    fn can_roundtrip_confirmation_token() {
+        let client = client();
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+        signin(&client, "test%40email.com", "p%4055w0rd").expect("Couldn't sign in");
+        assert_eq!(user.email_confirmed, false);
+
+        let token = {
+            let conn = db_conn(&client);
+            user.confirmation_token(&*conn).expect("no confirmation token")
+        };
+
+        let path = format!("/confirm_email/{}", &token.token);
+        let mut response = client
+            .get(&path)
+            .dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
+        let user = {
+            use diesel::prelude::*;
+            use crate::web::schema::users::dsl::{users, id};
+            let conn = db_conn(&client);
+            users.filter(id.eq(user.id)).get_result::<User>(&*conn).unwrap()
+        };
+        assert_eq!(user.email_confirmed, true);
     }
 }

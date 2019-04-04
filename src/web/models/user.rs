@@ -127,6 +127,7 @@ impl User {
         use diesel::update;
         use crate::web::schema::users::dsl::*;
 
+        info!("Confirming email for {}", &self.id);
         update(self)
             .set(
                 email_confirmed.eq(true)
@@ -168,9 +169,18 @@ impl User {
     pub fn confirmation_token(&self, conn: &PgConnection) -> QueryResult<ConfirmationToken> {
         use crate::web::schema::confirmation_tokens::dsl::*;
 
-        confirmation_tokens
+        match confirmation_tokens
             .filter(user_id.eq(self.id))
-            .get_result(conn)
+            .get_result(&*conn) {
+                Ok(r) => Ok(r),
+                Err(diesel::result::Error::NotFound) => {
+                    info!("No confirmation token found, generating one");
+                    NewConfirmationToken::new(&self).create(&*conn)
+                },
+                Err(e) => {
+                    Err(e)
+                },
+            }
     }
 }
 
@@ -203,6 +213,7 @@ impl<'a> NewUser<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::web::test_helpers::create_user;
     use crate::config::MountableDeviceLocation;
 
     #[test]
