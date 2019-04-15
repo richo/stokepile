@@ -138,6 +138,11 @@ pub fn refresh_token(
     }
 }
 
+#[get("/test_result")]
+pub fn test_result() -> Result<Flash<String>, String> {
+    Ok(Flash::error("Ok".to_string(), "hi there".to_string()))
+}
+
 #[derive(Debug, FromForm)]
 pub struct ExpireKeyForm {
     key_id: i32,
@@ -167,7 +172,7 @@ mod tests {
 
     use rocket::http::{Header, ContentType, Status};
 
-    client_for_routes!(get_signin, signout, expire_key, refresh_token => client);
+    client_for_routes!(get_signin, signout, expire_key, refresh_token, test_result => client);
 
     #[test]
     fn test_signin() {
@@ -439,5 +444,19 @@ mod tests {
             .header(Header::new("Authorization", format!("Bearer: {}", token)))
             .dispatch();
         assert_eq!(response.status(), Status::NotFound);
+    }
+
+    #[test]
+    fn test_whether_we_can_determinate_which_variant() {
+        let client = client();
+        let mut response = client
+            .get("/test_result")
+            .dispatch();
+
+        warn!("{:?}", &response.cookies());
+        warn!("{:?}", &response.headers());
+        warn!("{:?}", &response.body_string());
+
+        assert!(false);
     }
 }
