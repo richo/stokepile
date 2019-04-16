@@ -149,6 +149,17 @@ pub trait Mountable {
     fn mount(self) -> Result<Self::Target, Error>;
 }
 
+/// A type that can mount `Mountable` devices.
+pub trait Mounter {
+    type Unmounter: Unmounter;
+    type Target;
+    type Error;
+}
+
+pub fn mount<M: Mounter, F: Mountable>(fs: &mut F) -> Result<M::Target, M::Error> {
+    unimplemented!()
+}
+
 /// This is a subtrait of `mountable` meant to represent devices that can be mounted as a logical
 /// filesystem. Implementers need only supply some information about how to find the device, and
 /// inherent impls will take care of getting your device mounted and available.
