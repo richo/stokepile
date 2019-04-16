@@ -43,8 +43,9 @@ pub struct UdisksMounter {
 
 impl UdisksMounter {
     pub fn mount<U>(device: U) -> Result<MountedFilesystem, Error>
-    where U: AsRef<Path>
+    where U: AsRef<Path> + Debug
     {
+        info!("Mounting {:?}", &device);
         let child = Command::new("udisksctl")
             .arg("mount")
             .arg("--no-user-interaction")
@@ -57,8 +58,11 @@ impl UdisksMounter {
 
         if child.status.success() {
             if let Some(matches) = regex.captures(&String::from_utf8_lossy(&child.stdout)) {
+                let mountpoint = PathBuf::from(matches.get(2).unwrap().as_str());
+                info!("Mounted at {:?}", &mountpoint);
+
                 return Ok(MountedFilesystem {
-                    mountpoint: PathBuf::from(matches.get(2).unwrap().as_str()),
+                    mountpoint,
                     device: device.as_ref().to_path_buf(),
                     mounter: Box::new(UdisksMounter{}),
                 });
@@ -74,6 +78,7 @@ trait Unmounter: Debug + Sync + Send {
 
 impl Unmounter for UdisksMounter {
     fn unmount(&mut self, device: &Path) {
+        info!("Unmounting device at {:?}", &device);
         match Command::new("udisksctl")
             .arg("unmount")
             .arg("--no-user-interaction")
@@ -84,6 +89,8 @@ impl Unmounter for UdisksMounter {
             Ok(child) => {
                 if !child.status.success() {
                     error!("Couldn't unmount device: {}", String::from_utf8_lossy(&child.stderr));
+                } else {
+                    info!("Successfully umounted");
                 }
             },
             Err(e) => {
