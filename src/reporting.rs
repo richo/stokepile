@@ -183,6 +183,157 @@ mod tests {
     }
 
     #[test]
+    fn test_deals_with_large_totals() {
+        let mut report: UploadReport = Default::default();
+        for i in 0..20 {
+           let name = format!("Dummy-file{}.mp4", i);
+           let path = format!("richo/Dummy-file{}.mp4", i);
+           let mut desc = UploadDescriptor::build(name)
+               .manual_file(path.into());
+           desc.size = 138 * 1024 * 1024 * 1024;
+            report.record_activity(ReportEntry::new(
+                    desc,
+                    vec![
+                        ("provider".into(), UploadStatus::Succeeded),
+                    ],
+                    ));
+        }
+
+        let expected = format!("\
+ARCHIVER UPLOAD REPORT
+======================
+
+Dummy-file0.mp4
+===============
+
+    /Dummy-file0.mp4/richo/Dummy-file0.mp4 (138gb)
+    # provider: Succeeded
+
+Dummy-file1.mp4
+===============
+
+    /Dummy-file1.mp4/richo/Dummy-file1.mp4 (138gb)
+    # provider: Succeeded
+
+Dummy-file10.mp4
+================
+
+    /Dummy-file10.mp4/richo/Dummy-file10.mp4 (138gb)
+    # provider: Succeeded
+
+Dummy-file11.mp4
+================
+
+    /Dummy-file11.mp4/richo/Dummy-file11.mp4 (138gb)
+    # provider: Succeeded
+
+Dummy-file12.mp4
+================
+
+    /Dummy-file12.mp4/richo/Dummy-file12.mp4 (138gb)
+    # provider: Succeeded
+
+Dummy-file13.mp4
+================
+
+    /Dummy-file13.mp4/richo/Dummy-file13.mp4 (138gb)
+    # provider: Succeeded
+
+Dummy-file14.mp4
+================
+
+    /Dummy-file14.mp4/richo/Dummy-file14.mp4 (138gb)
+    # provider: Succeeded
+
+Dummy-file15.mp4
+================
+
+    /Dummy-file15.mp4/richo/Dummy-file15.mp4 (138gb)
+    # provider: Succeeded
+
+Dummy-file16.mp4
+================
+
+    /Dummy-file16.mp4/richo/Dummy-file16.mp4 (138gb)
+    # provider: Succeeded
+
+Dummy-file17.mp4
+================
+
+    /Dummy-file17.mp4/richo/Dummy-file17.mp4 (138gb)
+    # provider: Succeeded
+
+Dummy-file18.mp4
+================
+
+    /Dummy-file18.mp4/richo/Dummy-file18.mp4 (138gb)
+    # provider: Succeeded
+
+Dummy-file19.mp4
+================
+
+    /Dummy-file19.mp4/richo/Dummy-file19.mp4 (138gb)
+    # provider: Succeeded
+
+Dummy-file2.mp4
+===============
+
+    /Dummy-file2.mp4/richo/Dummy-file2.mp4 (138gb)
+    # provider: Succeeded
+
+Dummy-file3.mp4
+===============
+
+    /Dummy-file3.mp4/richo/Dummy-file3.mp4 (138gb)
+    # provider: Succeeded
+
+Dummy-file4.mp4
+===============
+
+    /Dummy-file4.mp4/richo/Dummy-file4.mp4 (138gb)
+    # provider: Succeeded
+
+Dummy-file5.mp4
+===============
+
+    /Dummy-file5.mp4/richo/Dummy-file5.mp4 (138gb)
+    # provider: Succeeded
+
+Dummy-file6.mp4
+===============
+
+    /Dummy-file6.mp4/richo/Dummy-file6.mp4 (138gb)
+    # provider: Succeeded
+
+Dummy-file7.mp4
+===============
+
+    /Dummy-file7.mp4/richo/Dummy-file7.mp4 (138gb)
+    # provider: Succeeded
+
+Dummy-file8.mp4
+===============
+
+    /Dummy-file8.mp4/richo/Dummy-file8.mp4 (138gb)
+    # provider: Succeeded
+
+Dummy-file9.mp4
+===============
+
+    /Dummy-file9.mp4/richo/Dummy-file9.mp4 (138gb)
+    # provider: Succeeded
+
+Uploaded Data
+=============
+
+provider: 2.7tb
+");
+        assert_eq!(report.to_plaintext().unwrap(), expected);
+
+
+    }
+
+    #[test]
     fn test_renders_report() {
         let report = dummy_report();
         // We use LocalTime throughout, since it's reasonable to assume that is correct. However,
