@@ -82,6 +82,21 @@ trait Unmounter: Debug + Sync + Send {
 impl Unmounter for UdisksMounter {
     fn unmount(&mut self, device: &Path) {
         info!("Unmounting device at {:?}", &device);
+        info!("Syncing first");
+        match Command::new("udisksctl")
+            .arg("sync")
+            .status()
+        {
+            Ok(status) => {
+                if status.success() {
+                    info!("sync complete")
+                } else {
+                    warn!("sync returned {:?}", status.code())
+                }
+            },
+            Err(e) => warn!("sync failed, continuing: {:?}", e),
+        }
+
         match Command::new("udisksctl")
             .arg("unmount")
             .arg("--no-user-interaction")
