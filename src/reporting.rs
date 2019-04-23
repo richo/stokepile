@@ -112,6 +112,13 @@ impl UploadReport {
     pub fn to_plaintext(&self) -> Result<String, TemplateRenderError> {
         handlebars().render_template(UPLOAD_REPORT_TEMPLATE, &self)
     }
+
+    /// Returns the number of entries in this report.
+    pub fn num_uploads(&self) -> usize {
+        self.files
+            .values() // Each device
+            .fold(0, |i, v| i + v.len())
+    }
 }
 
 #[cfg(test)]
@@ -167,6 +174,12 @@ mod tests {
         ));
 
         report
+    }
+
+    #[test]
+    fn test_sums_activity() {
+        let report = dummy_report();
+        assert_eq!(report.num_uploads(), 4);
     }
 
     #[test]

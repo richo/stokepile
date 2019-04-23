@@ -23,7 +23,7 @@ pub enum Device<'a> {
 }
 
 impl Device<'_> {
-    pub fn stage_files<T>(self, destination: T) -> Result<(), Error>
+    pub fn stage_files<T>(self, destination: T) -> Result<usize, Error>
     where T: StageableLocation {
         match self {
             Device::Gopro(desc, gopro) => {

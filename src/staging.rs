@@ -277,15 +277,20 @@ pub trait Staging: Sized {
     fn files(&self) -> Result<Vec<Self::FileType>, Error>;
 
     /// Stage all available files on this device, erasing the device copies as they are staged.
-    fn stage_files<T>(self, name: &str, destination: &T) -> Result<(), Error>
+    ///
+    /// Returns the number of files staged.
+    fn stage_files<T>(self, name: &str, destination: &T) -> Result<usize, Error>
     where
         T: StageableLocation,
     {
+        let mut i = 0;
+
         for file in self.files()? {
             stage_file(file, destination, name)?;
+            i += 1;
         }
 
-        Ok(())
+        Ok(i)
     }
 }
 

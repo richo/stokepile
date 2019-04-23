@@ -36,20 +36,6 @@ fn main() {
 
         let devices = device::attached_devices(&ctx)?;
 
-        let work_to_be_done = !devices.is_empty();
-        let maybe_notify = |msg: &str| {
-            if work_to_be_done {
-                if let Err(e) = ctx.notify(msg) {
-                    error!("Failed to send push notification: {:?}", e);
-                }
-            } else {
-                info!("Not sending push notification as there is no work planned");
-            }
-        };
-
-        // Send a notification if we're running in cron mode and we're starting an upload
-        maybe_notify("Starting cron upload");
-
         info!("Attached devices:");
         for device in &devices {
             info!("  {:?}", device);
@@ -68,18 +54,26 @@ fn main() {
 
         for device in devices {
             let msg = format!("Finished staging: {}", device.name());
-            device.stage_files(&staging)?;
-            maybe_notify(&msg);
+            let num_files = device.stage_files(&staging)?;
+            if num_files > 0 {
+                if let Err(e) = ctx.notify(&msg) {
+                    error!("Failed to send push notification: {:?}", e);
+                }
+            }
         }
 
         let report = storage::upload_from_staged(&staging, &backends)?;
 
-        maybe_notify("Finished uploading media");
+        if report.num_uploads() > 0 {
+            if let Err(e) = ctx.notify("Finished uploading media") {
+                error!("Failed to send push notification: {:?}", e);
+            }
+        }
 
         let plaintext = report.to_plaintext()?;
         println!("{}", plaintext);
 
-        if work_to_be_done {
+        if report.num_uploads() > 0 {
             if let Err(e) = ctx.mailer.send_report(&plaintext) {
                 error!("Failed to send upload report: {:?}", e);
             }
