@@ -58,8 +58,11 @@ impl UdisksMounter {
 
         if child.status.success() {
             if let Some(matches) = regex.captures(&String::from_utf8_lossy(&child.stdout)) {
-                let mountpoint = PathBuf::from(matches.get(2).unwrap().as_str());
+                let mut mountpoint = PathBuf::from(matches.get(2).unwrap().as_str());
                 info!("Mounted at {:?}", &mountpoint);
+
+                mountpoint.push("richo");
+                info!("Giving back the mountpoint as {:?} though, because we lie for dumb reasons", &mountpoint);
 
                 return Ok(MountedFilesystem {
                     mountpoint,
