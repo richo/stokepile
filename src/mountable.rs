@@ -62,7 +62,7 @@ impl UdisksMounter {
                 info!("Mounted at {:?}", &mountpoint);
 
                 mountpoint.push("richo");
-                info!("Giving back the mountpoint as {:?} though, because we lie for dumb reasons", &mountpoint);
+                warn!("Giving back the mountpoint as {:?} though, because we lie for dumb reasons", &mountpoint);
 
                 return Ok(MountedFilesystem {
                     mountpoint,
