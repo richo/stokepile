@@ -9,6 +9,8 @@ use failure::Error;
 use std::fs;
 use crate::config::MountableDeviceLocation;
 
+pub const MOUNTABLE_DEVICE_FOLDER: &'static str = "archiver";
+
 #[derive(Debug)]
 pub struct MountedFilesystem {
     mountpoint: PathBuf,
@@ -61,7 +63,7 @@ impl UdisksMounter {
                 let mut mountpoint = PathBuf::from(matches.get(2).unwrap().as_str());
                 info!("Mounted at {:?}", &mountpoint);
 
-                mountpoint.push("richo");
+                mountpoint.push(MOUNTABLE_DEVICE_FOLDER);
                 warn!("Giving back the mountpoint as {:?} though, because we lie for dumb reasons", &mountpoint);
 
                 return Ok(MountedFilesystem {
