@@ -83,8 +83,7 @@ impl Unmounter for UdisksMounter {
     fn unmount(&mut self, device: &Path) {
         info!("Unmounting device at {:?}", &device);
         info!("Syncing first");
-        match Command::new("udisksctl")
-            .arg("sync")
+        match Command::new("sync")
             .status()
         {
             Ok(status) => {
