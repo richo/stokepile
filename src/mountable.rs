@@ -64,7 +64,9 @@ impl UdisksMounter {
                 info!("Mounted at {:?}", &mountpoint);
 
                 mountpoint.push(MOUNTABLE_DEVICE_FOLDER);
-                warn!("Giving back the mountpoint as {:?} though, because we lie for dumb reasons", &mountpoint);
+                if !mountpoint.exists() {
+                    bail!("Directory {:?} does not exist, device probably needs to be bootstrapped", &mountpoint);
+                }
 
                 return Ok(MountedFilesystem {
                     mountpoint,
