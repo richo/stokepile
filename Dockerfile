@@ -1,4 +1,4 @@
-FROM rustlang/rust:nightly
+FROM renderco/rocket-rust
 RUN apt-get update
 RUN apt-get -y install \
   libusb-1.0-0-dev \
