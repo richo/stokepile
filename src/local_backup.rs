@@ -54,7 +54,7 @@ where
 {
     fn already_uploaded(&self, manifest: &staging::UploadDescriptor) -> bool {
         let local_path = self.local_path(&manifest);
-        match File::open(local_path) {
+        match File::open(&local_path) {
             Ok(mut file) => {
                 let mut hasher: dropbox_content_hasher::DropboxContentHasher = Default::default();
                 let mut buf: Vec<_> = vec![0; dropbox_content_hasher::BLOCK_SIZE];
@@ -66,9 +66,8 @@ where
                 drop(file);
                 hasher.result().as_slice() == manifest.content_hash
             },
-            Err(_) => {
-                // TODO(richo) We could figure out what's going on here but it's almost certainly
-                // that the file doesn't exist
+            Err(e) => {
+                warn!("Couldn't open local file {:?}: {:?}", &local_path, e);
                 false
             },
         }
