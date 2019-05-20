@@ -17,6 +17,8 @@ pub struct MountedFilesystem {
 }
 
 impl MountedFilesystem {
+    /// Creates a MountedFilesystem from an already mounted filesystem. No cleanup or validation
+    /// will take place to assert that this is actually what it's meant to be.
     pub fn new_externally_mounted(mountpoint: PathBuf) -> MountedFilesystem {
         MountedFilesystem {
             mountpoint,
