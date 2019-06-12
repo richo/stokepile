@@ -1,6 +1,8 @@
 archiver
 ========
 
+[![Join the chat at https://gitter.im/archiver-project/community](https://badges.gitter.im/archiver-project/community.svg)](https://gitter.im/archiver-project/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 (Name is a work in progress. Got a great idea? Open an [issue](https://github.com/richo/archiver/issues))
 
 What is this?
