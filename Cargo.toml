@@ -52,7 +52,7 @@ sha2 = "0.8.0"
 handlebars = "1.1.0"
 sendgrid = { git = "https://github.com/gsquire/sendgrid-rs" }
 url = "1.7.2"
-tus = "0.2.0"
+tus = "0.3.0"
 failure_derive = "0.1.5"
 filetime = "0.2.4"
 rpassword = "3.0.0"

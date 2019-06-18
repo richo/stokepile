@@ -5,6 +5,7 @@ use reqwest;
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde_json;
 use tus;
+use url::Url;
 
 use crate::staging;
 use crate::storage::{StorageAdaptor, StorageStatus};
@@ -19,7 +20,7 @@ pub struct VimeoClient {
 #[derive(Debug)]
 struct UploadHandle {
     // TODO(richo) native URL type
-    url: String,
+    url: Url,
     complete: bool,
 }
 
@@ -73,7 +74,7 @@ impl VimeoClient {
         let response: CreateVideoResponse = serde_json::from_str(&text)
             .map_err(|e| format_err!("create_upload_handle: {:?} {}", e, text))?;
         Ok(UploadHandle {
-            url: response.upload.upload_link,
+            url: response.upload.upload_link.parse()?,
             complete: false,
         })
     }
@@ -105,7 +106,7 @@ impl StorageAdaptor<File> for VimeoClient {
         let handle = self.create_upload_handle(&manifest.staging_name(), size)?;
 
         let headers = self.default_headers(size);
-        let tusclient = tus::Client::new(&handle.url, headers);
+        let tusclient = tus::Client::new(handle.url.clone(), headers);
         let _sent = tusclient.upload(file)?;
 
         // TODO(richo) look through sent and confirm it really sent
