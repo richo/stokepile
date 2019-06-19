@@ -149,6 +149,7 @@ impl StagingConfig {
     pub fn data_for_db(&self) -> String {
         match &self.location {
             MountableDeviceLocation::Label(buf) => buf.to_string(),
+            MountableDeviceLocation::Location(buf) => buf.to_string(),
             MountableDeviceLocation::Mountpoint(buf) => buf.to_string_lossy().into(),
         }
     }
@@ -189,6 +190,8 @@ pub enum MountableDeviceLocation {
     // usecase is kinda deprecated anyway.
     #[serde(rename = "mountpoint")]
     Mountpoint(PathBuf),
+    #[serde(rename = "location")]
+    Location(PathBuf),
     #[serde(rename = "label")]
     Label(String),
 }
@@ -208,6 +211,9 @@ impl fmt::Display for MountableDeviceLocation {
         match self {
             MountableDeviceLocation::Mountpoint(path) => {
                 write!(f, "Mountpoint({:?})", path)
+            },
+            MountableDeviceLocation::Location(path) => {
+                write!(f, "Location({:?})", path)
             },
             MountableDeviceLocation::Label(label) => {
                 write!(f, "Label({})", label)
@@ -344,7 +350,8 @@ impl Config {
     #[must_use]
     fn check_staging(staging: &StagingConfig) -> Result<(), ConfigError> {
         match &staging.location {
-            MountableDeviceLocation::Mountpoint(pb) => {
+            MountableDeviceLocation::Mountpoint(pb) |
+            MountableDeviceLocation::Location(pb) => {
                 if pb.is_relative() {
                     return Err(ConfigError::RelativeStaging.into());
                 }

@@ -187,6 +187,7 @@ pub trait MountableFilesystem: Sized {
                 UdisksMounter::mount(device)?
             },
             MountableDeviceLocation::Mountpoint(_) => unimplemented!(),
+            MountableDeviceLocation::Location(path) => MountedFilesystem::new_externally_mounted(path.to_owned())
         };
 
         Ok(Self::Target::from_mounted_parts(self, mount))
@@ -242,6 +243,9 @@ pub trait MountableFilesystem: Sized {
             MountableDeviceLocation::Label(lbl) => {
                 attached_by_label(&lbl[..])
             },
+            MountableDeviceLocation::Location(path) => {
+                path.exists()
+            }
             MountableDeviceLocation::Mountpoint(path) => {
                 // Hopefully empty means nothing was written there in the meantime
                 if !path.exists() {

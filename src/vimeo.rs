@@ -140,8 +140,8 @@ mod tests {
         let handle = client
             .create_upload_handle("test_video.mp4", 1024)
             .expect("Couldn't create upload handle");
-        assert!(
-            handle.url.starts_with("https://files.tus.vimeo.com"),
+        assert_eq!(
+            handle.url.host_str().unwrap(), "https://files.tus.vimeo.com",
             "Handle url not rooted at vimeo.com"
         );
         assert_eq!(handle.complete, false);
