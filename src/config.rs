@@ -149,7 +149,7 @@ impl StagingConfig {
     pub fn data_for_db(&self) -> String {
         match &self.location {
             MountableDeviceLocation::Label(buf) => buf.to_string(),
-            MountableDeviceLocation::Location(buf) => buf.to_string(),
+            MountableDeviceLocation::Location(buf) |
             MountableDeviceLocation::Mountpoint(buf) => buf.to_string_lossy().into(),
         }
     }
@@ -158,6 +158,7 @@ impl StagingConfig {
     pub fn kind_for_db(&self) -> StagingKind {
         match &self.location {
             MountableDeviceLocation::Label(_) => StagingKind::Label,
+            MountableDeviceLocation::Location(_) => StagingKind::Location,
             MountableDeviceLocation::Mountpoint(_) => StagingKind::Mountpoint,
         }
     }

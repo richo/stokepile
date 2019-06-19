@@ -29,6 +29,7 @@ pub enum StagingKind {
     None,
     Mountpoint,
     Label,
+    Location,
 }
 
 impl<'v> FromFormValue<'v> for StagingKind {
@@ -116,6 +117,7 @@ impl User {
             StagingKind::None => return None,
             StagingKind::Label => MountableDeviceLocation::Label(loc.to_owned()),
             StagingKind::Mountpoint => MountableDeviceLocation::Mountpoint(loc.into()),
+            StagingKind::Location => MountableDeviceLocation::Location(loc.into()),
         };
         Some(StagingConfig {
             location,
@@ -191,6 +193,7 @@ mod tests {
                 StagingKind::None => {},
                 StagingKind::Label => {},
                 StagingKind::Mountpoint => {},
+                StagingKind::Location => {},
             }
         }
 
@@ -198,6 +201,7 @@ mod tests {
             match ml {
                 MountableDeviceLocation::Label(_) => {},
                 MountableDeviceLocation::Mountpoint(_) => {},
+                MountableDeviceLocation::Location(_) => {},
             }
         }
         // If you find yourself looking at this test, it's because one of those enums was updated

@@ -57,7 +57,11 @@ impl SettingsForm {
             StagingKind::Mountpoint => {
                 let pathbuf = PathBuf::from(&self.staging_data);
                 MountableDeviceLocation::Mountpoint(pathbuf)
-            }
+            },
+            StagingKind::Location => {
+                let pathbuf = PathBuf::from(&self.staging_data);
+                MountableDeviceLocation::Location(pathbuf)
+            },
         };
         Some(StagingConfig {
             location,
