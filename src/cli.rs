@@ -1,5 +1,6 @@
 use crate::{AUTHOR, VERSION};
 
+use std::io::Read;
 use clap::{App, Arg};
 use dotenv;
 
@@ -56,6 +57,23 @@ pub fn run(main: fn() -> Result<(), ::failure::Error>) {
         ::std::process::exit(1);
     }
 }
+
+pub fn run_and_wait(main: fn() -> Result<(), ::failure::Error>) {
+    init_logging();
+    if let Err(e) = main() {
+        error!("Error running archiver");
+        error!("{:?}", e);
+        if ::std::env::var("ARCHIVER_BACKTRACE").is_ok() {
+            error!("{:?}", e.backtrace());
+        } else {
+            info!("Set ARCHIVER_BACKTRACE for more information");
+        }
+    }
+    info!("Finished! Press return to exit.");
+    let mut buf = [0; 0];
+    std::io::stdin().read(&mut buf).expect("Couldn't read from stdin");
+}
+
 
 /// Configure dotenv, ignoring any errors purely because it can't find the dotenv file.
 pub fn init_dotenv() -> Result<(), dotenv::Error> {
