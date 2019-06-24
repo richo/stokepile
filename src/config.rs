@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::fmt;
 
-use failure::Error;
+use failure::{Error, ResultExt};
 use toml;
 use url;
 
@@ -314,7 +314,7 @@ impl FromStr for Config {
 
 impl Config {
     pub fn from_file(path: &str) -> Result<Config, Error> {
-        let mut fh = File::open(path)?;
+        let mut fh = File::open(&path).context(format!("Couldn't open config file at {}", &path))?;
         let mut contents = String::new();
         fh.read_to_string(&mut contents)?;
 
