@@ -10,6 +10,7 @@
           <tr>
             <th>setting</th>
             <th>value</th>
+            <th>help</th>
           </tr>
         </thead>
         <tbody>
@@ -18,9 +19,6 @@
             <td><input class="settings-text-input" type="text" name="notification_email" form="settings_form" placeholder="richo@example.org"
               {{#if this.user.notify_email}}value="{{this.user.notify_email}}"{{/if}}
               /></td>
-          </tr>
-          <tr>
-            <td>&nbsp;</td>
             <td>The email you'd like to receive reports to when upload runs finish</td>
           </tr>
           <tr>
@@ -28,9 +26,6 @@
             <td><input class="settings-text-input" type="text" name="notification_pushover" form="settings_form" placeholder="J4VQGefXleUm7oQKMXLZDB1rRYGYxE"
               {{#if this.user.notify_pushover}}value="{{this.user.notify_pushover}}"{{/if}}
               /></td>
-          </tr>
-          <tr>
-            <td>&nbsp;</td>
             <td>The ID of your pushover account. This will allow you to receive push notifications about progrress.</td>
           </tr>
           <tr>
@@ -46,9 +41,6 @@
               <input class="settings-text-input" type="text" name="staging_data" form="settings_form" placeholder="/mnt/staging"
               {{#if this.user.staging_data}}value="{{this.user.staging_data}}"{{/if}}
               /></td>
-          </tr>
-          <tr>
-            <td>&nbsp;</td>
             <td>The place you would like media staged to from your devices before it is uploaded. For most people, use "Location" with a directory on your computer with at least as much space as your memory cards.</td>
           </tr>
         </tbody>
