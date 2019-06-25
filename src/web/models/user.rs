@@ -41,6 +41,7 @@ impl<'v> FromFormValue<'v> for StagingKind {
             Ok(ref kind) if kind == "None" => Ok(StagingKind::None),
             Ok(ref kind) if kind == "Label" => Ok(StagingKind::Label),
             Ok(ref kind) if kind == "Mountpoint" => Ok(StagingKind::Mountpoint),
+            Ok(ref kind) if kind == "Location" => Ok(StagingKind::Location),
             _ => Err(format!("unknown staging_kind {}", form_value)),
         }
     }
