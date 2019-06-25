@@ -20,10 +20,18 @@
               /></td>
           </tr>
           <tr>
+            <td>&nbsp;</td>
+            <td>The email you'd like to receive reports to when upload runs finish</td>
+          </tr>
+          <tr>
             <td>Pushover ID</td>
             <td><input class="settings-text-input" type="text" name="notification_pushover" form="settings_form" placeholder="J4VQGefXleUm7oQKMXLZDB1rRYGYxE"
               {{#if this.user.notify_pushover}}value="{{this.user.notify_pushover}}"{{/if}}
               /></td>
+          </tr>
+          <tr>
+            <td>&nbsp;</td>
+            <td>The ID of your pushover account. This will allow you to receive push notifications about progrress.</td>
           </tr>
           <tr>
             <td>Staging</td>
@@ -32,11 +40,16 @@
                 <option value="None" {{maybe_selected this.user.staging_type "None"}}>None</option>
                 <option value="Label" {{maybe_selected this.user.staging_type "Label"}}>Label</option>
                 <option value="Mountpoint" {{maybe_selected this.user.staging_type "Mountpoint"}}>Mountpoint</option>
+                <option value="Location" {{maybe_selected this.user.staging_type "Location"}}>Location</option>
               </select>
 
               <input class="settings-text-input" type="text" name="staging_data" form="settings_form" placeholder="/mnt/staging"
               {{#if this.user.staging_data}}value="{{this.user.staging_data}}"{{/if}}
               /></td>
+          </tr>
+          <tr>
+            <td>&nbsp;</td>
+            <td>The place you would like media staged to from your devices before it is uploaded. For most people, use "Location" with a directory on your computer with at least as much space as your memory cards.</td>
           </tr>
         </tbody>
       </table>
