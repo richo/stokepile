@@ -1,7 +1,12 @@
 use std::fmt;
 
 use failure::Error;
+
+#[cfg(feature = "usb")]
 use libusb;
+#[cfg(not(feature = "usb"))]
+use crate::dummy_libusb as libusb;
+
 
 // This is used, I guess maybe I should make it a phantomdata or whatever?
 #[allow(unused_imports)]

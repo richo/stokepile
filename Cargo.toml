@@ -6,7 +6,7 @@ edition = "2018"
 description = "Tool for uploading action cam and datalogger footage."
 
 [features]
-default = [ "libusb" ]
+default = [ "usb" ]
 "web" = [
   "rocket",
   "rocket_contrib",
@@ -18,7 +18,7 @@ default = [ "libusb" ]
   "oauth2",
   "serde_urlencoded"
 ]
-"libusb" = [
+"usb" = [
   "libusb"
 ]
 
