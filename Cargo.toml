@@ -6,6 +6,7 @@ edition = "2018"
 description = "Tool for uploading action cam and datalogger footage."
 
 [features]
+default = [ "libusb" ]
 "web" = [
   "rocket",
   "rocket_contrib",
