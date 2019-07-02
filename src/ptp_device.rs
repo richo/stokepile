@@ -10,7 +10,12 @@ use crate::mountable::{Mountable};
 use chrono;
 use chrono::prelude::*;
 use failure::Error;
+
+#[cfg(feature = "usb")]
 use libusb;
+#[cfg(not(feature = "usb"))]
+use crate::dummy_libusb as libusb;
+
 use ptp;
 use std::hash::{Hash, Hasher};
 
@@ -223,6 +228,12 @@ impl<'c> Drop for GoproConnection<'c> {
 impl<'a> Mountable for Gopro<'a> {
     type Target = GoproConnection<'a>;
 
+    #[cfg(not(feature = "usb"))]
+    fn mount(self) -> Result<GoproConnection<'a>, Error> {
+        unimplemented!("Can't mount nonexistant gopros");
+    }
+
+    #[cfg(feature = "usb")]
     fn mount(self) -> Result<GoproConnection<'a>, Error> {
         let mut camera = ptp::PtpCamera::new(&self.device)?;
         camera.open_session(None)?;
@@ -263,6 +274,9 @@ impl<'c> fmt::Debug for GoproConnection<'c> {
 pub fn locate_gopros(ctx: &ctx::Ctx) -> Result<Vec<Gopro<'_>>, Error> {
     let mut res = vec![];
 
+    // TODO(richo) It'd be really nice to have this still build, but the ptpCamera stuff looks like
+    // ti's gunna be rough af.
+    #[cfg(feature = "usb")]
     for device in ctx.usb_ctx.devices()?.iter() {
         let device_desc = device.device_descriptor()?;
 
