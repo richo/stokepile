@@ -16,7 +16,11 @@ use libusb;
 #[cfg(not(feature = "usb"))]
 use crate::dummy_libusb as libusb;
 
+#[cfg(feature = "usb")]
 use ptp;
+#[cfg(not(feature = "usb"))]
+use crate::dummy_ptp as ptp;
+
 use std::hash::{Hash, Hasher};
 
 fn parse_gopro_date(date: &str) -> Result<DateTime<Local>, chrono::ParseError> {

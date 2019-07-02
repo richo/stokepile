@@ -67,6 +67,12 @@ pub mod device;
 /// Attempting to invoke any actual libusb stuff panics.
 pub mod dummy_libusb;
 
+/// A drop in replacement for ptp for use in contexts where we can't actually link against
+/// libusb (eg, the web server).
+///
+/// Attempting to invoke any actual ptp stuff panics.
+pub mod dummy_ptp;
+
 /// Our interface to the dropbox API. This should really be it's own crate, but until I have the
 /// enthusiasm to implement more than the bare minimum archiver needs, it will remain vendored
 /// here.
