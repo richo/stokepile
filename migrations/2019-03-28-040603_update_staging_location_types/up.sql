@@ -5,7 +5,7 @@ DROP COLUMN staging_location;
 
 DROP TYPE StagingKind;
 
-CREATE TYPE StagingKind AS ENUM ('none', 'mountpoint', 'label');
+CREATE TYPE StagingKind AS ENUM ('none', 'mountpoint', 'label', 'location');
 
 ALTER TABLE users
 /* none is a bad value but now we can spit out a useful error message when it happens */
