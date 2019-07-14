@@ -371,11 +371,13 @@ impl UploadDescriptor {
                 capture_time, extension,
             } => {
                 format!(
-                    "/{}/{}/{}.{}",
-                    capture_time.format("%y-%m-%d"),
-                    &self.device_name,
-                    capture_time.format("%H-%M-%S"),
-                    extension,
+                    "/{year:04}/{month:02}/{day:02}/{device}/{filename}.{extension}",
+                    year = capture_time.year(),
+                    month = capture_time.month(),
+                    day = capture_time.day(),
+                    device= &self.device_name,
+                    filename = capture_time.format("%H-%M-%S"),
+                    extension = extension,
                 ).into()
             },
             RemotePathDescriptor::SpecifiedPath {
@@ -445,7 +447,7 @@ mod tests {
 
         assert_eq!(
             upload.remote_path(),
-            PathBuf::from("/17-11-22/test/15-36-10.mp4".to_string())
+            PathBuf::from("/2017/11/22/test/15-36-10.mp4".to_string())
         );
     }
 
@@ -465,7 +467,7 @@ mod tests {
 
         assert_eq!(
             upload.remote_path(),
-            PathBuf::from("/01-01-02/test/03-04-05.mp4".to_string())
+            PathBuf::from("/2001/01/02/test/03-04-05.mp4".to_string())
         );
     }
 

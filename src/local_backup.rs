@@ -113,7 +113,7 @@ mod tests {
         let manifest = UploadDescriptor::test_descriptor();
 
         assert_eq!(backup_adaptor.containing_dir(&manifest),
-                   PathBuf::from("/test/directory/18-08-26/test-device"));
+                   PathBuf::from("/test/directory/2018/08/26/test-device"));
     }
 
     #[test]
@@ -124,7 +124,7 @@ mod tests {
         let manifest = UploadDescriptor::test_descriptor();
 
         assert_eq!(backup_adaptor.local_path(&manifest),
-                   PathBuf::from("/test/directory/18-08-26/test-device/14-30-00.mp4"));
+                   PathBuf::from("/test/directory/2018/08/26/test-device/14-30-00.mp4"));
     }
 
     #[test]

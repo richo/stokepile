@@ -358,11 +358,11 @@ Flock n Dock
 test-device
 ===========
 
-    /18-08-24/test-device/09-55-30.mp4 (15kb)
+    /2018/08/24/test-device/09-55-30.mp4 (15kb)
     # vimeo: Succeeded
     # youtube: Succeeded
 
-    /18-08-24/test-device/12-30-30.mp4 (2.8mb)
+    /2018/08/24/test-device/12-30-30.mp4 (2.8mb)
     # vimeo: Succeeded
     # youtube: Upload failed: ErrorMessage {{ msg: &quot;Something bad happened&quot; }}
 
