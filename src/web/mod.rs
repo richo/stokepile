@@ -48,6 +48,9 @@ pub fn configure_rocket() -> Rocket {
                 routes::healthcheck::healthcheck,
 
                 routes::index::index,
+                routes::help::help,
+                // TODO(richo) Remove this when the beta is done.
+                routes::help::beta,
 
                 routes::notifications::notification_send,
 

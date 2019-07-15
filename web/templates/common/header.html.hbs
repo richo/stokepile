@@ -26,6 +26,8 @@
       <div class="header-actions">
         {{#if user}}
         <span class="header-email">{{user.email}}</span>
+        <a href="/help" class="pure-button button-small">Help</a>
+        <a href="/beta" class="pure-button button-small">Beta information</a>
         <a href="/settings" class="pure-button button-small">Settings</a>
         <form action="/signout" method="POST">
           <button class="pure-button button-small">Sign Out</button>
