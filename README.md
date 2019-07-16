@@ -1,8 +1,6 @@
 stokepile
 =========
 
-(Name is a work in progress. Got a great idea? Open an [issue](https://github.com/richo/stokepile/issues))
-
 What is this?
 -------------
 
