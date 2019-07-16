@@ -50,6 +50,7 @@ pub fn run(main: fn() -> Result<(), ::failure::Error>) {
         error!("Error running archiver");
         error!("{:?}", e);
         if ::std::env::var("ARCHIVER_BACKTRACE").is_ok() {
+            error!("Backtrace information:");
             error!("{:?}", e.backtrace());
         } else {
             info!("Set ARCHIVER_BACKTRACE for more information");

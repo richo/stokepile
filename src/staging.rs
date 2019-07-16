@@ -7,7 +7,7 @@ use chrono;
 use chrono::prelude::*;
 use dropbox_content_hasher::DropboxContentHasher;
 use crate::formatting;
-use failure::Error;
+use failure::{Error, ResultExt};
 use hashing_copy;
 use serde::{Deserialize, Serialize};
 use serde_json;
@@ -134,7 +134,8 @@ where T: UploadableFile,
         let (size, hash) = hashing_copy::copy_and_hash::<_, _, DropboxContentHasher>(
             file.reader(),
             &mut staged,
-            )?;
+            )
+            .context("Copying file to staging")?;
         assert_eq!(size, desc.size);
         desc.content_hash.copy_from_slice(&hash);
         info!("Staged {}: shasum={:x} size={}", &staging_name, &hash, formatting::human_readable_size(size as usize));
@@ -143,7 +144,8 @@ where T: UploadableFile,
     {
         info!("Manifesting {}", &manifest_name);
         trace!(" To {:?}", manifest_path);
-        let mut staged = options.open(&manifest_path)?;
+        let mut staged = options.open(&manifest_path)
+            .context("Opening manifest")?;
         serde_json::to_writer(&mut staged, &desc)?;
     }
 
@@ -201,7 +203,8 @@ pub trait StageableLocation: Debug + Sync + Send {
             let manifest_path = entry.path();
             let content_path = content_path_from_manifest(&manifest_path);
 
-            let manifest = File::open(&manifest_path)?;
+            let manifest = File::open(&manifest_path)
+                .context("Reading manifest")?;
 
             let manifest: UploadDescriptor = serde_json::from_reader(manifest)?;
             out.push((StagedFile {

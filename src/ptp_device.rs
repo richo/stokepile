@@ -9,7 +9,7 @@ use crate::mountable::{Mountable};
 
 use chrono;
 use chrono::prelude::*;
-use failure::Error;
+use failure::{Error, ResultExt};
 
 #[cfg(feature = "usb")]
 use libusb;
@@ -240,7 +240,8 @@ impl<'a> Mountable for Gopro<'a> {
     #[cfg(feature = "usb")]
     fn mount(self) -> Result<GoproConnection<'a>, Error> {
         let mut camera = ptp::PtpCamera::new(&self.device)?;
-        camera.open_session(None)?;
+        camera.open_session(None)
+            .context("Creating session on camera")?;
 
         Ok(GoproConnection {
             gopro: self,

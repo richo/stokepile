@@ -7,7 +7,7 @@ use crate::staging::{Staging, DateTimeUploadable};
 
 use chrono;
 use chrono::prelude::*;
-use failure::Error;
+use failure::{Error, ResultExt};
 use walkdir::WalkDir;
 
 #[derive(Debug)]
@@ -69,7 +69,8 @@ impl Staging for MountedMassStorage {
 
                 out.push(MassStorageFile {
                     capturedatetime: path.metadata()?.modified()?.into(),
-                    file: File::open(path)?,
+                    file: File::open(path)
+                        .context("Opening content file for MountedMassStorage")?,
                     source_path: path.to_path_buf(),
                     extension,
                 });

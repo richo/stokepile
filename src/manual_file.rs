@@ -6,7 +6,7 @@ use crate::staging::{UploadableFile, RemotePathDescriptor};
 use chrono;
 use chrono::prelude::*;
 
-use failure::Error;
+use failure::{Error, ResultExt};
 
 #[derive(Debug)]
 pub struct ManualFile {
@@ -39,7 +39,8 @@ impl ManualFile {
 
         let source_path = source_path.as_ref().to_path_buf();
         let dest_path = dest_path.as_ref().to_path_buf();
-        let file = File::open(&source_path)?;
+        let file = File::open(&source_path)
+            .context("Opening local copy for a ManualFile")?;
         let captured = file.metadata()?.modified()?.into();
 
         Ok(ManualFile {

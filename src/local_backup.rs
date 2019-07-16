@@ -67,7 +67,7 @@ where
                 hasher.result().as_slice() == manifest.content_hash
             },
             Err(e) => {
-                warn!("Couldn't open local file {:?}: {:?}", &local_path, e);
+                // warn!("Couldn't open local file {:?}: {:?}", &local_path, e);
                 false
             },
         }

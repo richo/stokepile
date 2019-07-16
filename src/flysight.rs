@@ -9,7 +9,7 @@ use crate::staging::{Staging, DateTimeUploadable};
 
 use chrono;
 use chrono::prelude::*;
-use failure::Error;
+use failure::{Error, ResultExt};
 use regex;
 
 #[derive(Debug)]
@@ -131,7 +131,8 @@ impl Staging for MountedFlysight {
                             // end up with non utf8 garbage.
                             capturedate: entry.file_name().into_string().unwrap(),
                             capturetime: filename,
-                            file: File::open(file.path())?,
+                            file: File::open(file.path())
+                                .context("Opening flysight file")?,
                             source_path: file.path().to_path_buf(),
                         });
                     }
