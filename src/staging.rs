@@ -193,7 +193,7 @@ pub trait StageableLocation: Debug + Sync + Send {
     // TODO(richo) iterator
     fn staged_files(&self) -> Result<Vec<(StagedFile, UploadDescriptor)>, Error> {
         let mut out = vec![];
-        for entry in self.read_dir()? {
+        for entry in self.read_dir().context("Reading staged files")? {
             // Find manifests and work backward
             let entry = entry?;
             trace!("Looking at {:?}", entry.path());
