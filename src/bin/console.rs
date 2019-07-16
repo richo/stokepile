@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate log;
 
-use std::io::Read;
+use failure::ResultExt;
 
 use archiver::config;
 use archiver::ctx::Ctx;
@@ -12,7 +12,8 @@ use archiver::storage;
 
 fn main() {
     archiver::cli::run_and_wait(|| {
-        let cfg = config::Config::from_file("archiver.toml");
+        let cfg = config::Config::from_file("archiver.toml")
+            .context("Creating config");
         let ctx = Ctx::create_without_lock(cfg?)?;
 
         let devices = device::attached_devices(&ctx)?;
