@@ -3,16 +3,16 @@ extern crate log;
 
 use failure::ResultExt;
 
-use archiver::config;
-use archiver::ctx::Ctx;
-use archiver::device;
-use archiver::mailer::MailReport;
-use archiver::mountable::Mountable;
-use archiver::storage;
+use stokepile::config;
+use stokepile::ctx::Ctx;
+use stokepile::device;
+use stokepile::mailer::MailReport;
+use stokepile::mountable::Mountable;
+use stokepile::storage;
 
 fn main() {
-    archiver::cli::run_and_wait(|| {
-        let cfg = config::Config::from_file("archiver.toml")
+    stokepile::cli::run_and_wait(|| {
+        let cfg = config::Config::from_file("stokepile.toml")
             .context("Creating config");
         let ctx = Ctx::create_without_lock(cfg?)?;
 

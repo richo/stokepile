@@ -136,7 +136,7 @@ mod tests {
     #[ignore]
     fn test_creates_upload_handle() {
         let client =
-            VimeoClient::new(env::var("ARCHIVER_TEST_VIMEO_KEY").expect("Didn't provide test key"));
+            VimeoClient::new(env::var("STOKEPILE_TEST_VIMEO_KEY").expect("Didn't provide test key"));
         let handle = client
             .create_upload_handle("test_video.mp4", 1024)
             .expect("Couldn't create upload handle");
@@ -151,7 +151,7 @@ mod tests {
     #[ignore]
     fn test_uploads_file_to_vimeo() {
         let client =
-            VimeoClient::new(env::var("ARCHIVER_TEST_VIMEO_KEY").expect("Didn't provide test key"));
+            VimeoClient::new(env::var("STOKEPILE_TEST_VIMEO_KEY").expect("Didn't provide test key"));
         let fh = File::open("/tmp/test.mp4").expect("Couldn't open video");
         let desc = staging::UploadDescriptor::test_descriptor();
         client.upload(fh, &desc).expect("Could not upload file");

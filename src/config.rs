@@ -18,8 +18,8 @@ use crate::storage::MaybeStorageAdaptor;
 
 
 // TODO(richo) Change this once we have a canonical domain
-pub static DEFAULT_API_BASE: &'static str = "https://archiver-web.onrender.com/";
-pub static TOKEN_FILE_NAME: &'static str = ".archiver-token";
+pub static DEFAULT_API_BASE: &'static str = "https://stokepile-web.onrender.com/";
+pub static TOKEN_FILE_NAME: &'static str = ".stokepile-token";
 
 #[derive(RedactedDebug)]
 pub struct AccessToken(#[redacted] String);
@@ -95,7 +95,7 @@ pub enum DeviceConfig {
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
-    archiver: ArchiverConfig,
+    stokepile: StokepileConfig,
     staging: StagingConfig,
     dropbox: Option<DropboxConfig>,
     vimeo: Option<VimeoConfig>,
@@ -112,7 +112,7 @@ pub struct Config {
 
 #[derive(Debug, Default)]
 pub struct ConfigBuilder {
-    archiver: ArchiverConfig,
+    stokepile: StokepileConfig,
     staging: Option<StagingConfig>,
     dropbox: Option<DropboxConfig>,
     vimeo: Option<VimeoConfig>,
@@ -166,7 +166,7 @@ impl StagingConfig {
 
 #[derive(Default, Serialize, Deserialize, Debug, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
-pub struct ArchiverConfig {
+pub struct StokepileConfig {
     api_base: Option<String>,
     api_token: Option<String>,
 }
@@ -339,7 +339,7 @@ impl Config {
 
         Config::check_staging(&config.staging)?;
 
-        if let Some(base) = &config.archiver.api_base {
+        if let Some(base) = &config.stokepile.api_base {
             if let Err(err) = url::Url::parse(&base) {
                 Err(ConfigError::InvalidApiBase(err))?;
             }
@@ -364,7 +364,7 @@ impl Config {
 
     /// Get the api base of this config, or return the default
     pub fn api_base(&self) -> &str {
-        match &self.archiver.api_base {
+        match &self.stokepile.api_base {
             Some(base) => &base,
             None => DEFAULT_API_BASE,
         }
@@ -553,7 +553,7 @@ impl ConfigBuilder {
             None => return Err(ConfigError::MissingStaging),
         };
         Config::check_config(Config {
-            archiver: self.archiver,
+            stokepile: self.stokepile,
             staging: staging,
             dropbox: self.dropbox,
             vimeo: self.vimeo,
@@ -575,12 +575,12 @@ mod tests {
 
     #[test]
     fn test_example_config_parses() {
-        let config = Config::from_file("archiver.toml.example").unwrap();
+        let config = Config::from_file("stokepile.toml.example").unwrap();
 
         assert_eq!(
-            config.archiver,
-            ArchiverConfig {
-                api_token: Some("ARCHIVER_TOKEN_GOES_HERE".into()),
+            config.stokepile,
+            StokepileConfig {
+                api_token: Some("STOKEPILE_TOKEN_GOES_HERE".into()),
                 api_base: Some("https://test-api.base".into()),
             }
         );
@@ -603,7 +603,7 @@ mod tests {
             config.flysight,
             Some(vec![FlysightConfig {
                 name: "data".into(),
-                location: MountableDeviceLocation::from_mountpoint("/mnt/archiver/flysight".into()),
+                location: MountableDeviceLocation::from_mountpoint("/mnt/stokepile/flysight".into()),
             }])
         );
 
@@ -611,7 +611,7 @@ mod tests {
             config.mass_storage,
             Some(vec![MassStorageConfig {
                 name: "video".into(),
-                location: MountableDeviceLocation::from_mountpoint("/mnt/archiver/mass_storage".into()),
+                location: MountableDeviceLocation::from_mountpoint("/mnt/stokepile/mass_storage".into()),
                 extensions: vec!["mp4".into()],
             }])
         );
@@ -622,7 +622,7 @@ mod tests {
                 token: "TOKEN_GOES_HERE".into(),
                 from: "richo@example.net".into(),
                 to: "richo@example.org".into(),
-                subject: "archiver upload report".into(),
+                subject: "stokepile upload report".into(),
             })
         );
 
@@ -653,7 +653,7 @@ mod tests {
     fn test_relative_staging() {
         let err = Config::from_str(
             r#"
-[archiver]
+[stokepile]
 [staging]
 mountpoint="test/dir"
 
@@ -669,7 +669,7 @@ token = "TOKEN"
     fn test_staging_mountpoint() {
         let cfg = Config::from_str(
             r#"
-[archiver]
+[stokepile]
 [staging]
 mountpoint="/mnt/staging"
 
@@ -688,7 +688,7 @@ token = "TOKEN"
     fn test_staging_label() {
         let cfg = Config::from_str(
             r#"
-[archiver]
+[stokepile]
 [staging]
 label="STAGING"
 
@@ -707,7 +707,7 @@ token = "TOKEN"
     fn test_staging_cannot_be_both() {
         let err = Config::from_str(
             r#"
-[archiver]
+[stokepile]
 staging_device="/dev/staging"
 
 [staging]
@@ -728,7 +728,7 @@ token = "TOKEN"
     fn test_invalid_api_base() {
         let err = Config::from_str(
             r#"
-[archiver]
+[stokepile]
 api_base = "malformed"
 
 [staging]
@@ -746,7 +746,7 @@ token = "TOKEN"
     fn test_single_backend() {
         let cfg = Config::from_str(
             r#"
-[archiver]
+[stokepile]
 [staging]
 mountpoint = "/test"
 
@@ -762,7 +762,7 @@ token = "TOKEN"
     fn test_multiple_backends() {
         let cfg = Config::from_str(
             r#"
-[archiver]
+[stokepile]
 [staging]
 mountpoint = "/test"
 
@@ -781,7 +781,7 @@ token = "TOKEN"
     fn test_pushover() {
         let cfg = Config::from_str(
             r#"
-[archiver]
+[stokepile]
 [staging]
 mountpoint="/test/dir"
 
@@ -801,7 +801,7 @@ recipient = "RECIPIENT_TOKEN"
     fn test_no_backends() {
         let error = Config::from_str(
             r#"
-[archiver]
+[stokepile]
 [staging]
 mountpoint = "/test"
 "#,
@@ -814,7 +814,7 @@ mountpoint = "/test"
     fn test_no_peripherals() {
         let config = Config::from_str(
             r#"
-[archiver]
+[stokepile]
 [staging]
 mountpoint = "/test"
 [dropbox]
@@ -842,7 +842,7 @@ token="DROPBOX_TOKEN_GOES_HERE"
             &vec![
                 MassStorageConfig {
                     name: "front".into(),
-                    location: MountableDeviceLocation::Mountpoint("/mnt/archiver/front".into()),
+                    location: MountableDeviceLocation::Mountpoint("/mnt/stokepile/front".into()),
                     extensions: vec!["mp4".into()],
                 },
                 MassStorageConfig {
@@ -876,7 +876,7 @@ token="DROPBOX_TOKEN_GOES_HERE"
             &vec![
                 FlysightConfig {
                     name: "training".into(),
-                    location: MountableDeviceLocation::Mountpoint("/mnt/archiver/training".into()),
+                    location: MountableDeviceLocation::Mountpoint("/mnt/stokepile/training".into()),
                 },
                 FlysightConfig {
                     name: "comp".into(),
@@ -890,7 +890,7 @@ token="DROPBOX_TOKEN_GOES_HERE"
     fn test_mass_storages() {
         let config = Config::from_str(
             r#"
-[archiver]
+[stokepile]
 [staging]
 mountpoint = "/test"
 [dropbox]
@@ -898,7 +898,7 @@ token="DROPBOX_TOKEN_GOES_HERE"
 
 [[mass_storage]]
 name = "front"
-mountpoint="/mnt/archiver/front"
+mountpoint="/mnt/stokepile/front"
 extensions = ["mp4"]
 
 [[mass_storage]]
@@ -916,7 +916,7 @@ extensions = ["mov"]
     fn test_gopros() {
         let config = Config::from_str(
             r#"
-[archiver]
+[stokepile]
 [staging]
 mountpoint = "/test"
 [dropbox]
@@ -941,7 +941,7 @@ serial = "C3131127500001"
     fn test_flysights() {
         let config = Config::from_str(
             r#"
-[archiver]
+[stokepile]
 [staging]
 mountpoint = "/test"
 [dropbox]
@@ -949,7 +949,7 @@ token="DROPBOX_TOKEN_GOES_HERE"
 
 [[flysight]]
 name = "training"
-mountpoint="/mnt/archiver/training"
+mountpoint="/mnt/stokepile/training"
 
 [[flysight]]
 name = "comp"
@@ -965,7 +965,7 @@ label="COMP_FLYSIGHT"
     fn test_mass_storages_and_flysights() {
         let config = Config::from_str(
             r#"
-[archiver]
+[stokepile]
 [staging]
 mountpoint = "/test"
 [dropbox]
@@ -973,7 +973,7 @@ token="DROPBOX_TOKEN_GOES_HERE"
 
 [[mass_storage]]
 name = "front"
-mountpoint="/mnt/archiver/front"
+mountpoint="/mnt/stokepile/front"
 extensions = ["mp4"]
 
 [[mass_storage]]
@@ -983,7 +983,7 @@ extensions = ["mov"]
 
 [[flysight]]
 name = "training"
-mountpoint="/mnt/archiver/training"
+mountpoint="/mnt/stokepile/training"
 
 [[flysight]]
 name = "comp"

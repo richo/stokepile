@@ -1,8 +1,8 @@
-use archiver::cli::init_dotenv;
-use archiver::web::db::run_migrations;
+use stokepile::cli::init_dotenv;
+use stokepile::web::db::run_migrations;
 
 fn main() {
-    archiver::cli::run(|| {
+    stokepile::cli::run(|| {
         init_dotenv()?;
         run_migrations()?;
         Ok(())

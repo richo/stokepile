@@ -42,7 +42,7 @@ impl MailReport for SendgridMailer {
         let msg = Mail::new()
             .add_to(Destination {
                 address: &self.to,
-                name: "archiver recipient",
+                name: "stokepile recipient",
             })
             .add_from(&self.from)
             .add_subject(&self.subject)

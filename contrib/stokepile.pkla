@@ -1,4 +1,4 @@
-[Let users mount things for archiver]
-Identity=unix-group:archiver
+[Let users mount things for stokepile]
+Identity=unix-group:stokepile
 Action=org.freedesktop.udisks2.filesystem-mount-other-seat
 ResultAny=yes

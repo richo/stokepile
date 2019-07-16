@@ -38,10 +38,10 @@ lazy_static! {
     };
 
     static ref BASE_URL: Url = Url::parse(
-        &env::var("ARCHIVER_BASE_URL")
-            .expect("Missing the ARCHIVER_BASE_URL environment variable."),
+        &env::var("STOKEPILE_BASE_URL")
+            .expect("Missing the STOKEPILE_BASE_URL environment variable."),
     )
-    .expect("Invalid ARCHIVER_BASE_URL");
+    .expect("Invalid STOKEPILE_BASE_URL");
 }
 
 #[derive(Clone, RedactedDebug)]
@@ -60,12 +60,12 @@ impl Oauth2Config {
     /// they are all unrecoverable.
     fn dropbox() -> Oauth2Config {
         let client_id = ClientId::new(
-            env::var("ARCHIVER_DROPBOX_APP_KEY")
-                .expect("Missing the ARCHIVER_DROPBOX_APP_KEY environment variable."),
+            env::var("STOKEPILE_DROPBOX_APP_KEY")
+                .expect("Missing the STOKEPILE_DROPBOX_APP_KEY environment variable."),
         );
         let client_secret = ClientSecret::new(
-            env::var("ARCHIVER_DROPBOX_APP_SECRET")
-                .expect("Missing the ARCHIVER_DROPBOX_APP_SECRET environment variable."),
+            env::var("STOKEPILE_DROPBOX_APP_SECRET")
+                .expect("Missing the STOKEPILE_DROPBOX_APP_SECRET environment variable."),
         );
         let auth_url = AuthUrl::new(
             Url::parse("https://www.dropbox.com/oauth2/authorize")
@@ -91,12 +91,12 @@ impl Oauth2Config {
     }
     fn google(property: GoogleProperty) -> Oauth2Config {
         let client_id = ClientId::new(
-            env::var("ARCHIVER_GOOGLE_APP_KEY")
-                .expect("Missing the ARCHIVER_GOOGLE_APP_KEY environment variable."),
+            env::var("STOKEPILE_GOOGLE_APP_KEY")
+                .expect("Missing the STOKEPILE_GOOGLE_APP_KEY environment variable."),
         );
         let client_secret = ClientSecret::new(
-            env::var("ARCHIVER_GOOGLE_APP_SECRET")
-                .expect("Missing the ARCHIVER_GOOGLE_APP_SECRET environment variable."),
+            env::var("STOKEPILE_GOOGLE_APP_SECRET")
+                .expect("Missing the STOKEPILE_GOOGLE_APP_SECRET environment variable."),
         );
         let auth_url = AuthUrl::new(
             Url::parse("https://accounts.google.com/o/oauth2/v2/auth?access_type=offline")
@@ -130,12 +130,12 @@ impl Oauth2Config {
     }
     fn vimeo() -> Oauth2Config {
         let client_id = ClientId::new(
-            env::var("ARCHIVER_VIMEO_APP_KEY")
-                .expect("Missing the ARCHIVER_VIMEO_APP_KEY environment variable."),
+            env::var("STOKEPILE_VIMEO_APP_KEY")
+                .expect("Missing the STOKEPILE_VIMEO_APP_KEY environment variable."),
         );
         let client_secret = ClientSecret::new(
-            env::var("ARCHIVER_VIMEO_APP_SECRET")
-                .expect("Missing the ARCHIVER_VIMEO_APP_SECRET environment variable."),
+            env::var("STOKEPILE_VIMEO_APP_SECRET")
+                .expect("Missing the STOKEPILE_VIMEO_APP_SECRET environment variable."),
         );
         let auth_url = AuthUrl::new(
             Url::parse("https://api.vimeo.com/oauth/authorize")

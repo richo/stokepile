@@ -3,13 +3,13 @@ extern crate log;
 
 use clap::{App, Arg};
 
-use archiver::cli;
-use archiver::config;
-use archiver::ctx::Ctx;
-use archiver::device;
-use archiver::mailer::MailReport;
-use archiver::mountable::Mountable;
-use archiver::storage;
+use stokepile::cli;
+use stokepile::config;
+use stokepile::ctx::Ctx;
+use stokepile::device;
+use stokepile::mailer::MailReport;
+use stokepile::mountable::Mountable;
+use stokepile::storage;
 
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
     cli::base_opts()
@@ -17,15 +17,15 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
         .arg(
             Arg::with_name("no-cron")
             .long("no-cron")
-            .help("Don't invoke any of the locking machinery to ensure only one archiver runs at a time")
+            .help("Don't invoke any of the locking machinery to ensure only one stokepile runs at a time")
             )
 }
 
 fn main() {
-    archiver::cli::run(|| {
+    stokepile::cli::run(|| {
         let matches = cli_opts().get_matches();
 
-        let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("archiver.toml"));
+        let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("stokepile.toml"));
         let is_cron = !matches.is_present("no-cron");
 
         let ctx = if is_cron {

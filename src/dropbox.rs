@@ -149,7 +149,7 @@ impl DropboxFilesClient {
         let client = reqwest::Client::new();
         DropboxFilesClient {
             token,
-            user_agent: format!("archiver/{}", version::VERSION),
+            user_agent: format!("stokepile/{}", version::VERSION),
             client,
         }
     }
@@ -337,7 +337,7 @@ mod tests {
     #[ignore]
     fn test_fetches_metadata() {
         let client = DropboxFilesClient::new(
-            env::var("ARCHIVER_TEST_DROPBOX_KEY").expect("Didn't provide test key"),
+            env::var("STOKEPILE_TEST_DROPBOX_KEY").expect("Didn't provide test key"),
         );
         client
             .get_metadata(Path::new("/15-01-01/rearcam/GOPR0001.MP4"))
@@ -348,7 +348,7 @@ mod tests {
     #[ignore]
     fn test_uploads_large_file() {
         let client = DropboxFilesClient::new(
-            env::var("ARCHIVER_TEST_DROPBOX_KEY").expect("Didn't provide test key"),
+            env::var("STOKEPILE_TEST_DROPBOX_KEY").expect("Didn't provide test key"),
         );
         let localfile =
             fs::File::open("/usr/share/dict/web2").expect("Couldn't open dummy dictionary");
@@ -361,12 +361,12 @@ mod tests {
     #[ignore]
     fn test_roundtripped_content_hash_works() {
         let client = DropboxFilesClient::new(
-            env::var("ARCHIVER_TEST_DROPBOX_KEY").expect("Didn't provide test key"),
+            env::var("STOKEPILE_TEST_DROPBOX_KEY").expect("Didn't provide test key"),
         );
         let localfile = b"yes hello";
         let hash = DropboxContentHasher::digest(&localfile[..]);
         eprintln!("hash!: {:?}", &hash);
-        let path = Path::new("/archiver-test/hello.txt");
+        let path = Path::new("/stokepile-test/hello.txt");
         if let Err(e) = client.upload(
             &localfile[..],
             &staging::UploadDescriptor::test_descriptor(),
@@ -381,7 +381,7 @@ mod tests {
     #[ignore]
     fn test_uploaded_chunks_work() {
         fn inner() -> Result<(), Error> {
-            let client = DropboxFilesClient::new(env::var("ARCHIVER_TEST_DROPBOX_KEY")?);
+            let client = DropboxFilesClient::new(env::var("STOKEPILE_TEST_DROPBOX_KEY")?);
             let mut sess = client.new_session()?;
             sess.append(b"BUTTSBUTTS")?;
             sess.append(b"LOLOLOL")?;

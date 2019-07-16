@@ -11,8 +11,8 @@ services:
       - db
     environment:
       ROCKET_ADDRESS: 0.0.0.0
-      DATABASE_URL: postgres://archiver:archiver@db/archiver_web
-      ARCHIVER_BASE_URL: http://localhost:8000
+      DATABASE_URL: postgres://stokepile:stokepile@db/stokepile_web
+      STOKEPILE_BASE_URL: http://localhost:8000
 
   db:
     image: postgres
@@ -21,8 +21,8 @@ services:
     ports:
       - 5432:5432
     environment:
-      POSTGRES_USER: archiver
-      POSTGRES_PASSWORD: archiver
+      POSTGRES_USER: stokepile
+      POSTGRES_PASSWORD: stokepile
 
 volumes:
   target: {}

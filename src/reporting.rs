@@ -200,8 +200,8 @@ mod tests {
         }
 
         let expected = format!("\
-ARCHIVER UPLOAD REPORT
-======================
+STOKEPILE UPLOAD REPORT
+=======================
 
 Dummy-file0.mp4
 ===============
@@ -341,8 +341,8 @@ provider: 2.7tb
         // one, remove its offset, and template it in here for the testcase.
         let expected = format!(
             "\
-ARCHIVER UPLOAD REPORT
-======================
+STOKEPILE UPLOAD REPORT
+=======================
 
 Flock n Dock
 ============
@@ -377,7 +377,7 @@ youtube: 15mb
 }
 
 static UPLOAD_REPORT_TEMPLATE: &'static str = "\
-{{header \"ARCHIVER UPLOAD REPORT\"}}
+{{header \"STOKEPILE UPLOAD REPORT\"}}
 
 {{#each files}}{{header @key}}
 {{#each this}}

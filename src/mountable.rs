@@ -9,7 +9,7 @@ use failure::Error;
 use std::fs;
 use crate::config::MountableDeviceLocation;
 
-pub const MOUNTABLE_DEVICE_FOLDER: &'static str = "archiver";
+pub const MOUNTABLE_DEVICE_FOLDER: &'static str = "stokepile";
 
 #[derive(Debug)]
 pub struct MountedFilesystem {

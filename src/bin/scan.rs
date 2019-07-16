@@ -1,9 +1,9 @@
 use clap::App;
 
-use archiver::cli;
-use archiver::config::Config;
-use archiver::ctx::Ctx;
-use archiver::ptp_device;
+use stokepile::cli;
+use stokepile::config::Config;
+use stokepile::ctx::Ctx;
+use stokepile::ptp_device;
 
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
     cli::base_opts()
@@ -11,11 +11,11 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
 }
 
 fn main() {
-    archiver::cli::run(|| {
+    stokepile::cli::run(|| {
 
         let matches = cli_opts().get_matches();
 
-        let cfg = Config::from_file(matches.value_of("config").unwrap_or("archiver.toml"));
+        let cfg = Config::from_file(matches.value_of("config").unwrap_or("stokepile.toml"));
         let ctx = Ctx::create_without_lock(cfg?)?;
         println!("Found the following gopros:");
 

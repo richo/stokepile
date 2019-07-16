@@ -50,7 +50,7 @@ pub mod config;
 /// of standing up the context.
 pub mod ctx;
 
-/// Some helpers associated with driving the clis that ship with archiver.
+/// Some helpers associated with driving the clis that ship with stokepile.
 pub mod cli;
 
 /// Some helpers to abstract over the various types of devices that we can interact with. Much of
@@ -74,7 +74,7 @@ pub mod dummy_libusb;
 pub mod dummy_ptp;
 
 /// Our interface to the dropbox API. This should really be it's own crate, but until I have the
-/// enthusiasm to implement more than the bare minimum archiver needs, it will remain vendored
+/// enthusiasm to implement more than the bare minimum stokepile needs, it will remain vendored
 /// here.
 pub mod dropbox;
 
@@ -87,7 +87,7 @@ pub mod formatting;
 /// A storage adaptor governing a local storage device to archive the data onto.
 pub mod local_backup;
 
-/// Contains the MailReport trait which all mailers must implement, as well as the archiver
+/// Contains the MailReport trait which all mailers must implement, as well as the stokepile
 /// specific glue for the `SGClient` object we use from the `sendgrid` crate.
 pub mod mailer;
 
@@ -134,7 +134,7 @@ mod version;
 /// A notifier that pushes notifications out via the web service.
 mod web_notifier;
 
-/// What version of archiver do you have :)
+/// What version of stokepile do you have :)
 pub use crate::version::VERSION;
 
 /// Who wrote this mess

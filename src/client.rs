@@ -22,13 +22,13 @@ pub enum ClientError {
 pub type SessionToken = String;
 
 #[derive(Debug)]
-pub struct ArchiverClient {
+pub struct StokepileClient {
     base: Url,
     client: reqwest::Client,
     token: Option<config::AccessToken>,
 }
 
-impl ArchiverClient {
+impl StokepileClient {
     #[allow(clippy::collapsible_if)]
     pub fn new(base: &str) -> Result<Self, Error> {
         let base = Url::parse(base)?;
@@ -39,7 +39,7 @@ impl ArchiverClient {
             }
         }
 
-        Ok(ArchiverClient {
+        Ok(StokepileClient {
             base,
             client: reqwest::Client::new(),
             token: None,

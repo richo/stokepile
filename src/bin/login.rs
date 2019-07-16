@@ -4,21 +4,21 @@ extern crate log;
 use clap::App;
 use rpassword;
 
-use archiver::cli;
-use archiver::config;
-use archiver::client;
+use stokepile::cli;
+use stokepile::config;
+use stokepile::client;
 use std::io::{self, Write};
 
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
     cli::base_opts()
-        .about("Logs into the archiver web interface for configuration management")
+        .about("Logs into the stokepile web interface for configuration management")
 }
 
 fn main() {
-    archiver::cli::run(|| {
+    stokepile::cli::run(|| {
         let matches = cli_opts().get_matches();
 
-        let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("archiver.toml"));
+        let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("stokepile.toml"));
 
         let base = match cfg {
             Ok(cfg) => {
@@ -29,7 +29,7 @@ fn main() {
                 config::DEFAULT_API_BASE.to_string()
             },
         };
-        let client = client::ArchiverClient::new(&base)?;
+        let client = client::StokepileClient::new(&base)?;
         let mut email = String::new();
         let stdin = io::stdin();
         let password;

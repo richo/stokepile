@@ -9,8 +9,8 @@ use crate::pushover_notifier::{Notify, PushoverNotifier};
 lazy_static! {
     static ref PUSHOVER_TOKEN: String = {
         info!("Fetching pushover token from environment");
-        env::var("ARCHIVER_PUSHOVER_TOKEN")
-                .expect("Missing the ARCHIVER_PUSHOVER_TOKEN environment variable.")
+        env::var("STOKEPILE_PUSHOVER_TOKEN")
+                .expect("Missing the STOKEPILE_PUSHOVER_TOKEN environment variable.")
     };
 }
 

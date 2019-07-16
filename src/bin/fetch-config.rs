@@ -3,9 +3,9 @@ extern crate log;
 
 use clap::App;
 
-use archiver::cli;
-use archiver::config;
-use archiver::client;
+use stokepile::cli;
+use stokepile::config;
+use stokepile::client;
 
 use std::fs::File;
 use std::io::Write;
@@ -16,10 +16,10 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
 }
 
 fn main() {
-    archiver::cli::run(|| {
+    stokepile::cli::run(|| {
         let matches = cli_opts().get_matches();
 
-        let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("archiver.toml"));
+        let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("stokepile.toml"));
 
         let base = match cfg {
             Ok(cfg) => {
@@ -31,11 +31,11 @@ fn main() {
             },
         };
         info!("Creating client");
-        let mut client = client::ArchiverClient::new(&base)?;
+        let mut client = client::StokepileClient::new(&base)?;
         client.load_token()?;
         info!("Fetching config from {}", &base);
         let config = client.fetch_config()?;
-        let filename = matches.value_of("config").unwrap_or("archiver.toml");
+        let filename = matches.value_of("config").unwrap_or("stokepile.toml");
         let mut fh = File::create(&filename)?;
         fh.write_all(config.to_toml()?.as_bytes())?;
         info!("Wrote config to {}", &filename);

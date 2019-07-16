@@ -16,11 +16,11 @@ before_install:
   - sudo apt-get install libusb-1.0-0 libusb-1.0-0-dev
 
 env:
-  - DATABASE_URL=postgres://archiver:archiver@localhost/archiver_web
+  - DATABASE_URL=postgres://stokepile:stokepile@localhost/stokepile_web
 
 before_script:
-  - psql -c "CREATE USER archiver PASSWORD 'archiver';" -U postgres
-  - psql -c "CREATE DATABASE archiver_web OWNER archiver;" -U postgres
+  - psql -c "CREATE USER stokepile PASSWORD 'stokepile';" -U postgres
+  - psql -c "CREATE DATABASE stokepile_web OWNER stokepile;" -U postgres
 
 script:
   - if [ "$TRAVIS_RUST_VERSION" = "nightly" ]; then cargo build --features web; else cargo build; fi

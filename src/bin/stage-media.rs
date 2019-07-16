@@ -4,12 +4,12 @@ extern crate log;
 use clap::{App, Arg};
 use std::path::PathBuf;
 
-use archiver::cli;
-use archiver::config;
-use archiver::ctx::Ctx;
-use archiver::manual_file::ManualFile;
-use archiver::staging;
-use archiver::mountable::Mountable;
+use stokepile::cli;
+use stokepile::config;
+use stokepile::ctx::Ctx;
+use stokepile::manual_file::ManualFile;
+use stokepile::staging;
+use stokepile::mountable::Mountable;
 
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
     cli::base_opts()
@@ -21,10 +21,10 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
 }
 
 fn main() {
-    archiver::cli::run(|| {
+    stokepile::cli::run(|| {
         let matches = cli_opts().get_matches();
 
-        let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("archiver.toml"));
+        let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("stokepile.toml"));
         let ctx = Ctx::create(cfg?)?;
 
         let dir = matches.value_of("PATH").expect("Couldn't get path");

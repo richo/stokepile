@@ -1,12 +1,12 @@
-archiver
-========
+stokepile
+=========
 
-(Name is a work in progress. Got a great idea? Open an [issue](https://github.com/richo/archiver/issues))
+(Name is a work in progress. Got a great idea? Open an [issue](https://github.com/richo/stokepile/issues))
 
 What is this?
 -------------
 
-archiver is a tool for archiving footage and GPS data. My usecase is skydiving,
+stokepile is a tool for archiving footage and GPS data. My usecase is skydiving,
 but really any sport where vainly recording every last thing you do, and
 potentially supplementing that with a datalogger could use it.
 
@@ -21,7 +21,7 @@ store it locally in the staging area, and then upload it.
 
 ### Login and Fetch Config
 
-Two additional binaries ship with archiver, `login` and `fetch-config`. They
+Two additional binaries ship with stokepile, `login` and `fetch-config`. They
 interact with the [web interface][web-interface], which can streamline getting
 the API keys you need to interact with the backend storage engines.
 
@@ -45,17 +45,17 @@ primary usecase is a dedicated piece of hardware that functions as a docking
 station. My current test rig is running Bionic on a odroid device of some kind.
 In the `contrib` directory can be found some configuration snippits that make
 this a little smoother. Be warned, this grants some fairly substantial access
-to the archiver user, so consider if this makes sense before doing it on your
+to the stokepile user, so consider if this makes sense before doing it on your
 desktop.
 
-### archiver.pkla:
+### stokepile.pkla:
 
-This is a polkit localauthority file. It grants anything in the `archiver`
-group (You will need to create this group and add your archiver user to it)
+This is a polkit localauthority file. It grants anything in the `stokepile`
+group (You will need to create this group and add your stokepile user to it)
 access to mount attached media. It's probably not super hard to turn this into
 a local privesc.
 
-### archiver.rules
+### stokepile.rules
 
 Recently, I had an issue where my unprivileged user wasn't able to access some
 of my libusb devices (but curiously some were fine). Until I figure out what's
@@ -76,6 +76,6 @@ Documentation
 
 Increasingly, documentation is getting added to the code, compatible with rustdoc.
 
-Documentation is periodically rebuilt and uploaded to [https://richo.github.com/archiver](https://richo.github.com/archiver).
+Documentation is periodically rebuilt and uploaded to [https://richo.github.com/stokepile](https://richo.github.com/stokepile).
 
 [web-interface]: https://onatopp.psych0tik.net/

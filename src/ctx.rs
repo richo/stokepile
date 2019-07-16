@@ -43,8 +43,8 @@ impl fmt::Debug for Ctx {
 
 fn acquire_lock() -> Result<lockfile::Lockfile, Error> {
     let home = config::get_home()?;
-    let lock_path = home.as_ref().join(".archiver.lock");
-    info!("Acquiring the archiver lock at {:?}", &lock_path);
+    let lock_path = home.as_ref().join(".stokepile.lock");
+    info!("Acquiring the stokepile lock at {:?}", &lock_path);
     Ok(lockfile::Lockfile::create(lock_path)?)
 }
 
@@ -57,7 +57,7 @@ impl Ctx {
         Self::create_ctx(cfg, true)
     }
 
-    /// Create a new context object without acquiring the archiver lock.
+    /// Create a new context object without acquiring the stokepile lock.
     ///
     /// Holding an unlocked Ctx allows you to perform destructive operations with no
     /// synchronisation, it is the consumers responsibility to ensure this does not occur.

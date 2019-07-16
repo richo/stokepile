@@ -1,9 +1,9 @@
-use archiver::config;
-use archiver::ctx::Ctx;
+use stokepile::config;
+use stokepile::ctx::Ctx;
 
 fn main() {
-    archiver::cli::run(|| {
-        let cfg = config::Config::from_file("archiver.toml");
+    stokepile::cli::run(|| {
+        let cfg = config::Config::from_file("stokepile.toml");
         let ctx = Ctx::create(cfg?)?;
 
         ctx.notify("Test notification!")?;

@@ -5,7 +5,7 @@
 
 cargo.lock
 
-archiver.toml
+stokepile.toml
 
 env
 

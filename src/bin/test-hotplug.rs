@@ -10,9 +10,9 @@ use std::sync::{Mutex, Arc};
 use std::thread;
 use std::time;
 
-use archiver::config;
-use archiver::ctx::Ctx;
-use archiver::device;
+use stokepile::config;
+use stokepile::ctx::Ctx;
+use stokepile::device;
 
 type DeviceState<'a> = HashMap<device::Device<'a>, Arc<Mutex<AttachedDeviceState>>>;
 
@@ -100,13 +100,13 @@ fn spawn_worker_threads(state: &mut DeviceState, _work: fn(&device::Device)) {
 
 lazy_static! {
     static ref CTX: Ctx = {
-        let cfg = config::Config::from_file("archiver.toml").expect("Couldn't create config");
+        let cfg = config::Config::from_file("stokepile.toml").expect("Couldn't create config");
         Ctx::create(cfg).expect("Couldn't create config")
     };
 }
 
 fn main() {
-    archiver::cli::run(|| {
+    stokepile::cli::run(|| {
         trace!("Creating device state");
         let mut state: DeviceState = Default::default();
 

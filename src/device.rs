@@ -117,7 +117,7 @@ mod tests {
 
     #[test]
     fn test_locates_flysights() {
-        let cfg = Config::from_file("test-data/archiver.toml").unwrap();
+        let cfg = Config::from_file("test-data/stokepile.toml").unwrap();
         let flysights: Vec<_> = locate_flysights(&cfg).unwrap().collect();
         assert_eq!(flysights.len(), 1);
         if let Device::Flysight(ref _desc, ref flysight) = flysights[0] {
@@ -129,7 +129,7 @@ mod tests {
 
     #[test]
     fn test_locates_mass_storages() {
-        let cfg = Config::from_file("test-data/archiver.toml").unwrap();
+        let cfg = Config::from_file("test-data/stokepile.toml").unwrap();
         let flysights: Vec<_> = locate_flysights(&cfg).unwrap().collect();
         assert_eq!(flysights.len(), 1);
         if let Device::Flysight(ref _desc, ref flysight) = flysights[0] {

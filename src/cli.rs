@@ -14,7 +14,7 @@ lazy_static! {
 
 /// Create the base set of clap options common to all cli commands
 pub fn base_opts<'a, 'b>() -> App<'a, 'b> {
-    App::new("archiver")
+    App::new("stokepile")
         .author(AUTHOR)
         .version(&**VERSION_STRING)
         .arg(
@@ -25,8 +25,8 @@ pub fn base_opts<'a, 'b>() -> App<'a, 'b> {
         )
 }
 
-/// Setup logging for archiver. This sets the log level to INFO if unset and configures the logging
-/// facade favoured by archiver's clis.
+/// Setup logging for stokepile. This sets the log level to INFO if unset and configures the logging
+/// facade favoured by stokepile's clis.
 pub fn init_logging() {
     if ::std::env::var_os("RUST_LOG").is_none() {
         ::std::env::set_var("RUST_LOG", "INFO");
@@ -38,7 +38,7 @@ pub fn init_logging() {
 /// a fairly simple main, eg:
 ///
 /// ```
-/// use archiver::cli::run;
+/// use stokepile::cli::run;
 ///
 /// fn main() {
 ///     run(|| {
@@ -55,13 +55,13 @@ pub fn init_logging() {
 pub fn run(main: fn() -> Result<(), ::failure::Error>) {
     init_logging();
     if let Err(e) = main() {
-        error!("Error running archiver");
+        error!("Error running stokepile");
         error!("{:?}", e);
-        if ::std::env::var("ARCHIVER_BACKTRACE").is_ok() {
+        if ::std::env::var("STOKEPILE_BACKTRACE").is_ok() {
             error!("Backtrace information:");
             error!("{:?}", e.backtrace());
         } else {
-            info!("Set ARCHIVER_BACKTRACE for more information");
+            info!("Set STOKEPILE_BACKTRACE for more information");
         }
         ::std::process::exit(1);
     }
@@ -70,14 +70,14 @@ pub fn run(main: fn() -> Result<(), ::failure::Error>) {
 pub fn run_and_wait(main: fn() -> Result<(), ::failure::Error>) {
     init_logging();
     if let Err(e) = main() {
-        error!("Error running archiver");
+        error!("Error running stokepile");
         // TODO(richo) Figure out how to unify without RUST_BACKTRACE, and not double print the
         // error.
         error!("{:?}", e);
-        if ::std::env::var("ARCHIVER_BACKTRACE").is_ok() {
+        if ::std::env::var("STOKEPILE_BACKTRACE").is_ok() {
             error!("{:?}", e.backtrace());
         } else {
-            info!("Set ARCHIVER_BACKTRACE for more information");
+            info!("Set STOKEPILE_BACKTRACE for more information");
         }
     }
     info!("Finished! Press return to exit.");

@@ -1,9 +1,9 @@
-# Configuration for archiver.
+# Configuration for stokepile.
 # Comment out any section to disable that feature.
 
-[archiver]
+[stokepile]
 api_base="https://test-api.base"
-api_token="ARCHIVER_TOKEN_GOES_HERE"
+api_token="STOKEPILE_TOKEN_GOES_HERE"
 [staging]
 mountpoint="/test/staging/dir"
 
@@ -22,11 +22,11 @@ token="VIMEO_TOKEN_GOES_HERE"
 
 [[flysight]]
 name = "data"
-mountpoint = "/mnt/archiver/flysight"
+mountpoint = "/mnt/stokepile/flysight"
 
 [[mass_storage]]
 name = "video"
-mountpoint="/mnt/archiver/mass_storage"
+mountpoint="/mnt/stokepile/mass_storage"
 # The extensions of files that we should be archiving
 # Only files with this extension will be uploaded and removed, leaving the directories intact
 extensions = ["mp4"]
@@ -38,7 +38,7 @@ extensions = ["mp4"]
 token = "TOKEN_GOES_HERE"
 from = "richo@example.net"
 to = "richo@example.org"
-subject = "archiver upload report"
+subject = "stokepile upload report"
 
 [pushover]
 token = "TOKEN_GOES_HERE"

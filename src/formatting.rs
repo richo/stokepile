@@ -3,7 +3,7 @@ use time::Duration;
 /// Convert an integer number of bytes to something a human being might reasonably intepret. Allows
 /// for one place of decimal precision for low quanta of a given denomination.
 /// ```rust
-/// # use archiver::formatting::human_readable_size;
+/// # use stokepile::formatting::human_readable_size;
 /// assert_eq!(human_readable_size(12), "12".to_string());
 /// assert_eq!(human_readable_size(2055), "2k".to_string());
 /// assert_eq!(human_readable_size(36700244), "35m".to_string());
@@ -29,7 +29,7 @@ pub fn human_readable_size(bytes: usize) -> String {
 
 /// Format a given `Duration` as a formatted amount of time a human might reasonably interpret.
 /// ```rust
-/// # use archiver::formatting::human_readable_time;
+/// # use stokepile::formatting::human_readable_time;
 /// use time::Duration;
 ///
 /// assert_eq!(human_readable_time(Duration::seconds(45)), "45s".to_string());
