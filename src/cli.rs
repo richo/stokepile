@@ -63,6 +63,8 @@ pub fn run_and_wait(main: fn() -> Result<(), ::failure::Error>) {
     init_logging();
     if let Err(e) = main() {
         error!("Error running archiver");
+        // TODO(richo) Figure out how to unify without RUST_BACKTRACE, and not double print the
+        // error.
         error!("{:?}", e);
         if ::std::env::var("ARCHIVER_BACKTRACE").is_ok() {
             error!("{:?}", e.backtrace());
