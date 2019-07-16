@@ -56,7 +56,7 @@ hex = "0.3.2"
 digest = "0.8.0"
 sha2 = "0.8.0"
 handlebars = "1.1.0"
-sendgrid = { git = "https://github.com/gsquire/sendgrid-rs" }
+sendgrid = "0.8.1"
 url = "1.7.2"
 tus = "0.3.0"
 failure_derive = "0.1.5"
