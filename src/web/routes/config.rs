@@ -52,6 +52,10 @@ pub fn get_config(user: AuthenticatedUser, conn: DbConn) -> Result<Content<Strin
         }
     }
 
+    if user.user().notify_pushover.is_some() {
+        config = config.web_notifications();
+    }
+
     if let Some(staging) = user.user().staging() {
         config = config.staging(staging);
     }

@@ -533,7 +533,6 @@ impl ConfigBuilder {
     }
 
     /// Configure and enable pushover for this config
-    // TODO(richo) Should only have one called notifications. Or should both work?
     pub fn web_notifications(mut self) -> Self {
         self.web_notifications = Some(WebNotificationsConfig {
             enabled: true
