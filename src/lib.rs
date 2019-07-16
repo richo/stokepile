@@ -140,6 +140,9 @@ pub use crate::version::VERSION;
 /// Who wrote this mess
 pub use crate::version::AUTHOR;
 
+/// Potentially, what git sha is this.
+pub use crate::version::GIT_HASH;
+
 #[cfg(test)]
 /// Helpers for use in tests
 mod test_helpers;

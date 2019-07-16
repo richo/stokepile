@@ -1,4 +1,5 @@
 pub static VERSION: &'static str = "0.1.0";
+pub static GIT_HASH: Option<&'static str> = option_env!("GIT_HASH");
 pub static AUTHOR: &'static str = "richö butts";
 
 #[cfg(test)]

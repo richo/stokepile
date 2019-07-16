@@ -1,14 +1,22 @@
-use crate::{AUTHOR, VERSION};
+use crate::{GIT_HASH, AUTHOR, VERSION};
 
 use std::io::Read;
 use clap::{App, Arg};
 use dotenv;
 
+lazy_static! {
+    static ref VERSION_STRING: String = if let Some(hash) = GIT_HASH {
+        format!("{} - {}", VERSION, hash)
+    } else {
+        VERSION.into()
+    };
+}
+
 /// Create the base set of clap options common to all cli commands
 pub fn base_opts<'a, 'b>() -> App<'a, 'b> {
     App::new("archiver")
-        .version(VERSION)
         .author(AUTHOR)
+        .version(&**VERSION_STRING)
         .arg(
             Arg::with_name("config")
                 .long("config")
