@@ -20,9 +20,9 @@ pub fn get_config(user: AuthenticatedUser, conn: DbConn) -> Result<Content<Strin
             format!("Error connecting to the DB: {}", e),
         )
     })?;
-    let mut integrations = integrations.iter();
     for provider in Oauth2Provider::providers() {
         let name = provider.name();
+        let mut integrations = integrations.iter();
 
         if let Some(integration) = integrations.find(|ref x| x.provider == name) {
             let token = integration.access_token.to_string();
