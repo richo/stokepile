@@ -292,16 +292,20 @@ impl<T: StageableLocation> Stager<T> {
         }
     }
 
-    fn stage<F>(&self, file: &mut F, name: &str) -> Result<(), Error>
+    pub fn stage<F>(&self, mut file: F, name: &str) -> Result<(), Error>
         where F: UploadableFile
     {
-        stage_file(file, &self.location, name)?;
+        stage_file(&mut file, &self.location, name)?;
 
         if self.destructive {
             file.delete()?;
         }
 
         Ok(())
+    }
+
+    pub fn staging_location(&self) -> &T {
+        &self.location
     }
 }
 pub trait Staging: Sized {
@@ -315,8 +319,8 @@ pub trait Staging: Sized {
     /// Returns the number of files staged.
     fn stage_files<T: StageableLocation>(self, name: &str, stager: &Stager<T>) -> Result<usize, Error> {
         let mut i = 0;
-        for mut file in self.files()? {
-            stager.stage(&mut file, name)?;
+        for file in self.files()? {
+            stager.stage(file, name)?;
             i += 1;
         }
         Ok(i)

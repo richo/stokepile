@@ -150,7 +150,7 @@ mod tests {
 
     #[test]
     fn test_staging_works() {
-        let dest = test_helpers::tempdir();
+        let dest = test_helpers::temp_stager();
         let source = test_helpers::test_data("mass_storage");
         fix_filetimes(&source.path()).unwrap();
 
@@ -164,7 +164,7 @@ mod tests {
 
         mounted.stage_files("data", &dest).unwrap();
         // TODO(richo) test harder
-        let iter = fs::read_dir(&dest.path()).unwrap();
+        let iter = fs::read_dir(&dest.staging_location()).unwrap();
         let files: Vec<_> = iter.collect();
 
         // Two files for the two mp4 files, two files for the manifests
