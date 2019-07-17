@@ -15,11 +15,11 @@ pub fn index(user: Option<WebUser>, conn: DbConn, flash: Option<FlashMessage<'_,
 
     if let Some(user) = &user {
         if let Ok(integrations) = user.user.integrations(&*conn) {
-            let mut integrations = integrations.iter();
 
             for provider in Oauth2Provider::providers() {
                 let name = provider.name();
 
+                let mut integrations = integrations.iter();
                 let configured_integration = integrations.find(|ref x| x.provider == name);
 
                 possible_integrations.push(PossibleIntegration {
