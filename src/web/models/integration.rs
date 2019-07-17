@@ -5,13 +5,15 @@ use super::*;
 use crate::web::schema::integrations;
 use oauth2::RefreshToken;
 
-#[derive(Identifiable, Queryable, Associations, Debug)]
+#[derive(Identifiable, Queryable, Associations, RedactedDebug)]
 #[belongs_to(User)]
 pub struct Integration {
     pub id: i32,
     pub user_id: i32,
     pub provider: String,
+    #[redacted]
     pub access_token: String,
+    #[redacted]
     pub refresh_token: Option<String>,
     pub refreshed: chrono::naive::NaiveDateTime,
 }
