@@ -49,12 +49,17 @@ fn main() {
         }
         info!("");
 
-        let staging = ctx.staging().mount()?;
-        info!("Staging to {:?}", &staging);
+        let staging_location = ctx.staging().mount()?;
+        info!("Staging to {:?}", &staging_location);
+
+        let stager = match cfg.preserve_device_files {
+            true => Stager::preserving(staging_location),
+            false => Stager::destructive(staging_location),
+        };
 
         for device in devices {
             let msg = format!("Finished staging: {}", device.name());
-            let num_files = device.stage_files(&staging)?;
+            let num_files = device.stage_files(&stager)?;
             if num_files > 0 {
                 if let Err(e) = ctx.notify(&msg) {
                     error!("Failed to send push notification: {:?}", e);

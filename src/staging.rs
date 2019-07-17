@@ -113,7 +113,7 @@ impl<T> UploadableFile for T where T: DateTimeUploadable {
     }
 }
 
-pub fn stage_file<T, U>(mut file: T, destination: &U, name: &str) -> Result<(), Error>
+fn stage_file<T, U>(mut file: &T, destination: &U, name: &str) -> Result<(), Error>
 where T: UploadableFile,
       U: StageableLocation,
 {
@@ -148,8 +148,6 @@ where T: UploadableFile,
             .context("Opening manifest")?;
         serde_json::to_writer(&mut staged, &desc)?;
     }
-
-    file.delete()?;
 
     Ok(())
 }
@@ -273,6 +271,39 @@ impl Drop for StagingDevice {
     }
 }
 
+pub struct Stager<T: StageableLocation> {
+    location: T,
+    destructive: bool,
+}
+
+impl<T: StageableLocation> Stager<T> {
+    pub fn destructive(location: T) -> Stager<T> {
+        Stager {
+            location,
+            destructive: true,
+        }
+    }
+
+    pub fn preserving(location: T) -> Stager<T> {
+        Stager {
+            location,
+            destructive: false,
+        }
+    }
+
+    fn stage<F, U>(&self, mut file: &F, name: &str) -> Result<(), Error>
+        where F: UploadableFile,
+              U: StageableLocation,
+    {
+        stage_file(file, &self.location, name)?;
+
+        if self.destructive {
+            file.delete()?;
+        }
+
+        Ok(())
+    }
+}
 pub trait Staging: Sized {
     type FileType: UploadableFile;
 
@@ -282,17 +313,11 @@ pub trait Staging: Sized {
     /// Stage all available files on this device, erasing the device copies as they are staged.
     ///
     /// Returns the number of files staged.
-    fn stage_files<T>(self, name: &str, destination: &T) -> Result<usize, Error>
-    where
-        T: StageableLocation,
-    {
+    fn stage_files<T: StageableLocation>(self, name: &str, stager: Stager<T>) -> Result<usize, Error> {
         let mut i = 0;
-
         for file in self.files()? {
-            stage_file(file, destination, name)?;
-            i += 1;
+            stager.stage(&file, name)?;
         }
-
         Ok(i)
     }
 }

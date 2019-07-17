@@ -119,7 +119,7 @@ mod tests {
 
         let fh = ManualFile::from_paths(path, PathBuf::from("test-file.ogv")).expect("Couldn't create manualfile");
         let desc = fh.descriptor("test-upload");
-        staging::stage_file(fh, &dest, "manual").expect("Didn't stage correct");
+        staging::stage_file_deleting(fh, &dest, "manual").expect("Didn't stage correct");
     }
 
     #[test]
