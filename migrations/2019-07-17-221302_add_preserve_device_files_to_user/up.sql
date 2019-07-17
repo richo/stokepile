@@ -1,0 +1,2 @@
+ALTER TABLE users
+ADD COLUMN preserve_device_files BOOLEAN NOT NULL DEFAULT FALSE;
