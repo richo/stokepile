@@ -552,6 +552,11 @@ impl ConfigBuilder {
         self
     }
 
+    pub fn preserve_device_files(mut self) -> Self {
+        self.stokepile.preserve_device_files = Some(true);
+        self
+    }
+
     /// Finalise this config object
     pub fn finish(self) -> Result<Config, ConfigError> {
         let staging = match self.staging {

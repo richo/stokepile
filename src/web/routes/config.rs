@@ -60,6 +60,10 @@ pub fn get_config(user: AuthenticatedUser, conn: DbConn) -> Result<Content<Strin
         config = config.staging(staging);
     }
 
+    if user.user().preserve_device_files {
+        config = config.preserve_device_files();
+    }
+
     fn build_flash_error(error: Error) -> Flash<Redirect> {
         Flash::error(
             Redirect::to("/"),
