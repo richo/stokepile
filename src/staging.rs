@@ -113,7 +113,7 @@ impl<T> UploadableFile for T where T: DateTimeUploadable {
     }
 }
 
-fn stage_file<T, U>(mut file: &T, destination: &U, name: &str) -> Result<(), Error>
+fn stage_file<T, U>(file: &mut T, destination: &U, name: &str) -> Result<(), Error>
 where T: UploadableFile,
       U: StageableLocation,
 {
@@ -271,6 +271,7 @@ impl Drop for StagingDevice {
     }
 }
 
+#[derive(Debug)]
 pub struct Stager<T: StageableLocation> {
     location: T,
     destructive: bool,
@@ -291,9 +292,8 @@ impl<T: StageableLocation> Stager<T> {
         }
     }
 
-    fn stage<F, U>(&self, mut file: &F, name: &str) -> Result<(), Error>
-        where F: UploadableFile,
-              U: StageableLocation,
+    fn stage<F>(&self, file: &mut F, name: &str) -> Result<(), Error>
+        where F: UploadableFile
     {
         stage_file(file, &self.location, name)?;
 
@@ -313,10 +313,11 @@ pub trait Staging: Sized {
     /// Stage all available files on this device, erasing the device copies as they are staged.
     ///
     /// Returns the number of files staged.
-    fn stage_files<T: StageableLocation>(self, name: &str, stager: Stager<T>) -> Result<usize, Error> {
+    fn stage_files<T: StageableLocation>(self, name: &str, stager: &Stager<T>) -> Result<usize, Error> {
         let mut i = 0;
-        for file in self.files()? {
-            stager.stage(&file, name)?;
+        for mut file in self.files()? {
+            stager.stage(&mut file, name)?;
+            i += 1;
         }
         Ok(i)
     }
