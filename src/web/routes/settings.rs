@@ -43,6 +43,7 @@ pub struct SettingsForm {
     pub(crate) notification_pushover: String,
     pub(crate) staging_data: String,
     pub(crate) staging_type: StagingKind,
+    pub(crate) preserve_device_files: bool,
 }
 
 impl SettingsForm {

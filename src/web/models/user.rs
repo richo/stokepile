@@ -19,6 +19,7 @@ pub struct User {
     pub notify_pushover: Option<String>,
     pub staging_type: StagingKind,
     pub staging_data: Option<String>,
+    pub preserve_device_files: bool,
 }
 
 #[derive(Debug, DbEnum, Serialize, PartialEq)]
@@ -137,7 +138,8 @@ impl User {
                     notify_email.eq(settings.notification_email()),
                     notify_pushover.eq(settings.notification_pushover()),
                     staging_type.eq(ty),
-                    staging_data.eq(data)
+                    staging_data.eq(data),
+                    preserve_device_files.eq(settings.preserve_device_files)
             ))
             .execute(conn)
     }

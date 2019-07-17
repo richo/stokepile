@@ -72,6 +72,8 @@ impl DateTimeUploadable for FlysightFile {
 
     fn delete(&mut self) -> Result<(), Error> {
         fs::remove_file(&self.source_path)?;
+        // TODO(richo)
+        // Check if this directory structure is empty now and remove it.
         Ok(())
     }
 
