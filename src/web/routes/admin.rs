@@ -1,14 +1,42 @@
 use rocket::{get, post};
+use rocket::request::{FlashMessage, Form};
+use rocket::response::{Flash, Redirect};
 use rocket_contrib::templates::Template;
 
+use crate::web::db::DbConn;
 use crate::web::auth::AdminUser;
 use crate::web::context::Context;
+use crate::web::models::NewInvite;
 
 #[get("/admin")]
-pub fn index(user: AdminUser) -> Template {
+pub fn index(user: AdminUser, flash: Option<FlashMessage<'_, '_>>) -> Template {
     let context = Context::default()
-        .set_user(Some(user.into()));
+        .set_user(Some(user.into()))
+        .set_integration_message(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
     Template::render("admin", context)
+}
+
+#[derive(FromForm, Debug, Serialize)]
+pub struct InviteForm {
+    email: String,
+}
+
+#[post("/admin/invite", data = "<invite>")]
+pub fn create_invite(user: AdminUser, conn: DbConn, invite: Form<InviteForm>) -> Flash<Redirect> {
+    match NewInvite::new(&invite.email).create(&*conn) {
+        Ok(_) => {
+            Flash::success(
+                Redirect::to("/admin"),
+                format!("Successfully created invite for {:?}", &invite.email),
+                )
+        },
+        Err(e) => {
+            Flash::error(
+                Redirect::to("/admin"),
+                format!("Error creating invite, {:?}", e),
+                )
+        }
+    }
 }
 
 #[cfg(test)]
