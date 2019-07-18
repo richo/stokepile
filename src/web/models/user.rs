@@ -20,6 +20,7 @@ pub struct User {
     pub staging_type: StagingKind,
     pub staging_data: Option<String>,
     pub preserve_device_files: bool,
+    admin: bool,
 }
 
 #[derive(Debug, DbEnum, Serialize, PartialEq)]
@@ -162,6 +163,7 @@ impl User {
 pub struct NewUser<'a> {
     pub email: &'a str,
     pub password: String,
+    admin: bool,
 }
 
 impl<'a> NewUser<'a> {
@@ -171,6 +173,7 @@ impl<'a> NewUser<'a> {
         NewUser {
             email: email,
             password: hashed_password,
+            admin: false,
         }
     }
 
