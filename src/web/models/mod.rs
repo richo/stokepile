@@ -1,6 +1,9 @@
 #![allow(proc_macro_derive_resolution_fallback)]
 use rand;
 
+mod invite;
+pub use self::invite::{NewInvite, Invite};
+
 mod user;
 pub use self::user::{NewUser, User};
 
