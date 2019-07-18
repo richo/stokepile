@@ -60,16 +60,14 @@ pub fn post_signin(
             // that the string should make it through the From call.
             match global_state(&conn) {
                 Ok(state) => {
-                    if state.invites_required() {
-                        if ! Invite::by_email(&conn, &signin.email).is_ok() {
-                            return Err(Flash::error(
-                                    Redirect::to("/"),
-                                    "Currently signups are currently invite only. Try again soon or ask richo for one!"));
-                        }
+                    if state.invites_required() &&
+                        ! Invite::by_email(&conn, &signin.email).is_ok() {
+                            Err("Signups are currently invite only. Try again soon or ask richo for one!")
+                    } else {
+                        NewUser::new(&signin.email, &signin.password)
+                            .create(&*conn)
+                            .map_err(|_| "Unable to signup")
                     }
-                    NewUser::new(&signin.email, &signin.password)
-                        .create(&*conn)
-                        .map_err(|_| "Unable to signup")
                 },
                 Err(_) => {
                     Err("Database error")
@@ -255,11 +253,11 @@ mod tests {
 
         let response = req.dispatch();
         assert_eq!(response.status(), Status::SeeOther);
-        assert_eq!(response.headers().get_one("Location"), Some("/"));
+        assert_eq!(response.headers().get_one("Location"), Some("/signin"));
         assert!(get_set_cookie(&response, "sid").is_none());
         assert_eq!(
             get_set_cookie(&response, "_flash").unwrap(),
-            "_flash=5errorCurrently%20signups%20are%20currently%20invite%20only.%20Try%20again%20soon%20or%20ask%20richo%20for%20one!; Path=/; Max-Age=300");
+            "_flash=5errorSignups%20are%20currently%20invite%20only.%20Try%20again%20soon%20or%20ask%20richo%20for%20one!; Path=/; Max-Age=300");
     }
 
     #[test]
