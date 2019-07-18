@@ -99,3 +99,8 @@ body {
   font-size: 125%;
   background: rgb(66, 184, 221);
 }
+
+.admin-button {
+  background: rgb(202, 60, 60);
+}
+
