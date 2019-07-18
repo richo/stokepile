@@ -3,8 +3,6 @@ use diesel::prelude::*;
 use crate::web::schema::invites;
 
 use chrono;
-use rocket::http::RawStr;
-use rocket::request::FromFormValue;
 
 #[derive(Identifiable, Queryable, Debug, Serialize)]
 pub struct Invite {

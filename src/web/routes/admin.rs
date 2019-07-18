@@ -1,23 +1,14 @@
-use crate::web::db::DbConn;
-use crate::web::auth::WebUser;
-use crate::web::context::Context;
-
+use rocket::{get, post};
 use rocket_contrib::templates::Template;
 
-#[get("/help")]
-pub fn help(user: WebUser, _conn: DbConn) -> Template {
+use crate::web::auth::AdminUser;
+use crate::web::context::Context;
+
+#[get("/admin")]
+pub fn index(user: AdminUser) -> Template {
     let context = Context::default()
-        .set_user(Some(user));
-
-    Template::render("help", context)
-}
-
-#[get("/beta")]
-pub fn beta(user: WebUser, _conn: DbConn) -> Template {
-    let context = Context::default()
-        .set_user(Some(user));
-
-    Template::render("beta", context)
+        .set_user(Some(user.into()));
+    Template::render("admin", context)
 }
 
 #[cfg(test)]
@@ -27,31 +18,31 @@ mod tests {
 
     use rocket::http::Status;
 
-    client_for_routes!(beta, help => client);
+    client_for_routes!(index => client);
 
     #[test]
-    fn test_help_loads() {
+    fn admin_loads_for_admins() {
         init_env();
         let client = client();
-        let _user = create_user(&client, "test1@email.com", "p@55w0rd");
+        let _admin = create_admin(&client, "test1@email.com", "p@55w0rd");
         let _session = signin(&client, "test1%40email.com", "p%4055w0rd").unwrap();
 
         let response = client
-            .get("/help")
+            .get("/admin")
             .dispatch();
         assert_eq!(response.status(), Status::Ok);
     }
 
     #[test]
-    fn test_beta_loads() {
+    fn admin_doesnt_load_for_non_admins() {
         init_env();
         let client = client();
         let _user = create_user(&client, "test1@email.com", "p@55w0rd");
         let _session = signin(&client, "test1%40email.com", "p%4055w0rd").unwrap();
 
         let response = client
-            .get("/beta")
+            .get("/admin")
             .dispatch();
-        assert_eq!(response.status(), Status::Ok);
+        assert_eq!(response.status(), Status::Unauthorized);
     }
 }

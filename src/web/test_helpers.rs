@@ -67,6 +67,21 @@ pub fn create_user(client: &Client, username: &str, password: &str) -> User {
     user
 }
 
+pub fn create_admin(client: &Client, username: &str, password: &str) -> User {
+    let user = create_user(client, username, password);
+    let conn = db_conn(&client);
+
+    {
+        use diesel::update;
+        use crate::web::schema::users::dsl::*;
+        use diesel::prelude::*;
+
+        update(&user)
+            .set(admin.eq(true))
+            .get_result(&*conn).expect("Couldn't promote user to Admin")
+    }
+}
+
 pub fn init_env() {
     env::set_var("STOKEPILE_BASE_URL", "http://localhost:8000/");
     env::set_var("STOKEPILE_DROPBOX_APP_KEY", "app_key");

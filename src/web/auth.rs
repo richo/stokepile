@@ -65,6 +65,13 @@ impl<'a, 'r> FromRequest<'a, 'r> for AdminUser {
     }
 }
 
+impl From<AdminUser> for WebUser {
+    fn from(admin: AdminUser) -> Self {
+        let AdminUser { user, session } = admin;
+        return WebUser { user, session };
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub struct ApiUser {
     #[serde(flatten)]

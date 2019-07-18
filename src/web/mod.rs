@@ -33,6 +33,8 @@ pub fn configure_rocket() -> Rocket {
         .mount(
             "/",
             routes![
+                routes::admin::index,
+
                 routes::config::get_config,
 
                 routes::sessions::get_signin,

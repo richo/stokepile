@@ -1,3 +1,4 @@
+pub mod admin;
 pub mod config;
 pub mod devices;
 pub mod healthcheck;
