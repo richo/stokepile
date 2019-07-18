@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use crate::config::{MassStorageConfig, MountableDeviceLocation};
 use crate::mountable::{MountableFilesystem, MountedFilesystem, MountableKind};
-use crate::staging::{Staging, DateTimeUploadable};
+use crate::staging::{StageFromDevice, DateTimeUploadable};
 
 use chrono;
 use chrono::prelude::*;
@@ -49,7 +49,7 @@ impl DateTimeUploadable for MassStorageFile {
     }
 }
 
-impl Staging for MountedMassStorage {
+impl StageFromDevice for MountedMassStorage {
     type FileType = MassStorageFile;
 
     fn files(&self) -> Result<Vec<MassStorageFile>, Error> {

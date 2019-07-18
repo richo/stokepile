@@ -4,7 +4,7 @@ use std::rc::Rc;
 use std::sync::Mutex;
 
 use crate::ctx;
-use crate::staging::{Staging, DateTimeUploadable};
+use crate::staging::{StageFromDevice, DateTimeUploadable};
 use crate::mountable::{Mountable};
 
 use chrono;
@@ -169,7 +169,7 @@ pub struct GoproConnection<'c> {
     camera: Rc<Mutex<ptp::PtpCamera<'c>>>,
 }
 
-impl<'c> Staging for GoproConnection<'c> where {
+impl<'c> StageFromDevice for GoproConnection<'c> where {
     type FileType = GoproFile<'c>;
 
     fn files(&self) -> Result<Vec<GoproFile<'c>>, Error> {

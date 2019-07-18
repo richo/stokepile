@@ -1,7 +1,7 @@
 use std::fs::{self, File};
 use std::path::{Path, PathBuf};
 use std::fmt::Debug;
-use crate::staging::{UploadableFile, RemotePathDescriptor};
+use crate::staging::{StorableFile, RemotePathDescriptor};
 
 use chrono;
 use chrono::prelude::*;
@@ -76,7 +76,7 @@ impl ManualFile {
     }
 }
 
-impl UploadableFile for ManualFile {
+impl StorableFile for ManualFile {
     type Reader = File;
 
     fn remote_path(&self) -> Result<RemotePathDescriptor, Error> {

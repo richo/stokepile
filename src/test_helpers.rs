@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use chrono::prelude::*;
 use failure::Error;
 
-use crate::staging::{Staging, Stager, DateTimeUploadable};
+use crate::staging::{StageFromDevice, Stager, DateTimeUploadable};
 
 /// Copy data from the test-data directory to a tempdir, then return the owned TestDir object to
 /// the caller for use in tests that will modify the filesystem.
@@ -36,7 +36,7 @@ pub(crate) struct DummyDataDevice {
     files: Vec<DummyDataFile>,
 }
 
-impl Staging for DummyDataDevice {
+impl StageFromDevice for DummyDataDevice {
     type FileType = DummyDataFile;
 
     fn files(&self) -> Result<Vec<Self::FileType>, Error> {

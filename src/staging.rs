@@ -45,7 +45,7 @@ impl MountableKind for MountedStaging {
     }
 }
 
-impl StageableLocation for MountedStaging {
+impl StagingLocation for MountedStaging {
     fn relative_path(&self, path: &Path) -> PathBuf {
         self.mount.path().join(path)
     }
@@ -61,7 +61,7 @@ pub struct MountedStaging {
     mount: MountedFilesystem,
 }
 
-pub trait UploadableFile {
+pub trait StorableFile {
     type Reader: Read;
 
     fn remote_path(&self) -> Result<RemotePathDescriptor, Error>;
@@ -96,7 +96,7 @@ pub trait DateTimeUploadable {
     fn reader(&mut self) -> &mut Self::Reader;
 }
 
-impl<T> UploadableFile for T where T: DateTimeUploadable {
+impl<T> StorableFile for T where T: DateTimeUploadable {
     type Reader = T::Reader;
 
     fn remote_path(&self) -> Result<RemotePathDescriptor, Error> {
@@ -114,8 +114,8 @@ impl<T> UploadableFile for T where T: DateTimeUploadable {
 }
 
 fn stage_file<T, U>(file: &mut T, destination: &U, name: &str) -> Result<(), Error>
-where T: UploadableFile,
-      U: StageableLocation,
+where T: StorableFile,
+      U: StagingLocation,
 {
     let mut desc = file.descriptor(name)?;
 
@@ -154,7 +154,7 @@ where T: UploadableFile,
 
 /// The contract of StageableLocation is a directory with a bunch of flat files under it. Doing
 /// things other than this will probably panic implementors.
-pub trait StageableLocation: Debug + Sync + Send {
+pub trait StagingLocation: Debug + Sync + Send {
     /// Return a path relative to this location for the given path.
     ///
     /// It's annoying that these can't be Path's with lifetime bounds that force them not to
@@ -214,7 +214,7 @@ pub trait StageableLocation: Debug + Sync + Send {
     }
 }
 
-impl<T: StageableLocation> StageableLocation for Box<T> {
+impl<T: StagingLocation> StagingLocation for Box<T> {
     fn relative_path(&self, path: &Path) -> PathBuf {
         (**self).relative_path(path)
     }
@@ -272,12 +272,12 @@ impl Drop for StagingDevice {
 }
 
 #[derive(Debug)]
-pub struct Stager<T: StageableLocation> {
+pub struct Stager<T: StagingLocation> {
     location: T,
     destructive: bool,
 }
 
-impl<T: StageableLocation> Stager<T> {
+impl<T: StagingLocation> Stager<T> {
     pub fn destructive(location: T) -> Stager<T> {
         Stager {
             location,
@@ -293,7 +293,7 @@ impl<T: StageableLocation> Stager<T> {
     }
 
     pub fn stage<F>(&self, mut file: F, name: &str) -> Result<(), Error>
-        where F: UploadableFile
+        where F: StorableFile
     {
         stage_file(&mut file, &self.location, name)?;
 
@@ -313,8 +313,8 @@ impl<T: StageableLocation> Stager<T> {
         self.location
     }
 }
-pub trait Staging: Sized {
-    type FileType: UploadableFile;
+pub trait StageFromDevice: Sized {
+    type FileType: StorableFile;
 
     /// List all stageable files on this device.
     fn files(&self) -> Result<Vec<Self::FileType>, Error>;
@@ -322,7 +322,7 @@ pub trait Staging: Sized {
     /// Stage all available files on this device, erasing the device copies as they are staged.
     ///
     /// Returns the number of files staged.
-    fn stage_files<T: StageableLocation>(self, name: &str, stager: &Stager<T>) -> Result<usize, Error> {
+    fn stage_files<T: StagingLocation>(self, name: &str, stager: &Stager<T>) -> Result<usize, Error> {
         let mut i = 0;
         for file in self.files()? {
             stager.stage(file, name)?;
@@ -582,7 +582,7 @@ mod tests {
 }
 
 #[cfg(test)]
-impl StageableLocation for tempfile::TempDir {
+impl StagingLocation for tempfile::TempDir {
     // For tests we allow using TempDirs for staging, although for fairly obvious reasons you're
     // unlikely to want to do this in production
 
@@ -595,7 +595,7 @@ impl StageableLocation for tempfile::TempDir {
     }
 }
 
-impl<T> StageableLocation for &T where T: StageableLocation {
+impl<T> StagingLocation for &T where T: StagingLocation {
     fn relative_path(&self, path: &Path) -> PathBuf {
         (*self).relative_path(path)
     }

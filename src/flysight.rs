@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use crate::config::{FlysightConfig, MountableDeviceLocation};
 use crate::mountable::{MountedFilesystem, MountableFilesystem, MountableKind};
-use crate::staging::{Staging, DateTimeUploadable};
+use crate::staging::{StageFromDevice, DateTimeUploadable};
 
 use chrono;
 use chrono::prelude::*;
@@ -101,7 +101,7 @@ impl MountableKind for MountedFlysight {
     }
 }
 
-impl Staging for MountedFlysight {
+impl StageFromDevice for MountedFlysight {
     type FileType = FlysightFile;
 
     fn files(&self) -> Result<Vec<FlysightFile>, Error> {

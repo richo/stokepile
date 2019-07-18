@@ -2,7 +2,7 @@ use std::fmt::Debug;
 use std::fs::File;
 
 use crate::reporting::{ReportEntry, UploadReport, UploadStatus};
-use crate::staging::{self, StageableLocation};
+use crate::staging::{self, StagingLocation};
 use crate::formatting;
 
 
@@ -65,7 +65,7 @@ pub trait StorageAdaptor<T>: Send + Debug {
 
 // TODO(richo) Make this use StageableLocation to find the files.
 pub fn upload_from_staged(
-    staged: &dyn StageableLocation,
+    staged: &dyn StagingLocation,
     adaptors: &[MaybeStorageAdaptor],
 ) -> Result<UploadReport, Error> {
     let mut report: UploadReport = Default::default();

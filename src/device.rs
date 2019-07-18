@@ -5,7 +5,7 @@ use failure::Error;
 use crate::config;
 use crate::ctx;
 use crate::ptp_device;
-use crate::staging::{Staging, StageableLocation, Stager};
+use crate::staging::{StageFromDevice, StagingLocation, Stager};
 use crate::mountable::{Mountable, MountableFilesystem};
 
 #[derive(Eq, PartialEq, Debug, Hash)]
@@ -23,7 +23,7 @@ pub enum Device<'a> {
 }
 
 impl Device<'_> {
-    pub fn stage_files<T: StageableLocation>(self, stager: &Stager<T>) -> Result<usize, Error> {
+    pub fn stage_files<T: StagingLocation>(self, stager: &Stager<T>) -> Result<usize, Error> {
         match self {
             Device::Gopro(desc, gopro) => {
                 Mountable::mount(gopro)?.stage_files(&desc.name, stager)
