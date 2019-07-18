@@ -156,6 +156,10 @@ impl User {
             ))
             .execute(conn)
     }
+
+    pub fn is_admin(&self) -> bool {
+        self.admin
+    }
 }
 
 #[derive(Insertable, Debug)]

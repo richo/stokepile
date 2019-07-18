@@ -13,6 +13,14 @@ pub struct WebUser {
     pub session: Session,
 }
 
+#[derive(Debug, Serialize)]
+pub struct AdminUser {
+    #[serde(flatten)]
+    pub user: User,
+    #[serde(skip_serializing)]
+    pub session: Session,
+}
+
 impl WebUser {
     pub fn new(user: User, session: Session) -> Self {
         WebUser { user, session }
@@ -39,6 +47,21 @@ impl<'a, 'r> FromRequest<'a, 'r> for WebUser {
             Outcome::Failure((Status::Unauthorized, ())),
             Outcome::Success,
         )
+    }
+}
+
+impl<'a, 'r> FromRequest<'a, 'r> for AdminUser {
+    type Error = ();
+
+    fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
+        let user = WebUser::from_request(request)?;
+        if user.user.is_admin() {
+            // Transmute the User into an Admin
+            let WebUser { user, session } = user;
+            return Outcome::Success(AdminUser { user, session });
+        }
+
+        Outcome::Failure((Status::Unauthorized, ()))
     }
 }
 

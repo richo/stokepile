@@ -1,6 +1,5 @@
 use diesel::prelude::*;
 
-use super::*;
 use crate::web::schema::invites;
 
 use chrono;
