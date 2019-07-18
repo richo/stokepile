@@ -1,8 +1,25 @@
 {{> common/header }}
+{{> common/admin }}
 
 <div class="pure-g">
   <div class="pure-u-1">
-    <h2>Admiiiiiin!</h2>
+    {{#if integration_message}}
+    <div class="flash-message flash-message-{{integration_message.0}}">
+      {{integration_message.1}}
+    </div>
+    {{/if}}
+
+    <div>
+      <form method="POST" class="pure-form" action="/admin/invite">
+        <fieldset>
+          <legend>Invite users</legend>
+
+          <input type="email" name="email" placeholder="Email">
+          <button type="submit" class="pure-button pure-button-primary">Sign in</button>
+        </fieldset>
+      </form>
+    </div>
+
   </div>
 </div>
 
