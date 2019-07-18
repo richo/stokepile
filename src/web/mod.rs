@@ -34,6 +34,7 @@ pub fn configure_rocket() -> Rocket {
             "/",
             routes![
                 routes::admin::index,
+                routes::admin::create_invite,
 
                 routes::config::get_config,
 
