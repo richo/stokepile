@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use chrono::prelude::*;
 use failure::Error;
 
-use crate::staging::{Staging, DateTimeUploadable};
+use crate::staging::{StageFromDevice, Stager, DateTimeUploadable};
 
 /// Copy data from the test-data directory to a tempdir, then return the owned TestDir object to
 /// the caller for use in tests that will modify the filesystem.
@@ -36,7 +36,7 @@ pub(crate) struct DummyDataDevice {
     files: Vec<DummyDataFile>,
 }
 
-impl Staging for DummyDataDevice {
+impl StageFromDevice for DummyDataDevice {
     type FileType = DummyDataFile;
 
     fn files(&self) -> Result<Vec<Self::FileType>, Error> {
@@ -120,10 +120,18 @@ pub(crate) fn staged_data(num_files: usize) -> Result<tempfile::TempDir, Error> 
     // Create a dummy device
     let device = DummyDataDevice::new(num_files);
 
-    // Stage it's contents
-    device.stage_files("dummy", &data_dir)?;
+    let stager = Stager::destructive(data_dir);
 
-    Ok(data_dir)
+    // Stage it's contents
+    device.stage_files("dummy", &stager)?;
+
+    Ok(stager.into_inner())
+}
+
+pub(crate) fn temp_stager() -> Stager<tempfile::TempDir> {
+    let tempdir = tempfile::tempdir().unwrap();
+
+    Stager::destructive(tempdir)
 }
 
 pub(crate) fn tempdir() -> tempfile::TempDir {

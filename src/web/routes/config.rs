@@ -60,6 +60,10 @@ pub fn get_config(user: AuthenticatedUser, conn: DbConn) -> Result<Content<Strin
         config = config.staging(staging);
     }
 
+    if user.user().preserve_device_files {
+        config = config.preserve_device_files();
+    }
+
     fn build_flash_error(error: Error) -> Flash<Redirect> {
         Flash::error(
             Redirect::to("/"),
@@ -278,6 +282,7 @@ mod tests {
                 notification_pushover: "fake-api-key".into(),
                 staging_data: "/tmp/whatever".into(),
                 staging_type: StagingKind::Mountpoint,
+                preserve_device_files: false,
             }, &*conn).unwrap();
         }
 
@@ -300,6 +305,7 @@ mod tests {
                 notification_pushover: "fake-api-key".into(),
                 staging_data: "".into(),
                 staging_type: StagingKind::Mountpoint,
+                preserve_device_files: false,
             }, &*conn).unwrap();
         }
 
@@ -309,5 +315,42 @@ mod tests {
         assert_eq!(response.status(), Status::SeeOther);
 
         // TODO(richo) assert the body of the flash message
+    }
+
+    #[test]
+    fn test_get_config_with_preserve_flag() {
+        let client = client();
+
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+        signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
+
+        {
+            let conn = db_conn(&client);
+
+            NewIntegration::new(&user, "dropbox", "test_oauth_token", None)
+                .create(&*conn)
+                .unwrap();
+        }
+
+        {
+            let conn = db_conn(&client);
+            user.update_settings(&SettingsForm {
+                notification_email: "test@email.com".into(),
+                notification_pushover: "fake-api-key".into(),
+                staging_data: "/tmp/whatever".into(),
+                staging_type: StagingKind::Mountpoint,
+                preserve_device_files: true,
+            }, &*conn).unwrap();
+        }
+
+        let req = client.get("/config");
+
+        let mut response = req.dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        let config: Config =
+            response.body_string().expect("Didn't recieve a body").parse().unwrap();
+
+        assert_eq!(config.preserve_device_files(), true)
+
     }
 }

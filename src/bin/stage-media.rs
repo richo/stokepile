@@ -8,7 +8,7 @@ use stokepile::cli;
 use stokepile::config;
 use stokepile::ctx::Ctx;
 use stokepile::manual_file::ManualFile;
-use stokepile::staging;
+use stokepile::staging::Stager;
 use stokepile::mountable::Mountable;
 
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
@@ -18,6 +18,9 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
              .help("Path to upload from")
              .required(true)
              .index(1))
+        .arg(Arg::with_name("preserve")
+             .long("preserve")
+             .help("Don't erase files after staging them"))
 }
 
 fn main() {
@@ -38,8 +41,20 @@ fn main() {
         let staging = ctx.staging().mount()?;
         info!("Staging to: {:?}", &staging);
 
+        let stager = match matches.is_present("preserve") {
+            true => {
+                info!("Preserving input files");
+                Stager::preserving(staging)
+            },
+            false => {
+                warn!("Will remove input files after staging");
+                Stager::destructive(staging)
+            }
+        };
+
+
         for file in ManualFile::iter_from(path) {
-            staging::stage_file(file, &staging, &device_name)?;
+            stager.stage(file, &device_name)?;
         }
 
         Ok(())

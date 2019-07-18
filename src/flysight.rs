@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use crate::config::{FlysightConfig, MountableDeviceLocation};
 use crate::mountable::{MountedFilesystem, MountableFilesystem, MountableKind};
-use crate::staging::{Staging, DateTimeUploadable};
+use crate::staging::{StageFromDevice, DateTimeUploadable};
 
 use chrono;
 use chrono::prelude::*;
@@ -72,6 +72,8 @@ impl DateTimeUploadable for FlysightFile {
 
     fn delete(&mut self) -> Result<(), Error> {
         fs::remove_file(&self.source_path)?;
+        // TODO(richo)
+        // Check if this directory structure is empty now and remove it.
         Ok(())
     }
 
@@ -99,7 +101,7 @@ impl MountableKind for MountedFlysight {
     }
 }
 
-impl Staging for MountedFlysight {
+impl StageFromDevice for MountedFlysight {
     type FileType = FlysightFile;
 
     fn files(&self) -> Result<Vec<FlysightFile>, Error> {
@@ -186,7 +188,7 @@ mod tests {
 
     #[test]
     fn test_staging_works() {
-        let dest = test_helpers::tempdir();
+        let dest = test_helpers::temp_stager();
         let source = test_helpers::test_data("flysight");
 
         let flysight = FlysightConfig {
@@ -198,7 +200,7 @@ mod tests {
 
         mounted.stage_files("data", &dest).unwrap();
         // TODO(richo) test harder
-        let iter = fs::read_dir(&dest.path()).unwrap();
+        let iter = fs::read_dir(&dest.staging_location()).unwrap();
         let files: Vec<_> = iter.collect();
 
         assert_eq!(files.len(), 6);

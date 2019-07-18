@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use crate::config::{MassStorageConfig, MountableDeviceLocation};
 use crate::mountable::{MountableFilesystem, MountedFilesystem, MountableKind};
-use crate::staging::{Staging, DateTimeUploadable};
+use crate::staging::{StageFromDevice, DateTimeUploadable};
 
 use chrono;
 use chrono::prelude::*;
@@ -49,7 +49,7 @@ impl DateTimeUploadable for MassStorageFile {
     }
 }
 
-impl Staging for MountedMassStorage {
+impl StageFromDevice for MountedMassStorage {
     type FileType = MassStorageFile;
 
     fn files(&self) -> Result<Vec<MassStorageFile>, Error> {
@@ -150,7 +150,7 @@ mod tests {
 
     #[test]
     fn test_staging_works() {
-        let dest = test_helpers::tempdir();
+        let dest = test_helpers::temp_stager();
         let source = test_helpers::test_data("mass_storage");
         fix_filetimes(&source.path()).unwrap();
 
@@ -164,7 +164,7 @@ mod tests {
 
         mounted.stage_files("data", &dest).unwrap();
         // TODO(richo) test harder
-        let iter = fs::read_dir(&dest.path()).unwrap();
+        let iter = fs::read_dir(&dest.staging_location()).unwrap();
         let files: Vec<_> = iter.collect();
 
         // Two files for the two mp4 files, two files for the manifests

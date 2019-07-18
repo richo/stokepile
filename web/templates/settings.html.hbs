@@ -48,6 +48,13 @@
               /></td>
             <td>The place you would like media staged to from your devices before it is uploaded. For most people, use "Location" with a directory on your computer with at least as much space as your memory cards.</td>
           </tr>
+          <tr>
+            <td>Preserve device files</td>
+            <td><input class="settings-text-input" type="checkbox" name="preserve_device_files" form="settings_form"
+              {{#if this.user.preserve_device_files}}checked{{/if}}
+              /></td>
+            <td>If checked, stokepile will not remove the files from your devices after they are staged.</td>
+          </tr>
         </tbody>
       </table>
       </form>

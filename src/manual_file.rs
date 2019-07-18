@@ -1,7 +1,7 @@
 use std::fs::{self, File};
 use std::path::{Path, PathBuf};
 use std::fmt::Debug;
-use crate::staging::{UploadableFile, RemotePathDescriptor};
+use crate::staging::{StorableFile, RemotePathDescriptor};
 
 use chrono;
 use chrono::prelude::*;
@@ -76,7 +76,7 @@ impl ManualFile {
     }
 }
 
-impl UploadableFile for ManualFile {
+impl StorableFile for ManualFile {
     type Reader = File;
 
     fn remote_path(&self) -> Result<RemotePathDescriptor, Error> {
@@ -110,7 +110,7 @@ mod tests {
 
     #[test]
     fn test_staging_works() {
-        let dest = test_helpers::tempdir();
+        let stager = test_helpers::temp_stager();
         let source = test_helpers::tempdir();
 
         let path = source.path().join("test-file.ogv");
@@ -119,7 +119,11 @@ mod tests {
 
         let fh = ManualFile::from_paths(path, PathBuf::from("test-file.ogv")).expect("Couldn't create manualfile");
         let desc = fh.descriptor("test-upload");
-        staging::stage_file(fh, &dest, "manual").expect("Didn't stage correct");
+
+        stager.stage(fh, "manual").expect("Didn't stage correct");
+
+        // TODO(richo) Assert the staged file actually showed up?
+        // TODO(richo) Assert the old one was deleted
     }
 
     #[test]

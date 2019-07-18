@@ -9,6 +9,7 @@ use stokepile::ctx::Ctx;
 use stokepile::device;
 use stokepile::mailer::MailReport;
 use stokepile::mountable::Mountable;
+use stokepile::staging::Stager;
 use stokepile::storage;
 
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
@@ -49,12 +50,17 @@ fn main() {
         }
         info!("");
 
-        let staging = ctx.staging().mount()?;
-        info!("Staging to {:?}", &staging);
+        let staging_location = ctx.staging().mount()?;
+        info!("Staging to {:?}", &staging_location);
+
+        let stager = match ctx.cfg.preserve_device_files() {
+            true => Stager::preserving(staging_location),
+            false => Stager::destructive(staging_location),
+        };
 
         for device in devices {
             let msg = format!("Finished staging: {}", device.name());
-            let num_files = device.stage_files(&staging)?;
+            let num_files = device.stage_files(&stager)?;
             if num_files > 0 {
                 if let Err(e) = ctx.notify(&msg) {
                     error!("Failed to send push notification: {:?}", e);
@@ -62,7 +68,7 @@ fn main() {
             }
         }
 
-        let report = storage::upload_from_staged(&staging, &backends)?;
+        let report = storage::upload_from_staged(&stager.staging_location(), &backends)?;
 
         if report.num_uploads() > 0 {
             if let Err(e) = ctx.notify("Finished uploading media") {

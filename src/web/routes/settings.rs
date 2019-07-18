@@ -43,6 +43,7 @@ pub struct SettingsForm {
     pub(crate) notification_pushover: String,
     pub(crate) staging_data: String,
     pub(crate) staging_type: StagingKind,
+    pub(crate) preserve_device_files: bool,
 }
 
 impl SettingsForm {
@@ -116,6 +117,7 @@ mod tests {
             notification_pushover: "another test value".into(),
             staging_type: StagingKind::Label,
             staging_data: "BUTTS".into(),
+            preserve_device_files: false,
         };
         let serialized = serde_urlencoded::to_string(&settings).expect("Couldn't serialize form");
 
@@ -144,6 +146,7 @@ mod tests {
             notification_pushover: "".into(),
             staging_type: StagingKind::None,
             staging_data: "".into(),
+            preserve_device_files: false,
         };
         let serialized = serde_urlencoded::to_string(&settings).expect("Couldn't serialize form");
 
@@ -187,6 +190,7 @@ mod tests {
             notification_pushover: "hithere".into(),
             staging_type: StagingKind::Mountpoint,
             staging_data: "butts".into(),
+            preserve_device_files: false,
         };
         let serialized = serde_urlencoded::to_string(&settings).expect("Couldn't serialize form");
 

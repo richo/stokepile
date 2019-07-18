@@ -169,6 +169,7 @@ impl StagingConfig {
 pub struct StokepileConfig {
     api_base: Option<String>,
     api_token: Option<String>,
+    preserve_device_files: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
@@ -449,6 +450,11 @@ impl Config {
         // only get one copy of staging at a time to avoid trying to mount it twice.
         self.staging.clone()
     }
+
+    /// Should we be saving the files from the devices?
+    pub fn preserve_device_files(&self) -> bool {
+        self.stokepile.preserve_device_files.unwrap_or(false)
+    }
 }
 
 impl ConfigBuilder {
@@ -546,6 +552,11 @@ impl ConfigBuilder {
         self
     }
 
+    pub fn preserve_device_files(mut self) -> Self {
+        self.stokepile.preserve_device_files = Some(true);
+        self
+    }
+
     /// Finalise this config object
     pub fn finish(self) -> Result<Config, ConfigError> {
         let staging = match self.staging {
@@ -582,6 +593,7 @@ mod tests {
             StokepileConfig {
                 api_token: Some("STOKEPILE_TOKEN_GOES_HERE".into()),
                 api_base: Some("https://test-api.base".into()),
+                preserve_device_files: None,
             }
         );
 
