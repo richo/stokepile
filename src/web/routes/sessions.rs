@@ -1,6 +1,6 @@
 use crate::web::db::DbConn;
 use crate::web::auth::{WebUser, ApiUser};
-use crate::web::ROCKET_ENV;
+use crate::web::{ROCKET_ENV, global_state};
 use crate::web::context::Context;
 use crate::messages::{self, Oauth2Provider, RefreshToken};
 use oauth2::prelude::*;
@@ -14,7 +14,7 @@ use rocket_contrib::json::Json;
 use rocket_contrib::templates::Template;
 
 use crate::web::models::{
-    NewKey, NewSession, NewUser, User,
+    NewKey, NewSession, NewUser, User, Invite
 };
 
 #[derive(FromForm, RedactedDebug)]
@@ -54,9 +54,28 @@ pub fn post_signin(
     let user: Result<User, &str> = match signin.action {
         UserAction::SignIn => User::by_credentials(&*conn, &signin.email, &signin.password)
             .ok_or("Incorrect username or password."),
-        UserAction::SignUp => NewUser::new(&signin.email, &signin.password)
-            .create(&*conn)
-            .map_err(|_| "Unable to signup"),
+        UserAction::SignUp => {
+            // TODO(richo)
+            // Urgh, this is extremely not right. Why can't we just use the question mark? It seems
+            // that the string should make it through the From call.
+            match global_state(&conn) {
+                Ok(state) => {
+                    if state.invites_required() {
+                        if ! Invite::by_email(&conn, &signin.email).is_ok() {
+                            return Err(Flash::error(
+                                    Redirect::to("/"),
+                                    "Currently signups are currently invite only. Try again soon or ask richo for one!"));
+                        }
+                    }
+                    NewUser::new(&signin.email, &signin.password)
+                        .create(&*conn)
+                        .map_err(|_| "Unable to signup")
+                },
+                Err(_) => {
+                    Err("Database error")
+                },
+            }
+        }
     };
 
     match user {
@@ -163,7 +182,7 @@ pub fn expire_key(
 mod tests {
     use super::*;
     use crate::web::test_helpers::*;
-    use crate::web::models::NewIntegration;
+    use crate::web::models::{NewIntegration, NewInvite};
 
     use rocket::http::{Header, ContentType, Status};
 
@@ -183,12 +202,14 @@ mod tests {
         let response = req.dispatch();
         assert_eq!(response.status(), Status::SeeOther);
         assert_eq!(response.headers().get_one("Location"), Some("/"));
-        assert!(get_set_cookie(response, "sid").is_some())
+        assert!(get_set_cookie(&response, "sid").is_some())
     }
 
     #[test]
     fn test_signup() {
         let client = client();
+        enable_signups_without_invites(&client);
+
         let req = client
             .post("/signin")
             .header(ContentType::Form)
@@ -197,7 +218,48 @@ mod tests {
         let response = req.dispatch();
         assert_eq!(response.status(), Status::SeeOther);
         assert_eq!(response.headers().get_one("Location"), Some("/"));
-        assert!(get_set_cookie(response, "sid").is_some())
+        assert!(get_set_cookie(&response, "sid").is_some())
+    }
+
+    #[test]
+    fn test_signups_with_invite() {
+        let client = client();
+        disable_signups_without_invites(&client);
+
+        {
+            // Create an invite for our user
+            let conn = db_conn(&client);
+            NewInvite::new("invited_user@butts.com").create(&*conn).unwrap();
+        }
+
+        let req = client
+            .post("/signin")
+            .header(ContentType::Form)
+            .body(r"email=invited_user@butts.com&password=p%4055w0rd&action=signup");
+
+        let response = req.dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
+        assert_eq!(response.headers().get_one("Location"), Some("/"));
+        assert!(get_set_cookie(&response, "sid").is_some());
+    }
+
+    #[test]
+    fn test_signups_without_invites_fail() {
+        let client = client();
+        disable_signups_without_invites(&client);
+
+        let req = client
+            .post("/signin")
+            .header(ContentType::Form)
+            .body(r"email=noone_invited_me@butts.com&password=p%4055w0rd&action=signup");
+
+        let response = req.dispatch();
+        assert_eq!(response.status(), Status::SeeOther);
+        assert_eq!(response.headers().get_one("Location"), Some("/"));
+        assert!(get_set_cookie(&response, "sid").is_none());
+        assert_eq!(
+            get_set_cookie(&response, "_flash").unwrap(),
+            "_flash=5errorCurrently%20signups%20are%20currently%20invite%20only.%20Try%20again%20soon%20or%20ask%20richo%20for%20one!; Path=/; Max-Age=300");
     }
 
     #[test]
@@ -212,9 +274,9 @@ mod tests {
         assert_eq!(response.status(), Status::SeeOther);
         assert_eq!(response.headers().get_one("Location"), Some("/signin"));
         assert_eq!(
-            get_set_cookie(response, "_flash").unwrap(),
+            get_set_cookie(&response, "_flash").unwrap(),
             "_flash=5errorIncorrect%20username%20or%20password.; Path=/; Max-Age=300"
-        )
+        );
     }
 
     #[test]
@@ -285,7 +347,7 @@ mod tests {
 
         let response = req.dispatch();
         assert_eq!(response.status(), Status::SeeOther);
-        assert!(get_set_cookie(response, "sid")
+        assert!(get_set_cookie(&response, "sid")
             .unwrap()
             .starts_with("sid=;"));
 

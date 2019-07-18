@@ -16,7 +16,7 @@ pub fn db_conn(client: &Client) -> DbConn {
     DbConn::maybe_from_rocket(client.rocket()).expect("db connection")
 }
 
-pub fn get_set_cookie(response: LocalResponse<'_>, name: &str) -> Option<String> {
+pub fn get_set_cookie(response: &LocalResponse<'_>, name: &str) -> Option<String> {
     for cookie in response.headers().get("Set-Cookie") {
         if cookie.starts_with(&format!("{}=", name)) {
             return Some(cookie.to_owned());
@@ -36,7 +36,7 @@ pub fn signin(client: &Client, username: &str, password: &str) -> Option<String>
         ));
 
     let response = req.dispatch();
-    return get_set_cookie(response, "sid");
+    return get_set_cookie(&response, "sid");
 }
 
 pub fn signin_api(client: &Client, username: &str, password: &str) -> Option<String> {
@@ -80,6 +80,30 @@ pub fn create_admin(client: &Client, username: &str, password: &str) -> User {
             .set(admin.eq(true))
             .get_result(&*conn).expect("Couldn't promote user to Admin")
     }
+}
+
+pub fn disable_signups_without_invites(client: &Client) {
+    use diesel::update;
+    use crate::web::schema::global_settings::dsl::*;
+    use diesel::prelude::*;
+
+    let conn = db_conn(&client);
+
+    update(global_settings)
+        .set(invites_required.eq(true))
+        .execute(&*conn).expect("Couldn't disable signups without invites");
+}
+
+pub fn enable_signups_without_invites(client: &Client) {
+    use diesel::update;
+    use crate::web::schema::global_settings::dsl::*;
+    use diesel::prelude::*;
+
+    let conn = db_conn(&client);
+
+    update(global_settings)
+        .set(invites_required.eq(false))
+        .execute(&*conn).expect("Couldn't disable signups without invites");
 }
 
 pub fn init_env() {
