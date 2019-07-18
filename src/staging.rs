@@ -307,6 +307,11 @@ impl<T: StageableLocation> Stager<T> {
     pub fn staging_location(&self) -> &T {
         &self.location
     }
+
+    #[cfg(test)]
+    pub fn into_inner(self) -> T {
+        self.location
+    }
 }
 pub trait Staging: Sized {
     type FileType: UploadableFile;

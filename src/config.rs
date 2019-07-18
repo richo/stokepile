@@ -593,6 +593,7 @@ mod tests {
             StokepileConfig {
                 api_token: Some("STOKEPILE_TOKEN_GOES_HERE".into()),
                 api_base: Some("https://test-api.base".into()),
+                preserve_device_files: None,
             }
         );
 

@@ -125,11 +125,15 @@ pub(crate) fn staged_data(num_files: usize) -> Result<tempfile::TempDir, Error> 
     // Stage it's contents
     device.stage_files("dummy", &stager)?;
 
-    Ok(data_dir)
+    Ok(stager.into_inner())
 }
 
 pub(crate) fn temp_stager() -> Stager<tempfile::TempDir> {
     let tempdir = tempfile::tempdir().unwrap();
 
     Stager::destructive(tempdir)
+}
+
+pub(crate) fn tempdir() -> tempfile::TempDir {
+    tempfile::tempdir().unwrap()
 }

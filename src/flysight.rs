@@ -188,7 +188,7 @@ mod tests {
 
     #[test]
     fn test_staging_works() {
-        let dest = test_helpers::tempdir();
+        let dest = test_helpers::temp_stager();
         let source = test_helpers::test_data("flysight");
 
         let flysight = FlysightConfig {
@@ -200,7 +200,7 @@ mod tests {
 
         mounted.stage_files("data", &dest).unwrap();
         // TODO(richo) test harder
-        let iter = fs::read_dir(&dest.path()).unwrap();
+        let iter = fs::read_dir(&dest.staging_location()).unwrap();
         let files: Vec<_> = iter.collect();
 
         assert_eq!(files.len(), 6);
