@@ -64,6 +64,12 @@ impl User {
         }
     }
 
+    // TODO(richo) paginate
+    pub fn all(conn: &PgConnection) -> QueryResult<Vec<User>> {
+        use crate::web::schema::users::dsl::*;
+        users.load::<User>(&*conn)
+    }
+
     pub fn integrations(&self, conn: &PgConnection) -> QueryResult<Vec<Integration>> {
         use crate::web::schema::integrations::dsl::*;
 

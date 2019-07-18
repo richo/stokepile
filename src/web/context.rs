@@ -1,6 +1,7 @@
 use crate::web::auth::WebUser;
 use crate::web::models::Device;
 use crate::web::models::Key;
+use crate::web::models::User;
 
 #[derive(Serialize, Debug)]
 pub struct PossibleIntegration {
@@ -17,6 +18,13 @@ pub struct Context {
     pub integrations: Vec<PossibleIntegration>,
     pub devices: Vec<Device>,
     pub keys: Vec<Key>,
+    pub integration_message: Option<(String, String)>,
+}
+
+#[derive(Serialize, Default, Debug)]
+pub struct AdminContext {
+    pub user: Option<WebUser>,
+    pub user_list: Option<Vec<User>>,
     pub integration_message: Option<(String, String)>,
 }
 
@@ -43,6 +51,26 @@ impl Context {
 
     pub fn set_keys(mut self, keys: Vec<Key>) -> Self {
         self.keys = keys;
+        self
+    }
+
+    pub fn set_integration_message(
+        mut self,
+        integration_message: Option<(String, String)>,
+    ) -> Self {
+        self.integration_message = integration_message;
+        self
+    }
+}
+
+impl AdminContext {
+    pub fn set_user(mut self, user: Option<WebUser>) -> Self {
+        self.user = user;
+        self
+    }
+
+    pub fn set_user_list(mut self, users: Vec<User>) -> Self {
+        self.user_list = Some(users);
         self
     }
 

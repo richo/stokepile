@@ -5,12 +5,13 @@ use rocket_contrib::templates::Template;
 
 use crate::web::db::DbConn;
 use crate::web::auth::AdminUser;
-use crate::web::context::Context;
-use crate::web::models::NewInvite;
+use crate::web::context::AdminContext;
+use crate::web::models::{NewInvite, User};
 
 #[get("/admin")]
 pub fn index(user: AdminUser, flash: Option<FlashMessage<'_, '_>>) -> Template {
-    let context = Context::default()
+    // TODO(make this stop using integration message
+    let context = AdminContext::default()
         .set_user(Some(user.into()))
         .set_integration_message(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
     Template::render("admin", context)
@@ -38,6 +39,19 @@ pub fn create_invite(user: AdminUser, conn: DbConn, invite: Form<InviteForm>) ->
         }
     }
 }
+
+#[get("/admin/users")]
+pub fn users(user: AdminUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>) -> Template {
+    let users = User::all(&conn).expect("loool");
+    info!("users: {:?}", &users);
+    let context = AdminContext::default()
+        .set_user(Some(user.into()))
+        // TODO(richo) error handling.
+        .set_user_list(users)
+        .set_integration_message(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
+    Template::render("admin/users", context)
+}
+
 
 #[cfg(test)]
 mod tests {
