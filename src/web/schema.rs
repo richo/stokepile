@@ -22,6 +22,14 @@ table! {
 }
 
 table! {
+    invites (id) {
+        id -> Int4,
+        email -> Varchar,
+        consumed -> Nullable<Timestamp>,
+    }
+}
+
+table! {
     keys (id) {
         id -> Int4,
         user_id -> Int4,
@@ -63,6 +71,7 @@ joinable!(sessions -> users (user_id));
 allow_tables_to_appear_in_same_query!(
     devices,
     integrations,
+    invites,
     keys,
     sessions,
     users,
