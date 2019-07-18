@@ -69,6 +69,7 @@ pub fn configure_rocket() -> Rocket {
         .attach(RequestLogger::new())
         .attach(Template::custom(|engines| {
             engines.handlebars.register_helper("maybe_selected", Box::new(maybe_selected));
+            engines.handlebars.set_strict_mode(true);
         }))
 }
 
@@ -82,6 +83,7 @@ pub fn create_test_rocket(routes: Vec<rocket::Route>) -> Rocket {
         .attach(RequestLogger::new())
         .attach(Template::custom(|engines| {
             engines.handlebars.register_helper("maybe_selected", Box::new(maybe_selected));
+            engines.handlebars.set_strict_mode(true);
         }))
 }
 
