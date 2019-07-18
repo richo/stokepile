@@ -11,6 +11,13 @@ table! {
 }
 
 table! {
+    global_settings (onerow_id) {
+        onerow_id -> Bool,
+        invites_required -> Bool,
+    }
+}
+
+table! {
     integrations (id) {
         id -> Int4,
         user_id -> Int4,
@@ -18,6 +25,14 @@ table! {
         access_token -> Text,
         refresh_token -> Nullable<Text>,
         refreshed -> Timestamp,
+    }
+}
+
+table! {
+    invites (id) {
+        id -> Int4,
+        email -> Varchar,
+        consumed -> Nullable<Timestamp>,
     }
 }
 
@@ -52,6 +67,7 @@ table! {
         staging_type -> StagingKindMapping,
         staging_data -> Nullable<Varchar>,
         preserve_device_files -> Bool,
+        admin -> Bool,
     }
 }
 
@@ -62,7 +78,9 @@ joinable!(sessions -> users (user_id));
 
 allow_tables_to_appear_in_same_query!(
     devices,
+    global_settings,
     integrations,
+    invites,
     keys,
     sessions,
     users,

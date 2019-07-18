@@ -3,7 +3,7 @@ use rocket::config::Environment;
 use rocket_contrib::serve::StaticFiles;
 use rocket_contrib::templates::Template;
 
-use crate::web::db::init_pool;
+use crate::web::db::{init_pool, DbConn};
 
 use logging::RequestLogger;
 
@@ -33,6 +33,8 @@ pub fn configure_rocket() -> Rocket {
         .mount(
             "/",
             routes![
+                routes::admin::index,
+
                 routes::config::get_config,
 
                 routes::sessions::get_signin,
@@ -80,6 +82,10 @@ pub fn create_test_rocket(routes: Vec<rocket::Route>) -> Rocket {
         .attach(Template::custom(|engines| {
             engines.handlebars.register_helper("maybe_selected", Box::new(maybe_selected));
         }))
+}
+
+pub fn global_state(conn: &DbConn) -> diesel::prelude::QueryResult<models::GlobalSetting> {
+    models::GlobalSetting::get(conn)
 }
 
 #[cfg(test)]

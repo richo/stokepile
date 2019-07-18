@@ -1,6 +1,9 @@
 #![allow(proc_macro_derive_resolution_fallback)]
 use rand;
 
+mod invite;
+pub use self::invite::{NewInvite, Invite};
+
 mod user;
 pub use self::user::{NewUser, User};
 
@@ -15,6 +18,9 @@ pub use self::device::{Device, NewDevice};
 
 mod key;
 pub use self::key::{Key, NewKey};
+
+mod global_settings;
+pub use self::global_settings::GlobalSetting;
 
 pub mod extra {
     pub use super::user::{StagingKind, StagingKindMapping};
