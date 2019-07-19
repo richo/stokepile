@@ -67,7 +67,7 @@ impl UdisksMounter {
 
                 mountpoint.push(MOUNTABLE_DEVICE_FOLDER);
                 if !mountpoint.exists() {
-                    bail!("Directory {:?} does not exist, device probably needs to be bootstrapped", &mountpoint);
+                    warn!("Directory {:?} does not exist, device probably needs to be bootstrapped", &mountpoint);
                 }
 
                 return Ok(MountedFilesystem {
