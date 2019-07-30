@@ -56,17 +56,11 @@ where
         let local_path = self.local_path(&manifest);
         match File::open(&local_path) {
             Ok(mut file) => {
-                let mut hasher: dropbox_content_hasher::DropboxContentHasher = Default::default();
-                let mut buf: Vec<_> = vec![0; dropbox_content_hasher::BLOCK_SIZE];
-                loop {
-                    let len = file.read(&mut buf).unwrap();
-                    if len == 0 { break; }
-                    hasher.input(&buf[..len])
-                }
-                drop(file);
-                hasher.result().as_slice() == manifest.content_hash
+                dropbox_content_hasher::DropboxContentHasher::hash_reader(&mut file)
+                    .expect("Couldn't read file to hash")
+                    .as_slice() == manifest.content_hash
             },
-            Err(e) => {
+            Err(_) => {
                 // warn!("Couldn't open local file {:?}: {:?}", &local_path, e);
                 false
             },
