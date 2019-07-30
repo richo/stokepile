@@ -94,7 +94,6 @@ impl MountableKind for MountedFlysight {
     type This = FlysightConfig;
 
     fn from_mounted_parts(this: Self::This, mount: MountedFilesystem) -> Self {
-        warn!("Removing the stokepile from flysight path temporarily while this gets resolved more permanantly");
         MountedFlysight {
             flysight: this,
             mount,
@@ -118,9 +117,8 @@ impl StageFromDevice for MountedFlysight {
 
         let mut out = vec![];
         let mount_path = self.mount.path();
-        let without_stokepile = mount_path.parent().expect("Parent should not be unset");
 
-        for entry in fs::read_dir(without_stokepile)? {
+        for entry in fs::read_dir(mount_path)? {
             let entry = entry?;
             // Enter into directories that are named appropriately
             if entry.file_type()?.is_dir() && DATE.is_match(&entry.file_name().as_bytes()) {

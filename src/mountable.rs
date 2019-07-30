@@ -46,6 +46,8 @@ pub struct UdisksMounter {
 }
 
 impl UdisksMounter {
+    /// Returns either a MountedFilesystem or an error failing to mount. This will not prepend any
+    /// path information.
     pub fn mount<U>(device: U) -> Result<MountedFilesystem, Error>
     where U: AsRef<Path> + Debug
     {
@@ -62,13 +64,8 @@ impl UdisksMounter {
 
         if child.status.success() {
             if let Some(matches) = regex.captures(&String::from_utf8_lossy(&child.stdout)) {
-                let mut mountpoint = PathBuf::from(matches.get(2).unwrap().as_str());
+                let mountpoint = PathBuf::from(matches.get(2).unwrap().as_str());
                 info!("Mounted at {:?}", &mountpoint);
-
-                mountpoint.push(MOUNTABLE_DEVICE_FOLDER);
-                if !mountpoint.exists() {
-                    warn!("Directory {:?} does not exist, device probably needs to be bootstrapped", &mountpoint);
-                }
 
                 return Ok(MountedFilesystem {
                     mountpoint,

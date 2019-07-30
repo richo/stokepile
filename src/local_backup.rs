@@ -1,5 +1,5 @@
 use crate::config::{LocalBackupConfig, MountableDeviceLocation};
-use crate::mountable::{MountableFilesystem, MountableKind, MountedFilesystem};
+use crate::mountable::{MountableFilesystem, MountableKind, MountedFilesystem, MOUNTABLE_DEVICE_FOLDER};
 use crate::staging;
 use crate::storage::{StorageAdaptor, StorageStatus};
 use dropbox_content_hasher;
@@ -7,7 +7,6 @@ use dropbox_content_hasher;
 use std::fs::{self, File};
 use std::io::{self, Read};
 use std::path::PathBuf;
-use digest::Digest;
 
 use failure::Error;
 
@@ -25,7 +24,9 @@ impl MountedLocalBackup {
 
     fn local_path(&self, manifest: &staging::UploadDescriptor) -> PathBuf {
         let root = PathBuf::from("/");
-        self.mount.path().join(manifest.remote_path().strip_prefix(&root).unwrap())
+        self.mount.path()
+            .join(MOUNTABLE_DEVICE_FOLDER)
+            .join(manifest.remote_path().strip_prefix(&root).unwrap())
     }
 }
 
@@ -107,7 +108,7 @@ mod tests {
         let manifest = UploadDescriptor::test_descriptor();
 
         assert_eq!(backup_adaptor.containing_dir(&manifest),
-                   PathBuf::from("/test/directory/2018/08/26/test-device"));
+                   PathBuf::from("/test/directory/stokepile/2018/08/26/test-device"));
     }
 
     #[test]
@@ -118,7 +119,7 @@ mod tests {
         let manifest = UploadDescriptor::test_descriptor();
 
         assert_eq!(backup_adaptor.local_path(&manifest),
-                   PathBuf::from("/test/directory/2018/08/26/test-device/14-30-00.mp4"));
+                   PathBuf::from("/test/directory/stokepile/2018/08/26/test-device/14-30-00.mp4"));
     }
 
     #[test]
