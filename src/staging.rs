@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 
 use crate::config::{MountableDeviceLocation, StagingConfig};
-use crate::mountable::{MountedFilesystem, MountableFilesystem, MountableKind};
+use crate::mountable::{MountedFilesystem, MountableFilesystem, MountableKind, MOUNTABLE_DEVICE_FOLDER};
 
 #[derive(Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub enum RemotePathDescriptor {
@@ -47,7 +47,9 @@ impl MountableKind for MountedStaging {
 
 impl StagingLocation for MountedStaging {
     fn relative_path(&self, path: &Path) -> PathBuf {
-        self.mount.path().join(path)
+        self.mount.path()
+            .join(MOUNTABLE_DEVICE_FOLDER)
+            .join(path)
     }
 
     fn read_dir(&self) -> Result<fs::ReadDir, io::Error> {
