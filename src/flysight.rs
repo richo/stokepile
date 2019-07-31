@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
-use std::fs::{self, File};
+use std::io;
+use std::fs::{self, File, DirEntry};
 use std::os::unix::ffi::OsStrExt;
 use std::path::PathBuf;
 
@@ -101,14 +102,31 @@ impl MountableKind for MountedFlysight {
     }
 }
 
+impl MountedFlysight {
+    fn date_directories(&self) -> Result<impl Iterator<Item = Result<DirEntry, io::Error>>, Error> {
+        lazy_static! {
+            static ref DATE: regex::bytes::Regex =
+                regex::bytes::Regex::new(r"(?P<year>\d{2})-(?P<month>\d{2})-(?P<day>\d{2})")
+                    .expect("Failed to compile regex");
+        }
+
+        Ok(fs::read_dir(self.mount.path())?.filter(|e| {
+            if let Ok(entry) = e {
+                entry.file_type()
+                    .expect("Couldn't unwrap FileType")
+                    .is_dir() && DATE.is_match(&entry.file_name().as_bytes())
+            } else {
+                true // We'll keep the error cases to be sure that we bail out on them.
+            }
+        }))
+    }
+}
+
 impl StageFromDevice for MountedFlysight {
     type FileType = FlysightFile;
 
     fn files(&self) -> Result<Vec<FlysightFile>, Error> {
         lazy_static! {
-            static ref DATE: regex::bytes::Regex =
-                regex::bytes::Regex::new(r"(?P<year>\d{2})-(?P<month>\d{2})-(?P<day>\d{2})")
-                    .expect("Failed to compile regex");
             static ref ENTRY: regex::bytes::Regex = regex::bytes::Regex::new(
                 r"(?P<hour>\d{2})-(?P<min>\d{2})-(?P<second>\d{2}).[cC][sS][vV]"
             )
@@ -116,34 +134,41 @@ impl StageFromDevice for MountedFlysight {
         }
 
         let mut out = vec![];
-        let mount_path = self.mount.path();
-
-        for entry in fs::read_dir(mount_path)? {
+        for entry in self.date_directories()? {
             let entry = entry?;
-            // Enter into directories that are named appropriately
-            if entry.file_type()?.is_dir() && DATE.is_match(&entry.file_name().as_bytes()) {
-                for file in fs::read_dir(entry.path())? {
-                    let file = file?;
-                    if file.file_type()?.is_file() && ENTRY.is_match(&file.file_name().as_bytes()) {
-                        // Trim the .csv from the end
-                        let mut filename = file.file_name().into_string().unwrap();
-                        let len = filename.len();
-                        filename.truncate(len - 4);
-                        out.push(FlysightFile {
-                            // TODO(richo) There's actually the very real chance that people will
-                            // end up with non utf8 garbage.
-                            capturedate: entry.file_name().into_string().unwrap(),
-                            capturetime: filename,
-                            file: File::open(file.path())
-                                .context("Opening flysight file")?,
+            for file in fs::read_dir(entry.path())? {
+                let file = file?;
+                if file.file_type()?.is_file() && ENTRY.is_match(&file.file_name().as_bytes()) {
+                    // Trim the .csv from the end
+                    let mut filename = file.file_name().into_string().unwrap();
+                    let len = filename.len();
+                    filename.truncate(len - 4);
+                    out.push(FlysightFile {
+                        // TODO(richo) There's actually the very real chance that people will
+                        // end up with non utf8 garbage.
+                        capturedate: entry.file_name().into_string().unwrap(),
+                        capturetime: filename,
+                        file: File::open(file.path())
+                            .context("Opening flysight file")?,
                             source_path: file.path().to_path_buf(),
-                        });
-                    }
+                    });
                 }
             }
         }
+
         out.sort_unstable();
         Ok(out)
+    }
+
+    fn cleanup(&self) -> Result<(), Error> {
+        for entry in self.date_directories()? {
+            let entry = entry?;
+            if fs::read_dir(entry.path())?.count() == 0 {
+                info!("Removing {:?} since it is empty", entry.path());
+                fs::remove_dir(entry.path())?;
+            }
+        }
+        Ok(())
     }
 }
 
@@ -205,5 +230,28 @@ mod tests {
         let files: Vec<_> = iter.collect();
 
         assert_eq!(files.len(), 6);
+    }
+
+    #[test]
+    fn test_cleans_up_directories() -> Result<(), Error> {
+        let dest = test_helpers::temp_stager();
+        let source = test_helpers::test_data("flysight");
+
+        let flysight = FlysightConfig {
+            name: "data".into(),
+            location: MountableDeviceLocation::from_mountpoint(source.path().to_path_buf()),
+        };
+        let mounted = flysight.mount_for_test();
+
+
+        mounted.stage_files("data", &dest).unwrap();
+
+        let dirs = fs::read_dir(source.path())?
+            .filter(|e| e.as_ref().expect("Couldn't unwrap FileEntry")
+                        .file_type().expect("Couldn't unwrap FileType")
+                        .is_dir())
+            .collect::<Vec<_>>();
+        assert_eq!(dirs.len(), 0, "Leftover directories after staging: {:?}", &dirs);
+        Ok(())
     }
 }

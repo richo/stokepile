@@ -328,7 +328,12 @@ pub trait StageFromDevice: Sized {
             stager.stage(file, name)?;
             i += 1;
         }
+        self.cleanup()?;
         Ok(i)
+    }
+
+    fn cleanup(&self) -> Result<(), Error> {
+        Ok(())
     }
 }
 
