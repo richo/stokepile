@@ -106,7 +106,7 @@ impl MountedFlysight {
     fn date_directories(&self) -> Result<impl Iterator<Item = Result<DirEntry, io::Error>>, Error> {
         lazy_static! {
             static ref DATE: regex::bytes::Regex =
-                regex::bytes::Regex::new(r"(?P<year>\d{2})-(?P<month>\d{2})-(?P<day>\d{2})")
+                regex::bytes::Regex::new(r"^(?P<year>\d{2})-(?P<month>\d{2})-(?P<day>\d{2})$")
                     .expect("Failed to compile regex");
         }
 
@@ -128,7 +128,7 @@ impl StageFromDevice for MountedFlysight {
     fn files(&self) -> Result<Vec<FlysightFile>, Error> {
         lazy_static! {
             static ref ENTRY: regex::bytes::Regex = regex::bytes::Regex::new(
-                r"(?P<hour>\d{2})-(?P<min>\d{2})-(?P<second>\d{2}).[cC][sS][vV]"
+                r"^(?P<hour>\d{2})-(?P<min>\d{2})-(?P<second>\d{2}).[cC][sS][vV]$"
             )
             .expect("Failed to compile regex");
         }
