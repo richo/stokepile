@@ -53,7 +53,8 @@ impl StagingLocation for MountedStaging {
     }
 
     fn read_dir(&self) -> Result<fs::ReadDir, io::Error> {
-        fs::read_dir(self.mount.path())
+        fs::read_dir(self.mount.path()
+                     .join(MOUNTABLE_DEVICE_FOLDER))
     }
 }
 
