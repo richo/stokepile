@@ -20,6 +20,11 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
             .long("no-cron")
             .help("Don't invoke any of the locking machinery to ensure only one stokepile runs at a time")
             )
+        .arg(
+            Arg::with_name("stage-only")
+            .long("stage-only")
+            .help("Only stage files, do not process uploads")
+            )
 }
 
 fn main() {
@@ -66,6 +71,11 @@ fn main() {
                     error!("Failed to send push notification: {:?}", e);
                 }
             }
+        }
+
+        if matches.is_present("stage-only") {
+            info!("Not uploading any data");
+            return Ok(());
         }
 
         let report = storage::upload_from_staged(&stager.staging_location(), &backends)?;
