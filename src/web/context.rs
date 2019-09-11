@@ -18,14 +18,14 @@ pub struct Context {
     pub integrations: Vec<PossibleIntegration>,
     pub devices: Vec<Device>,
     pub keys: Vec<Key>,
-    pub integration_message: Option<(String, String)>,
+    pub flash_message: Option<(String, String)>,
 }
 
 #[derive(Serialize, Debug)]
 pub struct AdminContext {
     pub user: AdminUser,
     pub user_list: Option<Vec<User>>,
-    pub integration_message: Option<(String, String)>,
+    pub flash_message: Option<(String, String)>,
 }
 
 impl Context {
@@ -54,11 +54,11 @@ impl Context {
         self
     }
 
-    pub fn set_integration_message(
+    pub fn flash(
         mut self,
-        integration_message: Option<(String, String)>,
+        flash_message: Option<(String, String)>,
     ) -> Self {
-        self.integration_message = integration_message;
+        self.flash_message = flash_message;
         self
     }
 }
@@ -68,7 +68,7 @@ impl AdminContext {
         Self {
             user,
             user_list: None,
-            integration_message: None,
+            flash_message: None,
         }
     }
 
@@ -77,11 +77,11 @@ impl AdminContext {
         self
     }
 
-    pub fn set_integration_message(
+    pub fn flash(
         mut self,
-        integration_message: Option<(String, String)>,
+        flash_message: Option<(String, String)>,
     ) -> Self {
-        self.integration_message = integration_message;
+        self.flash_message = flash_message;
         self
     }
 }

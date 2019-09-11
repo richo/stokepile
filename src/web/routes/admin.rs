@@ -10,9 +10,8 @@ use crate::web::models::{NewInvite, User};
 
 #[get("/admin")]
 pub fn index(user: AdminUser, flash: Option<FlashMessage<'_, '_>>) -> Template {
-    // TODO(make this stop using integration message
     let context = AdminContext::for_user(user)
-        .set_integration_message(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
+        .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
     Template::render("admin", context)
 }
 
@@ -46,7 +45,7 @@ pub fn users(user: AdminUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>)
     let context = AdminContext::for_user(user)
         // TODO(richo) error handling.
         .set_user_list(users)
-        .set_integration_message(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
+        .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
     Template::render("admin/users", context)
 }
 

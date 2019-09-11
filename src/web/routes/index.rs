@@ -39,6 +39,6 @@ pub fn index(user: Option<WebUser>, conn: DbConn, flash: Option<FlashMessage<'_,
         .set_integrations(possible_integrations)
         .set_devices(devices)
         .set_keys(keys)
-        .set_integration_message(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
+        .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
     Template::render("index", context)
 }
