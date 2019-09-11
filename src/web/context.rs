@@ -1,4 +1,4 @@
-use crate::web::auth::WebUser;
+use crate::web::auth::{AdminUser, WebUser};
 use crate::web::models::Device;
 use crate::web::models::Key;
 use crate::web::models::User;
@@ -21,9 +21,9 @@ pub struct Context {
     pub integration_message: Option<(String, String)>,
 }
 
-#[derive(Serialize, Default, Debug)]
+#[derive(Serialize, Debug)]
 pub struct AdminContext {
-    pub user: Option<WebUser>,
+    pub user: AdminUser,
     pub user_list: Option<Vec<User>>,
     pub integration_message: Option<(String, String)>,
 }
@@ -64,9 +64,12 @@ impl Context {
 }
 
 impl AdminContext {
-    pub fn set_user(mut self, user: Option<WebUser>) -> Self {
-        self.user = user;
-        self
+    pub fn for_user(user: AdminUser) -> Self {
+        Self {
+            user,
+            user_list: None,
+            integration_message: None,
+        }
     }
 
     pub fn set_user_list(mut self, users: Vec<User>) -> Self {
