@@ -4,6 +4,7 @@ version = "0.2.0"
 authors = ["Richo Healey <richo@psych0tik.net>"]
 edition = "2018"
 description = "Tool for uploading action cam and datalogger footage."
+default-run = "server"
 
 [features]
 default = [ "usb" ]
@@ -22,6 +23,7 @@ default = [ "usb" ]
   "libusb",
   "ptp"
 ]
+
 
 [dependencies]
 rocket = { version = "0.4.0", optional = true, features = ["tls"] }
