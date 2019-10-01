@@ -52,6 +52,8 @@ pub fn configure_rocket() -> Rocket {
                 routes::healthcheck::healthcheck,
 
                 routes::index::index,
+                routes::index::privacy,
+
                 routes::help::help,
                 // TODO(richo) Remove this when the beta is done.
                 routes::help::beta,

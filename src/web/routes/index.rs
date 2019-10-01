@@ -42,3 +42,9 @@ pub fn index(user: Option<WebUser>, conn: DbConn, flash: Option<FlashMessage<'_,
         .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
     Template::render("index", context)
 }
+
+#[get("/privacy")]
+pub fn privacy() -> Template {
+    let context = Context::default();
+    Template::render("privacy", context)
+}
