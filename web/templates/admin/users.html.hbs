@@ -1,0 +1,29 @@
+{{> common/header }}
+{{> common/admin }}
+
+<div class="pure-g">
+  <div class="pure-u-1">
+    {{#if integration_message}}
+    <div class="flash-message flash-message-{{integration_message.0}}">
+      {{integration_message.1}}
+    </div>
+    {{/if}}
+
+    <table class="pure-table pure-table-horizontal device-list pure-table-striped">
+      <thead>
+        <tr>
+          <th>email</th>
+          <th>role</th>
+        </tr>
+        {{#each user_list}}
+        <tr>
+          <td>{{this.email}}</td>
+          <!-- TODO(richo) This should really be handled in a serializer on the user -->
+          <td>{{#if this.admin}}Admin{{else}}User{{/if}}</td>
+        </tr>
+        {{/each}}
+      </thead>
+    </table>
+  </div>
+</div>
+{{> common/footer }}
