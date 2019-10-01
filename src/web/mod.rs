@@ -27,6 +27,17 @@ handlebars_helper!(maybe_selected: |field: str, active: str| {
         format!("")
     }});
 
+handlebars_helper!(maintainer_info: |kind: str| {
+    match kind {
+        "email" => {
+            "richo@psych0tik.net"
+        },
+        _ => {
+            panic!("Unknown info kind: {}", &kind)
+        },
+    }
+});
+
 pub fn configure_rocket() -> Rocket {
     rocket::ignite()
         .manage(init_pool(false))
@@ -69,9 +80,11 @@ pub fn configure_rocket() -> Rocket {
             ],
         )
         .mount("/static", StaticFiles::from("web/static"))
+        .register(catchers![routes::index::not_found])
         .attach(RequestLogger::new())
         .attach(Template::custom(|engines| {
             engines.handlebars.register_helper("maybe_selected", Box::new(maybe_selected));
+            engines.handlebars.register_helper("maintainer_info", Box::new(maintainer_info));
             engines.handlebars.set_strict_mode(true);
         }))
 }
@@ -86,6 +99,7 @@ pub fn create_test_rocket(routes: Vec<rocket::Route>) -> Rocket {
         .attach(RequestLogger::new())
         .attach(Template::custom(|engines| {
             engines.handlebars.register_helper("maybe_selected", Box::new(maybe_selected));
+            engines.handlebars.register_helper("maintainer_info", Box::new(maintainer_info));
             engines.handlebars.set_strict_mode(true);
         }))
 }

@@ -48,3 +48,9 @@ pub fn privacy() -> Template {
     let context = Context::default();
     Template::render("privacy", context)
 }
+
+#[catch(404)]
+pub fn not_found() -> Template {
+    let context = Context::default();
+    Template::render("404", context)
+}
