@@ -41,7 +41,6 @@ pub fn create_invite(user: AdminUser, conn: DbConn, invite: Form<InviteForm>) ->
 #[get("/admin/users")]
 pub fn users(user: AdminUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>) -> Template {
     let users = User::all(&conn).expect("loool");
-    info!("users: {:?}", &users);
     let context = AdminContext::for_user(user)
         // TODO(richo) error handling.
         .set_user_list(users)
