@@ -123,8 +123,12 @@ const GOPRO_MANUFACTURER: &str = "GoPro";
 #[derive(Eq, PartialEq, Debug, Hash)]
 pub enum GoproKind {
     Hero4Silver,
+    Hero4Black,
+    Hero4Session,
     Hero2018,
     Hero5Black,
+    Hero5Session,
+    Hero8Black,
     UnknownGopro(u16),
 }
 
@@ -133,8 +137,12 @@ impl GoproKind {
         use self::GoproKind::*;
         match ty {
             0x000d => Some(Hero4Silver),
+            0x000e => Some(Hero4Black),
+            0x000f => Some(Hero4Session),
             0x002d => Some(Hero2018),
             0x0027 => Some(Hero5Black),
+            0x0029 => Some(Hero5Session),
+            0x0049 => Some(Hero8Black),
             _ => Some(UnknownGopro(ty)),
         }
     }
