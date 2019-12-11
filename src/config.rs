@@ -299,6 +299,8 @@ pub enum ConfigError {
     InvalidApiBase(url::ParseError),
     #[fail(display = "The token file does not exist. Did you login?")]
     NoTokenFile,
+    #[fail(display = "mass_storage entries must have an extensions = [...] key")]
+    MassStorageMissingExtensions,
 }
 
 impl FromStr for Config {
@@ -339,6 +341,7 @@ impl Config {
         }
 
         Config::check_staging(&config.staging)?;
+        Config::check_mass_storages(config.mass_storages())?;
 
         if let Some(base) = &config.stokepile.api_base {
             if let Err(err) = url::Url::parse(&base) {
@@ -359,6 +362,16 @@ impl Config {
                 }
             },
             MountableDeviceLocation::Label(_) => {},
+        }
+        Ok(())
+    }
+
+    #[must_use]
+    fn check_mass_storages(storages: &[MassStorageConfig]) -> Result<(), ConfigError> {
+        for ms in storages {
+            if ms.extensions.len() == 0 {
+                Err(ConfigError::MassStorageMissingExtensions)?
+            }
         }
         Ok(())
     }
@@ -922,6 +935,26 @@ extensions = ["mov"]
         .unwrap();
         assert_mass_storages(&config);
         assert_no_flysights(&config);
+    }
+
+    #[test]
+    fn rejects_mass_storage_without_extensions() {
+        let err = Config::from_str(
+            r#"
+[stokepile]
+[staging]
+mountpoint = "/test"
+[dropbox]
+token="DROPBOX_TOKEN_GOES_HERE"
+
+[[mass_storage]]
+name = "front"
+mountpoint="/mnt/stokepile/front"
+extensions = []
+"#,
+        )
+        .unwrap_err();
+        assert_eq!(err, ConfigError::MassStorageMissingExtensions);
     }
 
     #[test]
