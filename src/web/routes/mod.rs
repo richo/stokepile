@@ -6,5 +6,6 @@ pub mod index;
 pub mod help;
 pub mod integrations;
 pub mod notifications;
+pub mod rigging;
 pub mod sessions;
 pub mod settings;

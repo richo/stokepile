@@ -11,6 +11,18 @@ pub struct PossibleIntegration {
     pub connected: bool,
 }
 
+#[derive(Debug, Serialize)]
+pub enum Module {
+    Media,
+    Rigging,
+}
+
+impl Default for Module {
+    fn default() -> Module {
+        Module::Media
+    }
+}
+
 #[derive(Serialize, Default, Debug)]
 pub struct Context {
     pub user: Option<WebUser>,
@@ -19,6 +31,16 @@ pub struct Context {
     pub devices: Vec<Device>,
     pub keys: Vec<Key>,
     pub flash_message: Option<(String, String)>,
+    pub module: Module,
+}
+
+impl Context {
+    pub fn rigging() -> Context {
+        Context {
+            module: Module::Rigging,
+            .. Default::default()
+        }
+    }
 }
 
 #[derive(Serialize, Debug)]
@@ -26,6 +48,7 @@ pub struct AdminContext {
     pub user: AdminUser,
     pub user_list: Option<Vec<User>>,
     pub flash_message: Option<(String, String)>,
+    pub module: Module,
 }
 
 impl Context {
@@ -69,6 +92,8 @@ impl AdminContext {
             user,
             user_list: None,
             flash_message: None,
+            // TODO(richo) this doesn't necessarily follow
+            module: Module::Media,
         }
     }
 
