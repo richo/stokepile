@@ -253,6 +253,7 @@ pub struct MassStorageConfig {
     #[serde(flatten)]
     pub location: MountableDeviceLocation,
     pub extensions: Vec<String>,
+    pub cleanup_extensions: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
@@ -638,6 +639,7 @@ mod tests {
                 name: "video".into(),
                 location: MountableDeviceLocation::from_mountpoint("/mnt/stokepile/mass_storage".into()),
                 extensions: vec!["mp4".into()],
+                cleanup_extensions: Some(vec!["lrv".into(), "thm".into()]),
             }])
         );
 
@@ -869,11 +871,13 @@ token="DROPBOX_TOKEN_GOES_HERE"
                     name: "front".into(),
                     location: MountableDeviceLocation::Mountpoint("/mnt/stokepile/front".into()),
                     extensions: vec!["mp4".into()],
+                    cleanup_extensions: None,
                 },
                 MassStorageConfig {
                     name: "back".into(),
                     location: MountableDeviceLocation::Label("back_mass_storage".into()),
                     extensions: vec!["mov".into()],
+                    cleanup_extensions: None,
                 }
             ]
         )

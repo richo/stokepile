@@ -53,30 +53,73 @@ impl StageFromDevice for MountedMassStorage {
     type FileType = MassStorageFile;
 
     fn files(&self) -> Result<Vec<MassStorageFile>, Error> {
+        // Screw it
         let mut out = vec![];
-        for entry in WalkDir::new(&self.mount.path()) {
-            let entry = entry?;
-            if entry.file_type().is_dir() {
-                continue;
-            }
 
-            let path = entry.path();
-            if let Some(ext) = path.extension() {
-                let extension = ext.to_str().unwrap().to_lowercase();
-                if !self.mass_storage.extensions.contains(&extension) {
-                    continue;
-                }
-
-                out.push(MassStorageFile {
-                    capturedatetime: path.metadata()?.modified()?.into(),
-                    file: File::open(path)
-                        .context("Opening content file for MountedMassStorage")?,
-                    source_path: path.to_path_buf(),
-                    extension,
-                });
-            }
+        for ref path in self.files_matching_extensions() {
+            // Could definitely lift this into some domain object
+            let extension = path.extension().unwrap().to_str().unwrap().to_lowercase();
+            let file = MassStorageFile {
+                capturedatetime: path.metadata()?.modified()?.into(),
+                file: File::open(path)
+                    .context("Opening content file for MountedMassStorage")?,
+                source_path: path.to_path_buf(),
+                extension,
+            };
+            out.push(file);
         }
         Ok(out)
+    }
+
+    fn cleanup(&self) -> Result<(), Error> {
+        for path in self.files_matching_cleanup_extensions() {
+            fs::remove_file(path)?;
+        }
+        Ok(())
+    }
+}
+
+impl MountedMassStorage {
+    /// Returns `PathBuf`s for all the files matching the `extensions` field on this MassStorage.
+    pub fn files_matching_extensions(&self) -> Vec<PathBuf> {
+        self.map_files_with_extensions(&self.mass_storage.extensions[..]).collect()
+    }
+
+    /// Returns `PathBuf`s for all the files matching the `cleanup_extensions` field on this MassStorage.
+    pub fn files_matching_cleanup_extensions(&self) -> Vec<PathBuf> {
+        match &self.mass_storage.cleanup_extensions {
+            Some(extns) => {
+                self.map_files_with_extensions(extns).collect()
+            },
+            None => {
+                vec![]
+            },
+        }
+    }
+
+
+    fn map_files_with_extensions<'a>(&self, extensions: &'a [String]) -> impl Iterator<Item=PathBuf> + 'a {
+        WalkDir::new(&self.mount.path())
+            .into_iter()
+            .filter_map(move |entry| {
+                // TODO(richo) Do we think this actually can fail?
+                let entry = entry.unwrap();
+                if entry.file_type().is_dir() {
+                    return None;
+                }
+
+                let path = entry.path();
+                if let Some(ext) = path.extension() {
+                    let extension = ext.to_str().unwrap().to_lowercase();
+                    if !extensions.contains(&extension) {
+                        return None;
+                    }
+
+                    return Some(path.to_path_buf());
+                } else {
+                    return None;
+                }
+            })
     }
 }
 
@@ -138,6 +181,7 @@ mod tests {
             name: "data".into(),
             location: MountableDeviceLocation::from_mountpoint("test-data/mass_storage".into()),
             extensions: extensions(),
+            cleanup_extensions: None,
         };
         let mounted = mass_storage.mount_for_test();
 
@@ -158,16 +202,23 @@ mod tests {
             name: "data".into(),
             location: MountableDeviceLocation::from_mountpoint(source.path().to_path_buf()),
             extensions: extensions(),
+            cleanup_extensions: Some(vec!["lrv".into()]),
         };
 
         let mounted = mass_storage.mount_for_test();
 
-        mounted.stage_files("data", &dest).unwrap();
+        // Confirm that we see the lrv files before hand
+        assert_eq!(mounted.files_matching_cleanup_extensions().len(), 2);
+
+        let mounted = mounted.stage_files_for_test("data", &dest).unwrap();
         // TODO(richo) test harder
         let iter = fs::read_dir(&dest.staging_location()).unwrap();
         let files: Vec<_> = iter.collect();
 
         // Two files for the two mp4 files, two files for the manifests
         assert_eq!(files.len(), 4);
+
+        // Assert that the original lrv's are gone.
+        assert_eq!(mounted.files_matching_cleanup_extensions().len(), 0);
     }
 }
