@@ -86,6 +86,6 @@ path = "src/bin/run_migrations.rs"
 required-features = ["web"]
 
 [[bin]]
-name = "create-invite"
-path = "src/bin/create-invite.rs"
+name = "manage-users"
+path = "src/bin/manage-users.rs"
 required-features = ["web"]

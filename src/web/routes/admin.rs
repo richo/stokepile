@@ -8,7 +8,7 @@ use crate::web::auth::AdminUser;
 use crate::web::context::AdminContext;
 use crate::web::models::{NewInvite, User};
 
-#[get("/admin")]
+#[get("/")]
 pub fn index(user: AdminUser, flash: Option<FlashMessage<'_, '_>>) -> Template {
     let context = AdminContext::for_user(user, ())
         .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
@@ -43,7 +43,7 @@ pub fn create_invite(user: AdminUser, conn: DbConn, invite: Form<InviteForm>) ->
     }
 }
 
-#[get("/admin/users")]
+#[get("/users")]
 pub fn users(user: AdminUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>) -> Template {
     let users = User::all(&conn).expect("loool");
     let view_data = AdminView {

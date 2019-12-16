@@ -1,0 +1,10 @@
+{{> common/header }}
+
+<div class="header">
+  <div class="header-actions">
+    <a href="/settings" class="pure-button button-small">Settings</a>
+    {{#if user.admin }}
+    <a href="/admin" class="pure-button button-small admin-button">Admin</a>
+    {{/if}}
+  </div>
+</div>

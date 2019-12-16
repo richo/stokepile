@@ -1,0 +1,125 @@
+{{> common/media-header }}
+
+{{#if user}}
+<div class="pure-g">
+  <div class="pure-u-1">
+    <h2>Service Integrations</h2>
+    {{#if flash_message}}
+    <div class="flash-message flash-message-{{flash_message.0}}">
+      {{flash_message.1}}
+    </div>
+    {{/if}}
+    <ul class="integration-list">
+      {{#each data.integrations}}
+      <li class="pure-g integration">
+        <div class="pure-u-1-2 pure-u-md-2-3">{{this.display_name}}</div>
+        <div class="pure-u-1-2 pure-u-md-1-3 integration-action">
+          {{#if this.connected}}
+          <form action="/integration/disconnect" method="POST">
+            <input type="hidden" name="integration_id" value="{{this.id}}" />
+            <input type="hidden" name="provider" value="{{this.name}}" />
+            <button class="pure-button pure-button-secondary">Disconnect</button>
+          </form>
+          {{else}}
+          <form action="/integration" method="POST">
+            <input type="hidden" name="provider" value="{{this.name}}" />
+            <button class="pure-button pure-button-secondary">Connect</button>
+          </form>
+          {{/if}}
+        </div>
+      </li>
+      {{/each}}
+    </ul>
+  </div>
+</div>
+<div class="config-download">
+  <a href="/config" target="_blank" rel="noopener" class="button-big pure-button pure-button-primary">Download Config</a>
+</div>
+<div class="pure-g">
+  <div class="pure-u-1">
+    <h2>Configured Devices</h2>
+
+    <div>
+      <table class="pure-table pure-table-horizontal device-list pure-table-striped">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Kind</th>
+            <th>Identifier</th>
+            <th>Delete</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each data.devices}}
+          <tr>
+            <td>{{this.name}}</td>
+            <td>{{this.kind}}</td>
+            <td>{{this.identifier}}</td>
+            <td>
+          <form action="/device/delete" method="POST">
+            <input type="hidden" name="device_id" value="{{this.id}}" />
+            <input type="hidden" name="kind" value="{{this.kind}}" />
+            <button class="pure-button pure-button-secondary">Delete</button>
+          </form>
+            </td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+
+      <form class="pure-form" action="/device" method="POST">
+        <fieldset>
+          <input name="name" type="text" placeholder="Device Name">
+        <select name="kind">
+            <option>ptp</option>
+            <option>mass_storage</option>
+            <option>flysight</option>
+          </select>
+          <!-- TODO(richo) have javascript that updates this when you switch -->
+          <input name="identifier" type="text" placeholder="Serial/Label">
+          <button type="submit" class="pure-button pure-button-primary">Create</button>
+        </fieldset>
+      </form>
+    </div>
+  </div>
+</div>
+<div class="pure-g">
+  <div class="pure-u-1">
+    <h2>Configured API Keys</h2>
+
+    <div>
+      <table class="pure-table pure-table-horizontal device-list pure-table-striped">
+        <thead>
+          <tr>
+            <th>Created</th>
+            <th>Token</th>
+            <th>Expired</th>
+            <th>Expire</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each data.keys}}
+          <tr>
+            <td>{{this.created}}</td>
+            <!-- TODO(richo) click to reveal -->
+            <td>{{this.token}}</td>
+            <td>{{this.expired}}</td>
+            <td>
+              <!-- Make this a DELETE? -->
+          <form action="/key/expire" method="POST">
+            <input type="hidden" name="key_id" value="{{this.id}}" />
+            <button class="pure-button pure-button-secondary">Expire</button>
+          </form>
+            </td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{{else}}
+{{> common/signin }}
+{{/if}}
+
+{{> common/footer }}

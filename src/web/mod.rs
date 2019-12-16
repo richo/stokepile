@@ -48,9 +48,6 @@ pub fn configure_rocket() -> Rocket {
         .mount(
             "/",
             routes![
-                routes::admin::index,
-                routes::admin::create_invite,
-                routes::admin::users,
 
                 routes::config::get_config,
 
@@ -82,6 +79,20 @@ pub fn configure_rocket() -> Rocket {
                 routes::devices::create_device,
                 routes::devices::delete_device,
             ],
+        )
+        .mount(
+            "/admin",
+            routes![
+                routes::admin::index,
+                routes::admin::create_invite,
+                routes::admin::users,
+            ]
+        )
+        .mount(
+            "/media",
+            routes![
+                routes::media::index,
+            ]
         )
         .mount(
             "/rigging",
