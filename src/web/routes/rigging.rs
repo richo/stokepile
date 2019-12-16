@@ -1,6 +1,7 @@
 use crate::web::db::DbConn;
 use crate::web::auth::WebUser;
 use crate::web::context::{Context, PossibleIntegration};
+use crate::web::models::{Customer, NewCustomer};
 
 use rocket::request::FlashMessage;
 use rocket_contrib::templates::Template;
@@ -15,14 +16,14 @@ pub fn index(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>) -
 
 #[derive(Debug, Serialize)]
 struct CustomerView {
-    customers: Vec<()>,
+    customers: Vec<Customer>,
 }
-
 
 #[get("/customers")]
 pub fn customers(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>) -> Template {
-    let customers: CustomerView = unimplemented!();
-    let context = Context::rigging(customers)
+    let customers = Customer::all(&*conn).expect("Couldn't load customers");
+    let view_data = CustomerView { customers };
+    let context = Context::rigging(view_data)
         .set_user(Some(user))
         .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
     Template::render("rigging/customers", context)

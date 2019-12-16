@@ -48,18 +48,12 @@ pub fn configure_rocket() -> Rocket {
         .mount(
             "/",
             routes![
-
-                routes::config::get_config,
-
                 routes::sessions::get_signin,
                 routes::sessions::post_signin,
                 routes::sessions::signin_json,
                 routes::sessions::signout,
                 routes::sessions::expire_key,
                 routes::sessions::refresh_token,
-
-                routes::settings::get_settings,
-                routes::settings::post_settings,
 
                 routes::healthcheck::healthcheck,
 
@@ -69,6 +63,27 @@ pub fn configure_rocket() -> Rocket {
                 routes::help::help,
                 // TODO(richo) Remove this when the beta is done.
                 routes::help::beta,
+            ],
+        )
+        .mount(
+            "/admin",
+            routes![
+                routes::admin::index,
+                routes::admin::create_invite,
+                routes::admin::users,
+
+
+            ]
+        )
+        .mount(
+            "/media",
+            routes![
+                routes::media::index,
+
+                routes::config::get_config,
+
+                routes::settings::get_settings,
+                routes::settings::post_settings,
 
                 routes::notifications::notification_send,
 
@@ -78,26 +93,15 @@ pub fn configure_rocket() -> Rocket {
 
                 routes::devices::create_device,
                 routes::devices::delete_device,
-            ],
-        )
-        .mount(
-            "/admin",
-            routes![
-                routes::admin::index,
-                routes::admin::create_invite,
-                routes::admin::users,
-            ]
-        )
-        .mount(
-            "/media",
-            routes![
-                routes::media::index,
             ]
         )
         .mount(
             "/rigging",
             routes![
                 routes::rigging::index,
+                routes::rigging::customers,
+                routes::rigging::service_bulletins,
+
             ]
         )
         .mount("/static", StaticFiles::from("web/static"))
