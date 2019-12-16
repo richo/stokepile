@@ -84,3 +84,8 @@ required-features = ["web"]
 name = "run_migrations"
 path = "src/bin/run_migrations.rs"
 required-features = ["web"]
+
+[[bin]]
+name = "create-invite"
+path = "src/bin/create-invite.rs"
+required-features = ["web"]
