@@ -13,7 +13,7 @@ use crate::web::models::extra::StagingKind;
 
 #[get("/settings")]
 pub fn get_settings(user: WebUser) -> Template {
-    let context = Context::default()
+    let context = Context::media(())
         .set_user(Some(user));
     Template::render("settings", context)
 }

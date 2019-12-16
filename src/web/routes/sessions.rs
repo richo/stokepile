@@ -94,7 +94,7 @@ pub fn post_signin(
 
 #[get("/signin")]
 pub fn get_signin<'r>(flash: Option<FlashMessage<'_, '_>>) -> Template {
-    let context = Context::default().set_signin_error(flash.map(|msg| msg.msg().into()));
+    let context = Context::other().set_signin_error(flash.map(|msg| msg.msg().into()));
     Template::render("signin", context)
 }
 

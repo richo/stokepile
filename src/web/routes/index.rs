@@ -7,6 +7,16 @@ use rocket_contrib::templates::Template;
 
 use crate::messages::Oauth2Provider;
 
+use crate::web::models::{Device, Key, User};
+
+// TODO(richo) This might want to live elsewhere?
+#[derive(Serialize, Debug)]
+pub struct MediaView {
+    pub integrations: Vec<PossibleIntegration>,
+    pub devices: Vec<Device>,
+    pub keys: Vec<Key>,
+}
+
 #[get("/")]
 pub fn index(user: Option<WebUser>, conn: DbConn, flash: Option<FlashMessage<'_, '_>>) -> Template {
     let mut possible_integrations = vec![];
@@ -34,23 +44,26 @@ pub fn index(user: Option<WebUser>, conn: DbConn, flash: Option<FlashMessage<'_,
         keys = user.user.keys(&*conn).unwrap();
     }
 
-    let context = Context::default()
+    let view_data = MediaView {
+        integrations: possible_integrations,
+        devices,
+        keys,
+    };
+
+    let context = Context::media(view_data)
         .set_user(user)
-        .set_integrations(possible_integrations)
-        .set_devices(devices)
-        .set_keys(keys)
         .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
     Template::render("index", context)
 }
 
 #[get("/privacy")]
 pub fn privacy() -> Template {
-    let context = Context::default();
+    let context = Context::other();
     Template::render("privacy", context)
 }
 
 #[catch(404)]
 pub fn not_found() -> Template {
-    let context = Context::default();
+    let context = Context::other();
     Template::render("404", context)
 }

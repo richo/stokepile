@@ -3,6 +3,8 @@ use crate::web::models::Device;
 use crate::web::models::Key;
 use crate::web::models::User;
 
+use serde::Serialize;
+
 #[derive(Serialize, Debug)]
 pub struct PossibleIntegration {
     pub id: Option<i32>,
@@ -15,43 +17,57 @@ pub struct PossibleIntegration {
 pub enum Module {
     Media,
     Rigging,
-}
-
-impl Default for Module {
-    fn default() -> Module {
-        Module::Media
-    }
-}
-
-#[derive(Serialize, Default, Debug)]
-pub struct Context {
-    pub user: Option<WebUser>,
-    pub signin_error: Option<String>,
-    pub integrations: Vec<PossibleIntegration>,
-    pub devices: Vec<Device>,
-    pub keys: Vec<Key>,
-    pub flash_message: Option<(String, String)>,
-    pub module: Module,
-}
-
-impl Context {
-    pub fn rigging() -> Context {
-        Context {
-            module: Module::Rigging,
-            .. Default::default()
-        }
-    }
+    Other,
 }
 
 #[derive(Serialize, Debug)]
-pub struct AdminContext {
-    pub user: AdminUser,
-    pub user_list: Option<Vec<User>>,
+/// The god object for handing into templates.
+///
+/// Individual templates can read what they need out of `data`, however type safety is mostly
+/// discarded here and tests are required :(
+pub struct Context<T: Serialize> {
+    pub user: Option<WebUser>,
+    pub signin_error: Option<String>,
+    pub data: T,
     pub flash_message: Option<(String, String)>,
     pub module: Module,
 }
 
-impl Context {
+// TODO(richo) migrate this back to using a Context and hanging off data
+#[derive(Serialize, Debug)]
+pub struct AdminContext<T: Serialize> {
+    pub user: AdminUser,
+    pub user_list: Option<Vec<User>>,
+    pub flash_message: Option<(String, String)>,
+    pub data: T,
+    pub module: Module,
+}
+
+#[derive(Serialize, Debug)]
+pub struct EmptyData {}
+
+impl<T> Context<T>
+where T: Serialize {
+    pub fn rigging(data: T) -> Context<T> {
+        Context {
+            user: None,
+            signin_error: None,
+            data: data,
+            flash_message: None,
+            module: Module::Rigging,
+        }
+    }
+
+    pub fn media(data: T) -> Context<T> {
+        Context {
+            user: None,
+            signin_error: None,
+            data: data,
+            flash_message: None,
+            module: Module::Media,
+        }
+    }
+
     pub fn set_signin_error(mut self, signin_error: Option<String>) -> Self {
         self.signin_error = signin_error;
         self
@@ -59,21 +75,6 @@ impl Context {
 
     pub fn set_user(mut self, user: Option<WebUser>) -> Self {
         self.user = user;
-        self
-    }
-
-    pub fn set_integrations(mut self, integrations: Vec<PossibleIntegration>) -> Self {
-        self.integrations = integrations;
-        self
-    }
-
-    pub fn set_devices(mut self, devices: Vec<Device>) -> Self {
-        self.devices = devices;
-        self
-    }
-
-    pub fn set_keys(mut self, keys: Vec<Key>) -> Self {
-        self.keys = keys;
         self
     }
 
@@ -86,12 +87,27 @@ impl Context {
     }
 }
 
-impl AdminContext {
-    pub fn for_user(user: AdminUser) -> Self {
+impl Context<EmptyData> {
+    pub fn other() -> Context<EmptyData> {
+        Context {
+            user: None,
+            signin_error: None,
+            data: EmptyData{},
+            flash_message: None,
+            module: Module::Other,
+        }
+    }
+}
+
+
+impl<T> AdminContext<T>
+where T: Serialize {
+    pub fn for_user(user: AdminUser, data: T) -> Self {
         Self {
             user,
             user_list: None,
             flash_message: None,
+            data,
             // TODO(richo) this doesn't necessarily follow
             module: Module::Media,
         }

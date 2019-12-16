@@ -10,7 +10,7 @@ use crate::web::models::{NewInvite, User};
 
 #[get("/admin")]
 pub fn index(user: AdminUser, flash: Option<FlashMessage<'_, '_>>) -> Template {
-    let context = AdminContext::for_user(user)
+    let context = AdminContext::for_user(user, ())
         .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
     Template::render("admin", context)
 }
@@ -18,6 +18,11 @@ pub fn index(user: AdminUser, flash: Option<FlashMessage<'_, '_>>) -> Template {
 #[derive(FromForm, Debug, Serialize)]
 pub struct InviteForm {
     email: String,
+}
+
+#[derive(Serialize, Debug)]
+pub struct AdminView {
+    user_list: Vec<User>,
 }
 
 #[post("/admin/invite", data = "<invite>")]
@@ -41,9 +46,12 @@ pub fn create_invite(user: AdminUser, conn: DbConn, invite: Form<InviteForm>) ->
 #[get("/admin/users")]
 pub fn users(user: AdminUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>) -> Template {
     let users = User::all(&conn).expect("loool");
-    let context = AdminContext::for_user(user)
+    let view_data = AdminView {
+        user_list: users,
+    };
+
+    let context = AdminContext::for_user(user, view_data)
         // TODO(richo) error handling.
-        .set_user_list(users)
         .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
     Template::render("admin/users", context)
 }

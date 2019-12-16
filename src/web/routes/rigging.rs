@@ -7,31 +7,50 @@ use rocket_contrib::templates::Template;
 
 #[get("/")]
 pub fn index(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>) -> Template {
-    let context = Context::rigging()
+    let context = Context::rigging(())
         .set_user(Some(user))
         .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
     Template::render("rigging/index", context)
 }
 
+#[derive(Debug, Serialize)]
+struct CustomerView {
+    customers: Vec<()>,
+}
+
+
 #[get("/customers")]
 pub fn customers(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>) -> Template {
-    let context = Context::rigging()
+    let customers: CustomerView = unimplemented!();
+    let context = Context::rigging(customers)
         .set_user(Some(user))
         .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
     Template::render("rigging/customers", context)
 }
 
+#[derive(Debug, Serialize)]
+struct ServiceBulletinView {
+    service_bulletins: Vec<()>,
+}
+
 #[get("/service_bulletins")]
 pub fn service_bulletins(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>) -> Template {
-    let context = Context::rigging()
+    let service_bulletins: ServiceBulletinView = unimplemented!();
+    let context = Context::rigging(service_bulletins)
         .set_user(Some(user))
         .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
     Template::render("rigging/service_bulletins", context)
 }
 
+#[derive(Debug, Serialize)]
+struct EquipmentView {
+    equipment: Vec<()>,
+}
+
 #[get("/equipment")]
 pub fn equipment(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>) -> Template {
-    let context = Context::rigging()
+    let equipment: EquipmentView = unimplemented!();
+    let context = Context::rigging(equipment)
         .set_user(Some(user))
         .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
     Template::render("rigging/equipment", context)
