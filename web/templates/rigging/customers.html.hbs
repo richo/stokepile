@@ -1,0 +1,44 @@
+{{> common/rigging-header }}
+
+<div class="pure-g">
+  <div class="pure-u-1">
+    {{#if flash_message}}
+    <div class="flash-message flash-message-{{flash_message.0}}">
+      {{flash_message.1}}
+    </div>
+    {{/if}}
+
+    <table class="pure-table pure-table-horizontal device-list pure-table-striped">
+      <thead>
+        <tr>
+          <th>name</th>
+          <th>address</th>
+          <th>phone</th>
+          <th>email</th>
+        </tr>
+        {{#each data.customers}}
+        <tr>
+          <td>{{this.name}}</td>
+          <td>{{this.address}}</td>
+          <td>{{this.phone_number}}</td>
+          <td>{{this.email}}</td>
+        </tr>
+        {{/each}}
+      </thead>
+    </table>
+    <div class="new-customer">
+      <form method="POST" class="pure-form" action="/rigging/customers/create">
+        <fieldset>
+          <legend>New customer</legend>
+
+          <input type="text" name="name" placeholder="Name">
+          <input type="text" name="address" placeholder="Address">
+          <input type="text" name="phone_number" placeholder="Phone">
+          <input type="email" name="email" placeholder="Email">
+          <button type="submit" class="pure-button pure-button-primary">Create</button>
+        </fieldset>
+      </form>
+    </div>
+  </div>
+</div>
+{{> common/footer }}
