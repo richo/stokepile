@@ -3,7 +3,8 @@ use crate::web::auth::WebUser;
 use crate::web::context::{Context, PossibleIntegration};
 use crate::web::models::{Customer, NewCustomer};
 
-use rocket::request::FlashMessage;
+use rocket::request::{Form, FlashMessage};
+use rocket::response::{Flash, Redirect};
 use rocket_contrib::templates::Template;
 
 #[get("/")]
@@ -27,6 +28,32 @@ pub fn customers(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>
         .set_user(Some(user))
         .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
     Template::render("rigging/customers", context)
+}
+
+#[derive(FromForm, Debug, Serialize)]
+pub struct NewCustomerForm {
+    pub name: String,
+    pub address: String,
+    pub phone_number: String,
+    pub email: String,
+}
+
+#[post("/customers/create", data = "<customer>")]
+pub fn customer_create(user: WebUser, conn: DbConn, customer: Form<NewCustomerForm>) -> Flash<Redirect> {
+    match NewCustomer::from(&customer, user.id()).create(&*conn) {
+        Ok(_) => {
+            Flash::success(
+                Redirect::to("/rigging/customers"),
+                format!("Successfully created customer"),
+                )
+        },
+        Err(e) => {
+            Flash::error(
+                Redirect::to("/rigging/customers"),
+                format!("Error creating customer, {:?}", e),
+                )
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]

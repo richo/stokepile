@@ -25,6 +25,11 @@ impl WebUser {
     pub fn new(user: User, session: Session) -> Self {
         WebUser { user, session }
     }
+
+    // TODO(richo) move this into a trait?
+    pub fn id(&self) -> i32 {
+        self.user.id
+    }
 }
 
 impl<'a, 'r> FromRequest<'a, 'r> for WebUser {

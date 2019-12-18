@@ -100,6 +100,7 @@ pub fn configure_rocket() -> Rocket {
             routes![
                 routes::rigging::index,
                 routes::rigging::customers,
+                routes::rigging::customer_create,
                 routes::rigging::service_bulletins,
 
             ]
