@@ -25,7 +25,7 @@ pub struct AdminView {
     user_list: Vec<User>,
 }
 
-#[post("/admin/invite", data = "<invite>")]
+#[post("/invite", data = "<invite>")]
 pub fn create_invite(user: AdminUser, conn: DbConn, invite: Form<InviteForm>) -> Flash<Redirect> {
     match NewInvite::new(&invite.email).create(&*conn) {
         Ok(_) => {
@@ -74,7 +74,7 @@ mod tests {
         let _session = signin(&client, "test1%40email.com", "p%4055w0rd").unwrap();
 
         let response = client
-            .get("/admin")
+            .get("/")
             .dispatch();
         assert_eq!(response.status(), Status::Ok);
     }
@@ -87,7 +87,7 @@ mod tests {
         let _session = signin(&client, "test1%40email.com", "p%4055w0rd").unwrap();
 
         let response = client
-            .get("/admin")
+            .get("/")
             .dispatch();
         assert_eq!(response.status(), Status::Unauthorized);
     }
