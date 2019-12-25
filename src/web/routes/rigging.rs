@@ -22,7 +22,7 @@ struct CustomerView {
 
 #[get("/customers")]
 pub fn customers(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>) -> Template {
-    let customers = Customer::all(&*conn, user.id()).expect("Couldn't load customers");
+    let customers = user.user.customers(&*conn).expect("Couldn't load customers");
 
     let view_data = CustomerView { customers };
     let context = Context::rigging(view_data)

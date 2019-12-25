@@ -98,6 +98,12 @@ impl User {
         keys.filter(user_id.eq(self.id)).load::<Key>(conn)
     }
 
+    pub fn customers(&self, conn: &PgConnection) -> QueryResult<Vec<Customer>> {
+        use crate::web::schema::customers::dsl::*;
+
+        customers.filter(user_id.eq(self.id)).load::<Customer>(conn)
+    }
+
     pub fn integration_by_id(
         &self,
         integration_id: i32,
