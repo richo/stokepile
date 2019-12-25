@@ -1,16 +1,34 @@
+#[macro_use]
+extern crate log;
+
 use stokepile::cli::{self, init_dotenv};
 use stokepile::web::db::db_connection;
-use stokepile::web::models::NewInvite;
+use stokepile::web::models::{User, NewInvite};
 
-use clap::{App, Arg};
+use clap::{App, Arg, SubCommand};
 
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
     cli::base_opts()
-        .about("Creates an invite code")
-        .arg(Arg::with_name("EMAIL")
-            .help("Email address to invite")
-            .required(true)
-            .index(1))
+        .subcommand(SubCommand::with_name("invite")
+            .about("Creates an invite code")
+            .arg(Arg::with_name("EMAIL")
+                .help("Email address to invite")
+                .required(true)
+                .index(1)))
+
+        .subcommand(SubCommand::with_name("promote")
+            .about("Promotes a user to admin")
+            .arg(Arg::with_name("EMAIL")
+                .help("Email address to promote")
+                .required(true)
+                .index(1)))
+
+        .subcommand(SubCommand::with_name("demote")
+            .about("Demotes an admin to a regular user")
+            .arg(Arg::with_name("EMAIL")
+                .help("Email address to demote")
+                .required(true)
+                .index(1)))
 }
 
 fn main() {
@@ -18,10 +36,27 @@ fn main() {
         init_dotenv()?;
 
         let matches = cli_opts().get_matches();
-        let email = matches.value_of("EMAIL").unwrap();
+
         let conn = db_connection()?;
 
-        let invite = NewInvite::new(email).create(&conn);
+        if let Some(matches) = matches.subcommand_matches("invite") {
+            let email = matches.value_of("EMAIL").unwrap();
+
+            let invite = NewInvite::new(email).create(&conn);
+            info!("Created invite: {:?}", invite);
+        } else if let Some(matches) = matches.subcommand_matches("promote") {
+            let email = matches.value_of("EMAIL").unwrap();
+
+            let user = User::by_email(&conn, email)?;
+            let result = user.promote(&conn);
+            info!("Promoted user: {:?}", result);
+        } else if let Some(matches) = matches.subcommand_matches("demote") {
+            let email = matches.value_of("EMAIL").unwrap();
+
+            let user = User::by_email(&conn, email)?;
+            let result = user.demote(&conn);
+            info!("Demoted user: {:?}", result);
+        }
 
         Ok(())
     })

@@ -6,6 +6,8 @@ use crate::web::schema::users;
 use crate::web::routes::settings::SettingsForm;
 use crate::config::{MountableDeviceLocation, StagingConfig};
 
+use failure::Error;
+
 use rocket::http::RawStr;
 use rocket::request::FromFormValue;
 
@@ -62,6 +64,12 @@ impl User {
         } else {
             None
         }
+    }
+
+    pub fn by_email(conn: &PgConnection, email: &str) -> QueryResult<User> {
+        use crate::web::schema::users::dsl::{email as user_email, users};
+
+        users.filter(user_email.eq(email)).get_result::<User>(conn)
     }
 
     // TODO(richo) paginate
@@ -165,6 +173,25 @@ impl User {
 
     pub fn is_admin(&self) -> bool {
         self.admin
+    }
+
+    pub fn promote(&self, conn: &PgConnection) -> QueryResult<usize> {
+        self.set_admin(conn, true)
+    }
+
+    pub fn demote(&self, conn: &PgConnection) -> QueryResult<usize> {
+        self.set_admin(conn, false)
+    }
+
+    fn set_admin(&self, conn: &PgConnection, value: bool) -> QueryResult<usize> {
+        use diesel::update;
+        use crate::web::schema::users::dsl::*;
+
+        update(self)
+            .set((
+                    admin.eq(value),
+            ))
+            .execute(conn)
     }
 }
 
