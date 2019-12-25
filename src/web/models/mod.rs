@@ -4,6 +4,9 @@ use rand;
 mod customer;
 pub use self::customer::{NewCustomer, Customer};
 
+mod equipment;
+pub use self::equipment::{NewEquipment, Equipment};
+
 mod invite;
 pub use self::invite::{NewInvite, Invite};
 

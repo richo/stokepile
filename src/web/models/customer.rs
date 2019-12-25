@@ -27,11 +27,10 @@ pub struct NewCustomer<'a> {
 
 impl Customer {
     // TODO(richo) paginate
-    pub fn all(conn: &PgConnection) -> QueryResult<Vec<Customer>> {
+    pub fn all(conn: &PgConnection, user_id: i32) -> QueryResult<Vec<Customer>> {
         use crate::web::schema::customers::dsl::*;
         customers.load::<Customer>(&*conn)
     }
-
 }
 
 // Should htis actually just be a Customer::create ?

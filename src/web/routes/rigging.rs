@@ -1,7 +1,7 @@
 use crate::web::db::DbConn;
 use crate::web::auth::WebUser;
 use crate::web::context::{Context, PossibleIntegration};
-use crate::web::models::{Customer, NewCustomer};
+use crate::web::models::{Customer, NewCustomer, Equipment, NewEquipment};
 
 use rocket::request::{Form, FlashMessage};
 use rocket::response::{Flash, Redirect};
@@ -22,7 +22,8 @@ struct CustomerView {
 
 #[get("/customers")]
 pub fn customers(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>) -> Template {
-    let customers = Customer::all(&*conn).expect("Couldn't load customers");
+    let customers = Customer::all(&*conn, user.id()).expect("Couldn't load customers");
+
     let view_data = CustomerView { customers };
     let context = Context::rigging(view_data)
         .set_user(Some(user))
@@ -72,12 +73,31 @@ pub fn service_bulletins(user: WebUser, conn: DbConn, flash: Option<FlashMessage
 
 #[derive(Debug, Serialize)]
 struct EquipmentView {
-    equipment: Vec<()>,
+    equipment: Vec<Equipment>,
 }
 
-#[get("/equipment")]
-pub fn equipment(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>) -> Template {
-    let equipment: EquipmentView = unimplemented!();
+#[derive(FromForm, Debug, Serialize)]
+pub struct NewEquipmentForm {
+    pub container: String,
+    pub reserve: String,
+    pub aad: String,
+}
+
+#[get("/equipment?<customer_id>")]
+pub fn equipment(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>, customer_id: Option<i32>) -> Template {
+    let list = match customer_id {
+        Some(id) => {
+            Equipment::for_customer(&*conn, id)
+        },
+        None => {
+            Equipment::all(&*conn)
+        }
+    };
+
+    let equipment = EquipmentView {
+        equipment: list.expect("Couldn't load equipment"),
+    };
+
     let context = Context::rigging(equipment)
         .set_user(Some(user))
         .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
