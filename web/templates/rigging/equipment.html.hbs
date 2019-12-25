@@ -1,0 +1,45 @@
+{{> common/rigging-header }}
+
+<div class="pure-g">
+  <div class="pure-u-1">
+    {{#if flash_message}}
+    <div class="flash-message flash-message-{{flash_message.0}}">
+      {{flash_message.1}}
+    </div>
+    {{/if}}
+
+    <table class="pure-table pure-table-horizontal device-list pure-table-striped">
+      <thead>
+        <tr>
+          <th>container</th>
+          <th>reserve</th>
+          <th>aad</th>
+          <th>customer</th>
+        </tr>
+        {{#each data.equipment}}
+        <tr>
+          <td>{{this.container}}</td>
+          <td>{{this.reserve}}</td>
+          <td>{{this.aad}}</td>
+          <td><a href="{{rigging_customer_link_for_equipment this.customerid}}">equipment</a></td>
+        </tr>
+        {{/each}}
+      </thead>
+    </table>
+    <div class="new-equipment">
+      <form method="POST" class="pure-form" action="/rigging/equipment/create">
+        <fieldset>
+          <legend>New equipment</legend>
+          <p>All fields will prompt to auto fill with known values. Auto filling will enable alerts and warnings for known airworthiness directives and service bulletins.</p>
+
+          <input type="text" name="container" placeholder="Name">
+          <input type="text" name="reserve" placeholder="Address">
+          <input type="text" name="aad" placeholder="Phone">
+          <!-- TODO(richo) Serial numbers and DOMs -->
+          <button type="submit" class="pure-button pure-button-primary">Create</button>
+        </fieldset>
+      </form>
+    </div>
+  </div>
+</div>
+{{> common/footer }}

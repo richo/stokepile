@@ -27,10 +27,6 @@ handlebars_helper!(maybe_selected: |field: str, active: str| {
         format!("")
     }});
 
-handlebars_helper!(active_module: |module: str, selected: str| {
-    module == selected
-});
-
 handlebars_helper!(maintainer_info: |kind: str| {
     match kind {
         "email" => {
@@ -40,6 +36,14 @@ handlebars_helper!(maintainer_info: |kind: str| {
             panic!("Unknown info kind: {}", &kind)
         },
     }
+});
+
+handlebars_helper!(rigging_equipment_link_for_customer: |customer_id: i64| {
+    format!("/rigging/equipment?customer_id={}", &customer_id)
+});
+
+handlebars_helper!(rigging_customer_link_for_equipment: |customer_id: i64| {
+    format!("/rigging/customer/{}", &customer_id)
 });
 
 pub fn configure_rocket() -> Rocket {
@@ -101,6 +105,7 @@ pub fn configure_rocket() -> Rocket {
                 routes::rigging::index,
                 routes::rigging::customers,
                 routes::rigging::customer_create,
+                routes::rigging::equipment,
                 routes::rigging::service_bulletins,
 
             ]
@@ -108,12 +113,7 @@ pub fn configure_rocket() -> Rocket {
         .mount("/static", StaticFiles::from("web/static"))
         .register(catchers![routes::index::not_found])
         .attach(RequestLogger::new())
-        .attach(Template::custom(|engines| {
-            engines.handlebars.register_helper("maybe_selected", Box::new(maybe_selected));
-            engines.handlebars.register_helper("maintainer_info", Box::new(maintainer_info));
-            engines.handlebars.register_helper("active_module", Box::new(active_module));
-            engines.handlebars.set_strict_mode(true);
-        }))
+        .attach(template_engine())
 }
 
 pub fn create_test_rocket(routes: Vec<rocket::Route>) -> Rocket {
@@ -124,12 +124,17 @@ pub fn create_test_rocket(routes: Vec<rocket::Route>) -> Rocket {
             routes,
         )
         .attach(RequestLogger::new())
-        .attach(Template::custom(|engines| {
-            engines.handlebars.register_helper("maybe_selected", Box::new(maybe_selected));
-            engines.handlebars.register_helper("maintainer_info", Box::new(maintainer_info));
-            engines.handlebars.register_helper("active_module", Box::new(active_module));
-            engines.handlebars.set_strict_mode(true);
-        }))
+        .attach(template_engine())
+}
+
+fn template_engine() -> impl rocket::fairing::Fairing {
+    Template::custom(|engines| {
+        engines.handlebars.register_helper("maybe_selected", Box::new(maybe_selected));
+        engines.handlebars.register_helper("maintainer_info", Box::new(maintainer_info));
+        engines.handlebars.register_helper("rigging_equipment_link_for_customer", Box::new(rigging_equipment_link_for_customer));
+        engines.handlebars.register_helper("rigging_customer_link_for_equipment", Box::new(rigging_customer_link_for_equipment));
+        engines.handlebars.set_strict_mode(true);
+    })
 }
 
 pub fn global_state(conn: &DbConn) -> diesel::prelude::QueryResult<models::GlobalSetting> {

@@ -15,6 +15,7 @@
           <th>address</th>
           <th>phone</th>
           <th>email</th>
+          <th>equipment</th>
         </tr>
         {{#each data.customers}}
         <tr>
@@ -22,6 +23,7 @@
           <td>{{this.address}}</td>
           <td>{{this.phone_number}}</td>
           <td>{{this.email}}</td>
+          <td><a href="{{rigging_equipment_link_for_customer this.id}}">equipment</a></td>
         </tr>
         {{/each}}
       </thead>

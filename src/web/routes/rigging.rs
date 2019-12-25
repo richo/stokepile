@@ -85,6 +85,7 @@ pub struct NewEquipmentForm {
 
 #[get("/equipment?<customer_id>")]
 pub fn equipment(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>, customer_id: Option<i32>) -> Template {
+    // TODO(This doesn't validate that the customer belongs to this user at all)
     let list = match customer_id {
         Some(id) => {
             Equipment::for_customer(&*conn, id)
