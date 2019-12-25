@@ -22,6 +22,17 @@ table! {
 }
 
 table! {
+    equipment (id) {
+        id -> Int4,
+        user_id -> Int4,
+        customer_id -> Int4,
+        container -> Varchar,
+        reserve -> Varchar,
+        aad -> Varchar,
+    }
+}
+
+table! {
     global_settings (onerow_id) {
         onerow_id -> Bool,
         invites_required -> Bool,
@@ -84,6 +95,8 @@ table! {
 
 joinable!(customers -> users (user_id));
 joinable!(devices -> users (user_id));
+joinable!(equipment -> customers (customer_id));
+joinable!(equipment -> users (user_id));
 joinable!(integrations -> users (user_id));
 joinable!(keys -> users (user_id));
 joinable!(sessions -> users (user_id));
@@ -91,6 +104,7 @@ joinable!(sessions -> users (user_id));
 allow_tables_to_appear_in_same_query!(
     customers,
     devices,
+    equipment,
     global_settings,
     integrations,
     invites,
