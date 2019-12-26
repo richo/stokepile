@@ -104,6 +104,21 @@ impl User {
         customers.filter(user_id.eq(self.id)).load::<Customer>(conn)
     }
 
+    pub fn customer_by_id(&self, conn: &PgConnection, customer_id: i32) -> QueryResult<Customer> {
+        use crate::web::schema::customers::dsl::*;
+
+        customers
+            .filter(user_id.eq(self.id))
+            .filter(id.eq(&customer_id))
+            .get_result::<Customer>(conn)
+    }
+
+    pub fn equipment(&self, conn: &PgConnection) -> QueryResult<Vec<Equipment>> {
+        use crate::web::schema::equipment::dsl::*;
+
+        equipment.filter(user_id.eq(self.id)).load::<Equipment>(conn)
+    }
+
     pub fn integration_by_id(
         &self,
         integration_id: i32,

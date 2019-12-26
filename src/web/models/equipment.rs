@@ -33,12 +33,6 @@ impl Equipment {
 
         equipment.load::<Equipment>(&*conn)
     }
-
-    pub fn for_customer(conn: &PgConnection, customer_id: i32) -> QueryResult<Vec<Equipment>> {
-        use crate::web::schema::equipment::dsl::*;
-
-        equipment.filter(customer_id.eq(customer_id)).load::<Equipment>(conn)
-    }
 }
 
 // Should htis actually just be a Equipment::create ?

@@ -88,15 +88,22 @@ pub fn equipment(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>
     // TODO(This doesn't validate that the customer belongs to this user at all)
     let list = match customer_id {
         Some(id) => {
-            Equipment::for_customer(&*conn, id)
+            user.user.customer_by_id(&*conn, id)
+                // TODO(richo) This is actually an urgently pressing case where we need to figure
+                // out how to present errors to the user.
+                .expect("Couldn't load customer")
+                // TODO(richo) Do we care about figuring out how to avoid the N+1 query here?
+                .equipment(&*conn)
+                .expect("Couldn't load equipment for customer")
         },
         None => {
-            Equipment::all(&*conn)
+            user.user.equipment(&*conn)
+                .expect("Couldn't load equipment for customer")
         }
     };
 
     let equipment = EquipmentView {
-        equipment: list.expect("Couldn't load equipment"),
+        equipment: list,
     };
 
     let context = Context::rigging(equipment)

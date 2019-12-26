@@ -2,6 +2,7 @@ use diesel::prelude::*;
 use super::*;
 
 use crate::web::schema::customers;
+use crate::web::models::Equipment;
 use crate::web::routes::rigging::NewCustomerForm;
 
 #[derive(Identifiable, Queryable, Debug, Serialize)]
@@ -30,6 +31,12 @@ impl Customer {
     pub fn all(conn: &PgConnection, user_id: i32) -> QueryResult<Vec<Customer>> {
         use crate::web::schema::customers::dsl::*;
         customers.load::<Customer>(&*conn)
+    }
+
+    pub fn equipment(&self, conn: &PgConnection) -> QueryResult<Vec<Equipment>> {
+        use crate::web::schema::equipment::dsl::*;
+
+        equipment.filter(customer_id.eq(self.id)).load::<Equipment>(conn)
     }
 }
 
