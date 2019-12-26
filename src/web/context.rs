@@ -1,6 +1,4 @@
 use crate::web::auth::{AdminUser, WebUser};
-use crate::web::models::Device;
-use crate::web::models::Key;
 use crate::web::models::User;
 
 use serde::Serialize;

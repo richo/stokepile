@@ -1,5 +1,4 @@
 use diesel::prelude::*;
-use super::*;
 
 use crate::web::schema::equipment;
 use crate::web::routes::rigging::NewEquipmentForm;

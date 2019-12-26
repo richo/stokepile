@@ -1,13 +1,13 @@
 use crate::web::db::DbConn;
 use crate::web::auth::WebUser;
-use crate::web::context::{Context, Module, PossibleIntegration};
+use crate::web::context::{Context, PossibleIntegration};
 
 use rocket::request::FlashMessage;
 use rocket_contrib::templates::Template;
 
 use crate::messages::Oauth2Provider;
 
-use crate::web::models::{Device, Key, User};
+use crate::web::models::{Device, Key};
 
 // TODO(richo) This might want to live elsewhere?
 #[derive(Serialize, Debug)]

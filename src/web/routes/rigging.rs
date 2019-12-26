@@ -1,6 +1,6 @@
 use crate::web::db::DbConn;
 use crate::web::auth::WebUser;
-use crate::web::context::{Context, PossibleIntegration};
+use crate::web::context::Context;
 use crate::web::models::{Customer, NewCustomer, Equipment, NewEquipment};
 
 use rocket::request::{Form, FlashMessage};

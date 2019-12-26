@@ -6,8 +6,6 @@ use crate::web::schema::users;
 use crate::web::routes::settings::SettingsForm;
 use crate::config::{MountableDeviceLocation, StagingConfig};
 
-use failure::Error;
-
 use rocket::http::RawStr;
 use rocket::request::FromFormValue;
 

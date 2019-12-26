@@ -1,5 +1,4 @@
 use diesel::prelude::*;
-use super::*;
 
 use crate::web::schema::customers;
 use crate::web::models::Equipment;
