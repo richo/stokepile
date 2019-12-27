@@ -2,6 +2,7 @@ use diesel::prelude::*;
 
 use crate::web::schema::equipment;
 use crate::web::routes::rigging::NewEquipmentForm;
+use crate::web::models::{User, Customer};
 
 #[derive(Identifiable, Queryable, Debug, Serialize)]
 #[table_name = "equipment"]
@@ -38,10 +39,10 @@ impl Equipment {
 impl<'a> NewEquipment<'a> {
     // Do we want some request global user_id? Seems positive but I also don't really see how to
     // make it happen.
-    pub fn from(equipment: &'a NewEquipmentForm, customer_id: i32, user_id: i32) -> NewEquipment<'_> {
+    pub fn from(equipment: &'a NewEquipmentForm, customer: &Customer, user: &User) -> NewEquipment<'a> {
         NewEquipment {
-            user_id,
-            customer_id,
+            user_id: user.id,
+            customer_id: customer.id,
             container: &equipment.container,
             reserve: &equipment.reserve,
             aad: &equipment.aad,

@@ -1,7 +1,7 @@
 use crate::web::db::DbConn;
 use crate::web::auth::WebUser;
 use crate::web::context::Context;
-use crate::web::models::{Customer, NewCustomer, Equipment, NewEquipment};
+use crate::web::models::{Customer, NewCustomer, Equipment, NewEquipment, User};
 
 use rocket::request::{Form, FlashMessage};
 use rocket::response::{Flash, Redirect};
@@ -74,10 +74,12 @@ pub fn service_bulletins(user: WebUser, conn: DbConn, flash: Option<FlashMessage
 #[derive(Debug, Serialize)]
 struct EquipmentView {
     equipment: Vec<Equipment>,
+    customer: Option<Customer>,
 }
 
 #[derive(FromForm, Debug, Serialize)]
 pub struct NewEquipmentForm {
+    pub customer_id: i32,
     pub container: String,
     pub reserve: String,
     pub aad: String,
@@ -86,9 +88,25 @@ pub struct NewEquipmentForm {
 #[get("/equipment?<customer_id>")]
 pub fn equipment(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>, customer_id: Option<i32>) -> Template {
     // TODO(This doesn't validate that the customer belongs to this user at all)
-    let list = match customer_id {
+    let list = get_equipment(&conn, &user.user, customer_id);
+    // TODO(richo) This absolutely does something bad in the face of an invalid ID
+    let customer = customer_id.map(|id| user.user.customer_by_id(&*conn, id).expect("Couldn't load customer"));
+
+    let equipment = EquipmentView {
+        equipment: list,
+        customer,
+    };
+
+    let context = Context::rigging(equipment)
+        .set_user(Some(user))
+        .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
+    Template::render("rigging/equipment", context)
+}
+
+fn get_equipment(conn: &DbConn, user: &User, customer_id: Option<i32>) -> Vec<Equipment> {
+    match customer_id {
         Some(id) => {
-            user.user.customer_by_id(&*conn, id)
+            user.customer_by_id(&*conn, id)
                 // TODO(richo) This is actually an urgently pressing case where we need to figure
                 // out how to present errors to the user.
                 .expect("Couldn't load customer")
@@ -97,13 +115,24 @@ pub fn equipment(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>
                 .expect("Couldn't load equipment for customer")
         },
         None => {
-            user.user.equipment(&*conn)
+            user.equipment(&*conn)
                 .expect("Couldn't load equipment for customer")
         }
-    };
+    }
+}
+
+#[post("/equipment/create", data = "<equipment>")]
+pub fn equipment_create(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>, equipment: Form<NewEquipmentForm>) -> Template {
+    let customer_id = equipment.customer_id;
+    let customer = user.user.customer_by_id(&*conn, customer_id).expect("Couldn't load customer");
+    let equipment = NewEquipment::from(&equipment, &customer, &user.user);
+    equipment.create(&*conn).expect("Couldn't create new equipment");
+
+    let list = get_equipment(&conn, &user.user, Some(customer_id));
 
     let equipment = EquipmentView {
         equipment: list,
+        customer: Some(customer),
     };
 
     let context = Context::rigging(equipment)

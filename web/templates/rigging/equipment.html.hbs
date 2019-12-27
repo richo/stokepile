@@ -8,6 +8,10 @@
     </div>
     {{/if}}
 
+    {{#if data.customer }}
+      <h2>Equipment for {{data.customer.name}}</h2>
+    {{/if}}
+
     <table class="pure-table pure-table-horizontal device-list pure-table-striped">
       <thead>
         <tr>
@@ -21,17 +25,19 @@
           <td>{{this.container}}</td>
           <td>{{this.reserve}}</td>
           <td>{{this.aad}}</td>
-          <td><a href="{{rigging_customer_link_for_equipment this.customerid}}">equipment</a></td>
+          <td><a href="{{rigging_customer_link_for_equipment this.customer_id}}">equipment</a></td>
         </tr>
         {{/each}}
       </thead>
     </table>
+    {{#if data.customer }}
     <div class="new-equipment">
       <form method="POST" class="pure-form" action="/rigging/equipment/create">
         <fieldset>
           <legend>New equipment</legend>
           <p>All fields will prompt to auto fill with known values. Auto filling will enable alerts and warnings for known airworthiness directives and service bulletins.</p>
 
+          <input type="hidden" name="customer_id" value={{data.customer.id}}>
           <input type="text" name="container" placeholder="Container">
           <input type="text" name="reserve" placeholder="Reserve">
           <input type="text" name="aad" placeholder="AAD">
@@ -40,6 +46,7 @@
         </fieldset>
       </form>
     </div>
+    {{/if}}
   </div>
 </div>
 {{> common/footer }}
