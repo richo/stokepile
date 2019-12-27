@@ -31,6 +31,19 @@ pub fn customers(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>
     Template::render("rigging/customers", context)
 }
 
+#[get("/customer/<id>")]
+pub fn customer_detail(user: WebUser, conn: DbConn, id: i32, flash: Option<FlashMessage<'_, '_>>) -> Template {
+    let customer = user.user.customer_by_id(&*conn, id).expect("Couldn't load customers");
+
+    let view_data = CustomerView {
+        customers: vec![customer],
+    };
+    let context = Context::rigging(view_data)
+        .set_user(Some(user))
+        .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
+    Template::render("rigging/customers", context)
+}
+
 #[derive(FromForm, Debug, Serialize)]
 pub struct NewCustomerForm {
     pub name: String,
