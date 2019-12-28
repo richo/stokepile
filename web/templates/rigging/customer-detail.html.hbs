@@ -1,0 +1,47 @@
+{{> common/rigging-header }}
+
+<div class="pure-g">
+  <div class="pure-u-1">
+    {{#if flash_message}}
+    <div class="flash-message flash-message-{{flash_message.0}}">
+      {{flash_message.1}}
+    </div>
+    {{/if}}
+
+    <table class="pure-table pure-table-horizontal device-list pure-table-striped">
+      <thead>
+        <tr>
+          <th>name</th>
+          <th>address</th>
+          <th>phone</th>
+          <th>email</th>
+        </tr>
+        <tr>
+          <td>{{data.customer.name}}</td>
+          <td>{{data.customer.address}}</td>
+          <td>{{data.customer.phone_number}}</td>
+          <td>{{data.customer.email}}</td>
+        </tr>
+      </thead>
+    </table>
+    <table class="pure-table pure-table-horizontal device-list pure-table-striped">
+      <thead>
+        <tr>
+          <th>container</th>
+          <th>reserve</th>
+          <th>aad</th>
+          <th>edit</th>
+        </tr>
+        {{#each data.equipment}}
+        <tr>
+          <td>{{this.container}}</td>
+          <td>{{this.reserve}}</td>
+          <td>{{this.aad}}</td>
+          <td><a href="{{rigging_equipment_link_for_customer this.id}}">equipment</a></td>
+        </tr>
+        {{/each}}
+      </thead>
+    </table>
+  </div>
+</div>
+{{> common/footer }}
