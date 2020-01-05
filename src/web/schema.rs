@@ -1,6 +1,18 @@
 #![allow(proc_macro_derive_resolution_fallback)]
 
 table! {
+    components (id) {
+        id -> Int4,
+        equipment_id -> Int4,
+        kind -> Varchar,
+        model -> Varchar,
+        serial -> Varchar,
+        manufactured -> Timestamp,
+        data -> Jsonb,
+    }
+}
+
+table! {
     customers (id) {
         id -> Int4,
         user_id -> Int4,
@@ -26,9 +38,6 @@ table! {
         id -> Int4,
         user_id -> Int4,
         customer_id -> Int4,
-        container -> Varchar,
-        reserve -> Varchar,
-        aad -> Varchar,
     }
 }
 
@@ -93,6 +102,7 @@ table! {
     }
 }
 
+joinable!(components -> equipment (equipment_id));
 joinable!(customers -> users (user_id));
 joinable!(devices -> users (user_id));
 joinable!(equipment -> customers (customer_id));
@@ -102,6 +112,7 @@ joinable!(keys -> users (user_id));
 joinable!(sessions -> users (user_id));
 
 allow_tables_to_appear_in_same_query!(
+    components,
     customers,
     devices,
     equipment,
