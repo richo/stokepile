@@ -10,20 +10,14 @@ pub struct Equipment {
     pub id: i32,
     pub user_id: i32,
     pub customer_id: i32,
-    pub container: String,
-    pub reserve: String,
-    pub aad: String,
 }
 
 
 #[derive(Insertable, Debug)]
 #[table_name = "equipment"]
-pub struct NewEquipment<'a> {
+pub struct NewEquipment {
     pub user_id: i32,
     pub customer_id: i32,
-    pub container: &'a str,
-    pub reserve: &'a str,
-    pub aad: &'a str,
 }
 
 impl Equipment {
@@ -36,17 +30,16 @@ impl Equipment {
 }
 
 // Should htis actually just be a Equipment::create ?
-impl<'a> NewEquipment<'a> {
+impl NewEquipment {
     // Do we want some request global user_id? Seems positive but I also don't really see how to
     // make it happen.
-    pub fn from(equipment: &'a NewEquipmentForm, customer: &Customer, user: &User) -> NewEquipment<'a> {
+    pub fn from(equipment: &NewEquipmentForm, customer: &Customer, user: &User) -> NewEquipment {
         NewEquipment {
             user_id: user.id,
             customer_id: customer.id,
-            container: &equipment.container,
-            reserve: &equipment.reserve,
-            aad: &equipment.aad,
         }
+
+        // TODO(richo) populate the components
     }
 
     pub fn create(&self, conn: &PgConnection) -> QueryResult<Equipment> {
