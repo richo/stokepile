@@ -8,7 +8,7 @@ mod component;
 pub use self::component::{NewComponent, Component};
 
 mod equipment;
-pub use self::equipment::{NewEquipment, Equipment};
+pub use self::equipment::{NewCompleteEquipment, Equipment};
 
 mod invite;
 pub use self::invite::{NewInvite, Invite};

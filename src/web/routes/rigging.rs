@@ -1,11 +1,13 @@
 use crate::web::db::DbConn;
 use crate::web::auth::WebUser;
 use crate::web::context::Context;
-use crate::web::models::{Customer, NewCustomer, Equipment, NewEquipment, User};
+use crate::web::models::{Customer, NewCustomer, Equipment, NewCompleteEquipment, User};
 
-use rocket::request::{Form, FlashMessage};
+use rocket::request::{Form, FromForm, FormItems, FlashMessage};
 use rocket::response::{Flash, Redirect};
 use rocket_contrib::templates::Template;
+
+use chrono::naive::NaiveDateTime;
 
 #[get("/")]
 pub fn index(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>) -> Template {
@@ -101,12 +103,103 @@ struct EquipmentView {
     customer: Option<Customer>,
 }
 
-#[derive(FromForm, Debug, Serialize)]
+#[derive(Debug, Serialize)]
+pub struct Component {
+    pub model: String,
+    pub serial: String,
+    pub dom: NaiveDateTime,
+}
+
+impl Default for Component {
+    fn default() -> Self {
+        Component {
+            dom: NaiveDateTime::from_timestamp(0, 0),
+            .. Default::default()
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum EquipmentFormError {
+    Parsing(std::str::Utf8Error),
+    ExtraFields,
+}
+
+macro_rules! equipment_form_members {
+    ( $self:expr, $item:expr, $( $name:ident => $struct:expr ),+ ) => (
+        match $item.key.as_str() {
+            $(
+                stringify!(concat_idents!($name, _model)) => {
+                    $struct.model = $item.value.url_decode().map_err(|e| EquipmentFormError::Parsing(e))?;
+                },
+                stringify!(concat_idents!($name, _serial)) => {
+                    $struct.serial = $item.value.url_decode().map_err(|e| EquipmentFormError::Parsing(e))?;
+                },
+                stringify!(concat_idents!($name, _dom)) => {
+                    $struct.dom = $item.value.url_decode().map_err(|e| EquipmentFormError::Parsing(e))?
+                    .parse().expect(concat!("Couldn't parse ", stringify!($name), " dom"));
+                },
+            )+
+                // TODO(richo)
+            // _ if strict => return Err(EquipmentFormError::ExtraFields),
+            field => { debug!("Got an extra field: {:?} => {:?}", &field, &$item.value); },
+        }
+    );
+    ( $( $self:expr, optional $name:ident )+ ) => (
+        $(
+            stringify!(concat_idents!($name, _model)) =>
+                    component.model = item.value.url_decode().map_err(|_| ())?;
+            stringify!(concat_idents!($name, _serial)) =>
+                    component.serial = item.value.url_decode().map_err(|_| ())?;
+            stringify!(concat_idents!($name, _dom)) =>
+                    component.dom = item.value.url_decode().map_err(|_| ())?;
+        )+,
+    );
+}
+
+impl<'f> FromForm<'f> for NewEquipmentForm {
+    // In practice, we'd use a more descriptive error type.
+    type Error = EquipmentFormError;
+
+    fn from_form(items: &mut FormItems<'f>, strict: bool) -> Result<NewEquipmentForm, EquipmentFormError> {
+        let mut container = Component::default();
+        let mut reserve = Component::default();
+        let mut aad = Component::default();
+
+        for item in items {
+            equipment_form_members!(self, item,
+                container => container,
+                reserve => reserve,
+                aad => aad)
+            // How do we uh.. know which thing we're meant to be?
+            // equipment_form_members!(self,  reserve)
+            // equipment_form_members!(self, optional aad)
+        }
+
+        Ok(NewEquipmentForm {
+            customer_id: 0,
+
+            container,
+            reserve,
+            aad: Some(aad),
+        })
+    }
+}
+
+#[derive(Debug, Serialize)]
 pub struct NewEquipmentForm {
     pub customer_id: i32,
-    pub container: String,
-    pub reserve: String,
-    pub aad: String,
+
+    #[serde(flatten)]
+    pub container: Component,
+
+    #[serde(flatten)]
+    pub reserve: Component,
+
+    #[serde(flatten)]
+    pub aad: Option<Component>,
+
+    // TODO(richo) notes? Bury the notes in the data field?
 }
 
 #[get("/equipment?<customer_id>")]
@@ -149,7 +242,7 @@ fn get_equipment(conn: &DbConn, user: &User, customer_id: Option<i32>) -> Vec<Eq
 pub fn equipment_create(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>, equipment: Form<NewEquipmentForm>) -> Template {
     let customer_id = equipment.customer_id;
     let customer = user.user.customer_by_id(&*conn, customer_id).expect("Couldn't load customer");
-    let equipment = NewEquipment::from(&equipment, &customer, &user.user);
+    let equipment = NewCompleteEquipment::from(&equipment, &customer, &user.user);
     equipment.create(&*conn).expect("Couldn't create new equipment");
 
     let list = get_equipment(&conn, &user.user, Some(customer_id));

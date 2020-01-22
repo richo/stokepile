@@ -19,6 +19,7 @@ pub struct Component {
 #[derive(Insertable, Debug)]
 #[table_name = "components"]
 pub struct NewComponent<'a> {
+    // we create this as 0 but assert that it's nonzero before we can actually create it.
     pub equipment_id: i32,
     pub kind: &'a str,
     pub model: &'a str,
@@ -26,4 +27,16 @@ pub struct NewComponent<'a> {
     pub manufactured: &'a chrono::naive::NaiveDateTime,
 
     pub data: &'a serde_json::Value,
+}
+
+impl<'a> NewComponent<'a> {
+    pub fn create(mut self, equipment_id: i32, conn: &PgConnection) -> QueryResult<Component> {
+        self.equipment_id = equipment_id;
+
+        use diesel::insert_into;
+
+        insert_into(components::table)
+            .values(self)
+            .get_result::<Component>(conn)
+    }
 }
