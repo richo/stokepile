@@ -4,10 +4,10 @@ use crate::web::context::Context;
 use crate::web::models::{Customer, NewCustomer, Equipment, NewCompleteEquipment, User};
 
 use rocket::request::{Form, FromForm, FormItems, FlashMessage};
-use rocket::response::{Flash, Redirect};
+use rocket::response::{status, Flash, Redirect};
 use rocket_contrib::templates::Template;
 
-use chrono::naive::NaiveDateTime;
+use chrono::naive::NaiveDate;
 
 #[get("/")]
 pub fn index(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>) -> Template {
@@ -101,20 +101,34 @@ pub fn service_bulletins(user: WebUser, conn: DbConn, flash: Option<FlashMessage
 struct EquipmentView {
     equipment: Vec<Equipment>,
     customer: Option<Customer>,
+    equipment_kinds: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct Component {
     pub model: String,
     pub serial: String,
-    pub dom: NaiveDateTime,
+    pub dom: NaiveDate,
 }
 
-impl Default for Component {
-    fn default() -> Self {
-        Component {
-            dom: NaiveDateTime::from_timestamp(0, 0),
-            .. Default::default()
+#[derive(Debug, Default)]
+struct ProtoComponent {
+    pub model: Option<String>,
+    pub serial: Option<String>,
+    pub dom: Option<NaiveDate>,
+}
+
+impl ProtoComponent {
+    pub fn to_component(self) -> Result<Component, EquipmentFormError> {
+        if let (Some(model), Some(serial), Some(dom)) = (self.model, self.serial, self.dom) {
+            Ok(Component {
+                model,
+                serial,
+                dom,
+            })
+        } else {
+            // TODO(richo) Good error
+            Err(EquipmentFormError::MissingField)
         }
     }
 }
@@ -122,38 +136,31 @@ impl Default for Component {
 #[derive(Debug)]
 pub enum EquipmentFormError {
     Parsing(std::str::Utf8Error),
+    DateParsing(chrono::ParseError),
+    MissingField,
     ExtraFields,
 }
 
+// TODO(richo) Support for an optional AAD
 macro_rules! equipment_form_members {
     ( $self:expr, $item:expr, $( $name:ident => $struct:expr ),+ ) => (
         match $item.key.as_str() {
             $(
-                stringify!(concat_idents!($name, _model)) => {
-                    $struct.model = $item.value.url_decode().map_err(|e| EquipmentFormError::Parsing(e))?;
+                concat!(stringify!($name), "_model") => {
+                    $struct.model = Some($item.value.url_decode().map_err(|e| EquipmentFormError::Parsing(e))?);
                 },
-                stringify!(concat_idents!($name, _serial)) => {
-                    $struct.serial = $item.value.url_decode().map_err(|e| EquipmentFormError::Parsing(e))?;
+                concat!(stringify!($name), "_serial") => {
+                    $struct.serial = Some($item.value.url_decode().map_err(|e| EquipmentFormError::Parsing(e))?);
                 },
-                stringify!(concat_idents!($name, _dom)) => {
-                    $struct.dom = $item.value.url_decode().map_err(|e| EquipmentFormError::Parsing(e))?
-                    .parse().expect(concat!("Couldn't parse ", stringify!($name), " dom"));
+                concat!(stringify!($name), "_dom") => {
+                    $struct.dom = Some(NaiveDate::parse_from_str(&$item.value.url_decode().map_err(|e| EquipmentFormError::Parsing(e))?, "%Y-%m-%d")
+                        .map_err(|e| EquipmentFormError::DateParsing(e))?);
                 },
             )+
                 // TODO(richo)
             // _ if strict => return Err(EquipmentFormError::ExtraFields),
             field => { debug!("Got an extra field: {:?} => {:?}", &field, &$item.value); },
         }
-    );
-    ( $( $self:expr, optional $name:ident )+ ) => (
-        $(
-            stringify!(concat_idents!($name, _model)) =>
-                    component.model = item.value.url_decode().map_err(|_| ())?;
-            stringify!(concat_idents!($name, _serial)) =>
-                    component.serial = item.value.url_decode().map_err(|_| ())?;
-            stringify!(concat_idents!($name, _dom)) =>
-                    component.dom = item.value.url_decode().map_err(|_| ())?;
-        )+,
     );
 }
 
@@ -162,34 +169,34 @@ impl<'f> FromForm<'f> for NewEquipmentForm {
     type Error = EquipmentFormError;
 
     fn from_form(items: &mut FormItems<'f>, strict: bool) -> Result<NewEquipmentForm, EquipmentFormError> {
-        let mut container = Component::default();
-        let mut reserve = Component::default();
-        let mut aad = Component::default();
+        let mut container = ProtoComponent::default();
+        let mut reserve = ProtoComponent::default();
+        let mut aad = ProtoComponent::default();
 
         for item in items {
             equipment_form_members!(self, item,
                 container => container,
                 reserve => reserve,
+                aad => aad);
+                info!(stringify!(
+            equipment_form_members!(self, item,
+                container => container,
+                reserve => reserve,
                 aad => aad)
-            // How do we uh.. know which thing we're meant to be?
-            // equipment_form_members!(self,  reserve)
-            // equipment_form_members!(self, optional aad)
+                ));
         }
 
         Ok(NewEquipmentForm {
-            customer_id: 0,
-
-            container,
-            reserve,
-            aad: Some(aad),
+            container: container.to_component()?,
+            reserve: reserve.to_component()?,
+            // hahaaaaaa this is a stretch
+            aad: aad.to_component().ok(),
         })
     }
 }
 
 #[derive(Debug, Serialize)]
 pub struct NewEquipmentForm {
-    pub customer_id: i32,
-
     #[serde(flatten)]
     pub container: Component,
 
@@ -212,6 +219,7 @@ pub fn equipment(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>
     let equipment = EquipmentView {
         equipment: list,
         customer,
+        equipment_kinds: vec!["container".into(), "reserve".into(), "aad".into()],
     };
 
     let context = Context::rigging(equipment)
@@ -238,10 +246,26 @@ fn get_equipment(conn: &DbConn, user: &User, customer_id: Option<i32>) -> Vec<Eq
     }
 }
 
-#[post("/equipment/create", data = "<equipment>")]
-pub fn equipment_create(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>, equipment: Form<NewEquipmentForm>) -> Template {
-    let customer_id = equipment.customer_id;
-    let customer = user.user.customer_by_id(&*conn, customer_id).expect("Couldn't load customer");
+#[derive(Debug, Serialize)]
+pub struct ErrorContext {
+    customer_id: i32,
+}
+
+#[post("/customer/<customer_id>/equipment", data = "<equipment>")]
+pub fn equipment_create(user: WebUser,
+                        conn: DbConn,
+                        flash: Option<FlashMessage<'_, '_>>,
+                        equipment: Form<NewEquipmentForm>,
+                        customer_id: i32) -> Result<Template, status::NotFound<Template>> {
+    let customer = match user.user.customer_by_id(&*conn, customer_id) {
+        Ok(customer) => customer,
+        Err(not_found) => {
+            let error = ErrorContext { customer_id };
+            let context = Context::error(error);
+            return Err(status::NotFound(Template::render("rigging/customer_not_found", context)))
+        }
+    };
+
     let equipment = NewCompleteEquipment::from(&equipment, &customer, &user.user);
     equipment.create(&*conn).expect("Couldn't create new equipment");
 
@@ -250,10 +274,12 @@ pub fn equipment_create(user: WebUser, conn: DbConn, flash: Option<FlashMessage<
     let equipment = EquipmentView {
         equipment: list,
         customer: Some(customer),
+        equipment_kinds: vec!["container".into(), "reserve".into(), "aad".into()],
     };
 
     let context = Context::rigging(equipment)
         .set_user(Some(user))
         .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
-    Template::render("rigging/equipment", context)
+    // This should actually be a redirect to the equipment detail view
+    Ok(Template::render("rigging/equipment", context))
 }

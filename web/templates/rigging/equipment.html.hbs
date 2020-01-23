@@ -32,18 +32,20 @@
     </table>
     {{#if data.customer }}
     <div class="new-equipment">
-      <form method="POST" class="pure-form" action="/rigging/equipment/create">
+      <h2>New Equipment</h2>
+      <p>All fields will prompt to auto fill with known values. Auto filling will enable alerts and warnings for known airworthiness directives and service bulletins.</p>
+      <form method="POST" class="pure-form" action="/rigging/customer/{{data.customer.id}}/equipment">
+        {{#each data.equipment_kinds}}
         <fieldset>
-          <legend>New equipment</legend>
-          <p>All fields will prompt to auto fill with known values. Auto filling will enable alerts and warnings for known airworthiness directives and service bulletins.</p>
 
-          <input type="hidden" name="customer_id" value={{data.customer.id}}>
-          <input type="text" name="container" placeholder="Container">
-          <input type="text" name="reserve" placeholder="Reserve">
-          <input type="text" name="aad" placeholder="AAD">
+          <legend>{{this}}</legend>
+          <input type="text" name="{{this}}_model" placeholder="Model">
+          <input type="text" name="{{this}}_serial" placeholder="Serial">
+          <input type="date" name="{{this}}_dom" placeholder="DOM">
           <!-- TODO(richo) Serial numbers and DOMs -->
-          <button type="submit" class="pure-button pure-button-primary">Create</button>
         </fieldset>
+        {{/each}}
+        <button type="submit" class="pure-button pure-button-primary">Create</button>
       </form>
     </div>
     {{/if}}

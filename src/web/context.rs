@@ -66,6 +66,17 @@ where T: Serialize {
         }
     }
 
+    pub fn error(data: T) -> Context<T> {
+        Context {
+            user: None,
+            signin_error: None,
+            data: data,
+            flash_message: None,
+            // TODO(richo) lol other?
+            module: Module::Other,
+        }
+    }
+
     pub fn set_signin_error(mut self, signin_error: Option<String>) -> Self {
         self.signin_error = signin_error;
         self
