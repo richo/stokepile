@@ -178,12 +178,6 @@ impl<'f> FromForm<'f> for NewEquipmentForm {
                 container => container,
                 reserve => reserve,
                 aad => aad);
-                info!(stringify!(
-            equipment_form_members!(self, item,
-                container => container,
-                reserve => reserve,
-                aad => aad)
-                ));
         }
 
         Ok(NewEquipmentForm {
