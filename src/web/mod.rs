@@ -16,6 +16,12 @@ pub mod routes;
 pub mod schema;
 mod logging;
 
+pub mod links {
+    pub fn equipment_link_for_customer(customer_id: i64) -> String {
+        format!("/rigging/equipment?customer_id={}", &customer_id)
+    }
+}
+
 lazy_static! {
     pub static ref ROCKET_ENV: Environment = Environment::active().expect("Could not get ROCKET_ENV.");
 }
@@ -39,7 +45,7 @@ handlebars_helper!(maintainer_info: |kind: str| {
 });
 
 handlebars_helper!(rigging_equipment_link_for_customer: |customer_id: i64| {
-    format!("/rigging/equipment?customer_id={}", &customer_id)
+    links::equipment_link_for_customer(customer_id)
 });
 
 handlebars_helper!(rigging_customer_link_for_equipment: |customer_id: i64| {

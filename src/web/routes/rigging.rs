@@ -1,3 +1,4 @@
+use crate::web::links;
 use crate::web::db::DbConn;
 use crate::web::auth::WebUser;
 use crate::web::context::Context;
@@ -250,7 +251,7 @@ pub fn equipment_create(user: WebUser,
                         conn: DbConn,
                         flash: Option<FlashMessage<'_, '_>>,
                         equipment: Form<NewEquipmentForm>,
-                        customer_id: i32) -> Result<Template, status::NotFound<Template>> {
+                        customer_id: i32) -> Result<Redirect, status::NotFound<Template>> {
     let customer = match user.user.customer_by_id(&*conn, customer_id) {
         Ok(customer) => customer,
         Err(not_found) => {
@@ -263,17 +264,5 @@ pub fn equipment_create(user: WebUser,
     let equipment = NewCompleteEquipment::from(&equipment, &customer, &user.user);
     equipment.create(&*conn).expect("Couldn't create new equipment");
 
-    let list = get_equipment(&conn, &user.user, Some(customer_id));
-
-    let equipment = EquipmentView {
-        equipment: list,
-        customer: Some(customer),
-        equipment_kinds: vec!["container".into(), "reserve".into(), "aad".into()],
-    };
-
-    let context = Context::rigging(equipment)
-        .set_user(Some(user))
-        .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
-    // This should actually be a redirect to the equipment detail view
-    Ok(Template::render("rigging/equipment", context))
+    Ok(Redirect::to(links::equipment_link_for_customer(customer_id.into())))
 }
