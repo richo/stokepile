@@ -2,6 +2,7 @@ CREATE TABLE components (
   id SERIAL PRIMARY KEY,
   equipment_id integer NOT NULL REFERENCES equipment(id),
   kind varchar NOT NULL,
+  manufacturer varchar NOT NULL,
   model varchar NOT NULL,
   serial varchar NOT NULL,
   manufactured TIMESTAMP NOT NULL,
