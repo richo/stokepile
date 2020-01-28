@@ -1,3 +1,5 @@
+use std::convert::{TryFrom, TryInto};
+
 use crate::web::links;
 use crate::web::db::DbConn;
 use crate::web::auth::WebUser;
@@ -121,10 +123,11 @@ struct ProtoComponent {
     pub dom: Option<NaiveDate>,
 }
 
-// TODO(richo) This can be TryFrom
-impl ProtoComponent {
-    pub fn to_component(self) -> Result<Component, EquipmentFormError> {
-        if let (Some(manufacturer), Some(model), Some(serial), Some(dom)) = (self.manufacturer, self.model, self.serial, self.dom) {
+impl TryFrom<ProtoComponent> for Component {
+    type Error = EquipmentFormError;
+
+    fn try_from(value: ProtoComponent) -> Result<Self, Self::Error> {
+        if let (Some(manufacturer), Some(model), Some(serial), Some(dom)) = (value.manufacturer, value.model, value.serial, value.dom) {
             Ok(Component {
                 manufacturer,
                 model,
@@ -189,10 +192,10 @@ impl<'f> FromForm<'f> for NewEquipmentForm {
         }
 
         Ok(NewEquipmentForm {
-            container: container.to_component()?,
-            reserve: reserve.to_component()?,
+            container: container.try_into()?,
+            reserve: reserve.try_into()?,
             // hahaaaaaa this is a stretch
-            aad: aad.to_component().ok(),
+            aad: aad.try_into().ok(),
         })
     }
 }
