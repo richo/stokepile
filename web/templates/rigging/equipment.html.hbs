@@ -15,20 +15,23 @@
     <table class="pure-table pure-table-horizontal device-list pure-table-striped">
       <thead>
         <tr>
-          <th>container</th>
-          <th>reserve</th>
-          <th>aad</th>
-          <th>customer</th>
+          <th>manufacturer</th>
+          <th>model</th>
+          <th>serial</th>
+          <th>dom</th>
         </tr>
-        {{#each data.equipment}}
-        <tr>
-          <td>{{this.container}}</td>
-          <td>{{this.reserve}}</td>
-          <td>{{this.aad}}</td>
-          <td><a href="{{rigging_customer_link_for_equipment this.customer_id}}">equipment</a></td>
-        </tr>
-        {{/each}}
       </thead>
+        {{#each data.equipment}}
+        <!-- TODO(richo) breaks between rigs -->
+          {{#each this.components}}
+          <tr>
+            <td>{{this.manufacturer}}</td>
+            <td>{{this.model}}</td>
+            <td>{{this.serial}}</td>
+            <td>{{this.manufactured}}</td>
+          </tr>
+          {{/each}}
+        {{/each}}
     </table>
     {{#if data.customer }}
     <div class="new-equipment">
@@ -39,6 +42,7 @@
         <fieldset>
 
           <legend>{{this}}</legend>
+          <input type="text" name="{{this}}_manufacturer" placeholder="Manufacturer">
           <input type="text" name="{{this}}_model" placeholder="Model">
           <input type="text" name="{{this}}_serial" placeholder="Serial">
           <input type="date" name="{{this}}_dom" placeholder="DOM">

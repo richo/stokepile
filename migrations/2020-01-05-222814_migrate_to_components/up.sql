@@ -5,7 +5,7 @@ CREATE TABLE components (
   manufacturer varchar NOT NULL,
   model varchar NOT NULL,
   serial varchar NOT NULL,
-  manufactured TIMESTAMP NOT NULL,
+  manufactured date NOT NULL,
 
   -- Extra data associated with this component
   data jsonb DEFAULT '{}'::jsonb NOT NULL

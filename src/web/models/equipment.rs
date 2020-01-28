@@ -2,7 +2,7 @@ use diesel::prelude::*;
 
 use crate::web::schema::equipment;
 use crate::web::routes::rigging::NewEquipmentForm;
-use crate::web::models::{User, Customer, Component, NewComponent};
+use crate::web::models::{Assembly, User, Customer, Component, NewComponent};
 
 #[derive(Identifiable, Queryable, Debug, Serialize)]
 #[table_name = "equipment"]
@@ -28,9 +28,20 @@ impl Equipment {
     //     equipment.load::<Equipment>(&*conn)
     // }
 
-    // TODO(richo)
-    // pub fn components(conn: &PgConnection) -> QueryResult<Vec<Component>> {
-    // }
+    pub fn components(&self, conn: &PgConnection) -> QueryResult<Vec<Component>> {
+        use crate::web::schema::components::dsl::*;
+
+        components.filter(equipment_id.eq(self.id)).load::<Component>(conn)
+    }
+
+    pub fn to_assembly(self, conn: &PgConnection) -> QueryResult<Assembly> {
+        let components = self.components(&*conn)?;
+
+        Ok(Assembly {
+            equipment: self,
+            components,
+        })
+    }
 }
 
 // Should htis actually just be a Equipment::create ?
@@ -48,17 +59,45 @@ impl NewEquipment {
 /// A container struct representing the global equipment object as well as it's associated
 /// components.
 #[derive(Debug)]
-pub struct NewCompleteEquipment<'a> {
+pub struct NewCompleteEquipment<'b> {
     equipment: NewEquipment,
-    components: Vec<NewComponent<'a>>,
+    components: Vec<NewComponent<'b>>,
 }
 
 impl<'a> NewCompleteEquipment<'a> {
     // Do we want some request global user_id? Seems positive but I also don't really see how to
     // make it happen.
-    pub fn from(equipment: &NewEquipmentForm, customer: &Customer, user: &User) -> Self {
-        let components = vec![];
-        // TODO(richo) populate the components
+    pub fn from(equipment: &'a NewEquipmentForm, customer: &Customer, user: &User) -> Self {
+        let mut components = vec![];
+        components.push(NewComponent {
+            // This is filled in by `create`
+            equipment_id: 0,
+            kind: "container",
+            manufacturer: &equipment.container.manufacturer,
+            model: &equipment.container.model,
+            serial: &equipment.container.serial,
+            manufactured: &equipment.container.dom,
+        });
+        components.push(NewComponent {
+            // This is filled in by `create`
+            equipment_id: 0,
+            kind: "reserve",
+            manufacturer: &equipment.reserve.manufacturer,
+            model: &equipment.reserve.model,
+            serial: &equipment.reserve.serial,
+            manufactured: &equipment.reserve.dom,
+        });
+        if let Some(ref aad) = equipment.aad {
+            components.push(NewComponent {
+                // This is filled in by `create`
+                equipment_id: 0,
+                kind: "aad",
+                manufacturer: &aad.manufacturer,
+                model: &aad.model,
+                serial: &aad.serial,
+                manufactured: &aad.dom,
+            });
+        }
 
         NewCompleteEquipment {
             equipment: NewEquipment {
@@ -73,7 +112,9 @@ impl<'a> NewCompleteEquipment<'a> {
         conn.transaction(|| {
             let equipment = self.equipment.create(&conn)?;
 
-            for component in self.components {
+            for mut component in self.components {
+                // First set the equipment_id, then create.
+                component.equipment_id = equipment.id;
                 component.create(equipment.id, &conn)?;
             }
 

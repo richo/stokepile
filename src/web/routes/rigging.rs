@@ -2,7 +2,7 @@ use crate::web::links;
 use crate::web::db::DbConn;
 use crate::web::auth::WebUser;
 use crate::web::context::Context;
-use crate::web::models::{Customer, NewCustomer, Equipment, NewCompleteEquipment, User};
+use crate::web::models::{Assembly, Customer, NewCustomer, Equipment, NewCompleteEquipment, User};
 
 use rocket::request::{Form, FromForm, FormItems, FlashMessage};
 use rocket::response::{status, Flash, Redirect};
@@ -100,13 +100,14 @@ pub fn service_bulletins(user: WebUser, conn: DbConn, flash: Option<FlashMessage
 
 #[derive(Debug, Serialize)]
 struct EquipmentView {
-    equipment: Vec<Equipment>,
+    equipment: Vec<Assembly>,
     customer: Option<Customer>,
     equipment_kinds: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct Component {
+    pub manufacturer: String,
     pub model: String,
     pub serial: String,
     pub dom: NaiveDate,
@@ -114,15 +115,18 @@ pub struct Component {
 
 #[derive(Debug, Default)]
 struct ProtoComponent {
+    pub manufacturer: Option<String>,
     pub model: Option<String>,
     pub serial: Option<String>,
     pub dom: Option<NaiveDate>,
 }
 
+// TODO(richo) This can be TryFrom
 impl ProtoComponent {
     pub fn to_component(self) -> Result<Component, EquipmentFormError> {
-        if let (Some(model), Some(serial), Some(dom)) = (self.model, self.serial, self.dom) {
+        if let (Some(manufacturer), Some(model), Some(serial), Some(dom)) = (self.manufacturer, self.model, self.serial, self.dom) {
             Ok(Component {
+                manufacturer,
                 model,
                 serial,
                 dom,
@@ -147,6 +151,9 @@ macro_rules! equipment_form_members {
     ( $self:expr, $item:expr, $( $name:ident => $struct:expr ),+ ) => (
         match $item.key.as_str() {
             $(
+                concat!(stringify!($name), "_manufacturer") => {
+                    $struct.manufacturer = Some($item.value.url_decode().map_err(|e| EquipmentFormError::Parsing(e))?);
+                },
                 concat!(stringify!($name), "_model") => {
                     $struct.model = Some($item.value.url_decode().map_err(|e| EquipmentFormError::Parsing(e))?);
                 },
@@ -217,13 +224,15 @@ pub fn equipment(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>
         equipment_kinds: vec!["container".into(), "reserve".into(), "aad".into()],
     };
 
+    info!("Trying to inject ctx {:?}", &equipment);
+
     let context = Context::rigging(equipment)
         .set_user(Some(user))
         .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
     Template::render("rigging/equipment", context)
 }
 
-fn get_equipment(conn: &DbConn, user: &User, customer_id: Option<i32>) -> Vec<Equipment> {
+fn get_equipment(conn: &DbConn, user: &User, customer_id: Option<i32>) -> Vec<Assembly> {
     match customer_id {
         Some(id) => {
             user.customer_by_id(&*conn, id)
@@ -239,6 +248,9 @@ fn get_equipment(conn: &DbConn, user: &User, customer_id: Option<i32>) -> Vec<Eq
                 .expect("Couldn't load equipment for customer")
         }
     }
+    .into_iter()
+    .map(|equipment| { equipment.to_assembly(&*conn).expect("Couldn't load assembly") })
+    .collect()
 }
 
 #[derive(Debug, Serialize)]
@@ -261,8 +273,8 @@ pub fn equipment_create(user: WebUser,
         }
     };
 
-    let equipment = NewCompleteEquipment::from(&equipment, &customer, &user.user);
-    equipment.create(&*conn).expect("Couldn't create new equipment");
+    let assembly = NewCompleteEquipment::from(&equipment, &customer, &user.user);
+    assembly.create(&*conn).expect("Couldn't create new equipment");
 
     Ok(Redirect::to(links::equipment_link_for_customer(customer_id.into())))
 }

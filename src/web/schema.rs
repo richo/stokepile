@@ -5,9 +5,10 @@ table! {
         id -> Int4,
         equipment_id -> Int4,
         kind -> Varchar,
+        manufacturer -> Varchar,
         model -> Varchar,
         serial -> Varchar,
-        manufactured -> Timestamp,
+        manufactured -> Date,
         data -> Jsonb,
     }
 }

@@ -1,6 +1,9 @@
 #![allow(proc_macro_derive_resolution_fallback)]
 use rand;
 
+mod assembly;
+pub use self::assembly::Assembly;
+
 mod customer;
 pub use self::customer::{NewCustomer, Customer};
 
