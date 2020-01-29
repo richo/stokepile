@@ -2,7 +2,7 @@ use diesel::prelude::*;
 
 use crate::web::schema::equipment;
 use crate::web::routes::rigging::NewEquipmentForm;
-use crate::web::models::{Assembly, User, Customer, Component, NewComponent};
+use crate::web::models::{Assembly, User, Customer, Component, NewComponent, Repack};
 
 #[derive(Identifiable, Queryable, Debug, Serialize)]
 #[table_name = "equipment"]
@@ -36,10 +36,12 @@ impl Equipment {
 
     pub fn to_assembly(self, conn: &PgConnection) -> QueryResult<Assembly> {
         let components = self.components(&*conn)?;
+        let mut repacks = Repack::by_equipment(self.id, &*conn)?;
 
         Ok(Assembly {
             equipment: self,
             components,
+            last_repack: repacks.pop(),
         })
     }
 }

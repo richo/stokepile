@@ -12,27 +12,30 @@
       <h2>Equipment for {{data.customer.name}}</h2>
     {{/if}}
 
-    <table class="pure-table pure-table-horizontal device-list pure-table-striped">
-      <thead>
-        <tr>
-          <th>manufacturer</th>
-          <th>model</th>
-          <th>serial</th>
-          <th>dom</th>
-        </tr>
-      </thead>
-        {{#each data.equipment}}
-        <!-- TODO(richo) breaks between rigs -->
-          {{#each this.components}}
+    {{#each data.equipment}}
+    <div>
+      <table class="pure-table pure-table-horizontal device-list pure-table-striped">
+        <thead>
           <tr>
-            <td>{{this.manufacturer}}</td>
-            <td>{{this.model}}</td>
-            <td>{{this.serial}}</td>
-            <td>{{this.manufactured}}</td>
+            <th>manufacturer</th>
+            <th>model</th>
+            <th>serial</th>
+            <th>dom</th>
           </tr>
-          {{/each}}
+        </thead>
+        <!-- TODO(richo) breaks between rigs -->
+        {{#each this.components}}
+        <tr>
+          <td>{{this.manufacturer}}</td>
+          <td>{{this.model}}</td>
+          <td>{{this.serial}}</td>
+          <td>{{this.manufactured}}</td>
+        </tr>
         {{/each}}
-    </table>
+      </table>
+      <p>Last repack: {{this.last_repack}}</p>
+    </div>
+    {{/each}}
     {{#if data.customer }}
     <div class="new-equipment">
       <h2>New Equipment</h2>

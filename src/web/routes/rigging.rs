@@ -227,8 +227,6 @@ pub fn equipment(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>
         equipment_kinds: vec!["container".into(), "reserve".into(), "aad".into()],
     };
 
-    info!("Trying to inject ctx {:?}", &equipment);
-
     let context = Context::rigging(equipment)
         .set_user(Some(user))
         .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));

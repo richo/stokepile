@@ -31,6 +31,9 @@ pub use self::device::{Device, NewDevice};
 mod key;
 pub use self::key::{Key, NewKey};
 
+mod repack;
+pub use self::repack::{Repack, NewRepack};
+
 mod global_settings;
 pub use self::global_settings::GlobalSetting;
 

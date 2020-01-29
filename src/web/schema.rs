@@ -79,6 +79,15 @@ table! {
 }
 
 table! {
+    repacks (id) {
+        id -> Int4,
+        rigger -> Int4,
+        equipment -> Int4,
+        date -> Date,
+    }
+}
+
+table! {
     sessions (id) {
         id -> Varchar,
         user_id -> Int4,
@@ -110,6 +119,8 @@ joinable!(equipment -> customers (customer_id));
 joinable!(equipment -> users (user_id));
 joinable!(integrations -> users (user_id));
 joinable!(keys -> users (user_id));
+joinable!(repacks -> equipment (equipment));
+joinable!(repacks -> users (rigger));
 joinable!(sessions -> users (user_id));
 
 allow_tables_to_appear_in_same_query!(
@@ -121,6 +132,7 @@ allow_tables_to_appear_in_same_query!(
     integrations,
     invites,
     keys,
+    repacks,
     sessions,
     users,
 );
