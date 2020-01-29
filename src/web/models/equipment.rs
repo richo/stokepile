@@ -36,12 +36,14 @@ impl Equipment {
 
     pub fn to_assembly(self, conn: &PgConnection) -> QueryResult<Assembly> {
         let components = self.components(&*conn)?;
-        let mut repacks = Repack::by_equipment(self.id, &*conn)?;
+        let last_repack = Repack::by_equipment(self.id, &*conn)?.pop();
+        let next_due = last_repack.as_ref().map(|repack| repack.next_due());
 
         Ok(Assembly {
             equipment: self,
             components,
-            last_repack: repacks.pop(),
+            last_repack,
+            next_due,
         })
     }
 }

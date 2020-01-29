@@ -33,7 +33,10 @@
         </tr>
         {{/each}}
       </table>
-      <p>Last repack: {{this.last_repack}}</p>
+      {{#if this.last_repack}}
+        <p>Last repack: {{this.last_repack.date}}</p>
+        <p>Next due: {{this.next_due}}</p>
+      {{/if}}
     </div>
     {{/each}}
     {{#if data.customer }}
