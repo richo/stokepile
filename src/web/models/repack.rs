@@ -9,6 +9,8 @@ pub struct Repack {
     rigger: i32,
     equipment: i32,
     pub date: NaiveDate,
+    service: String,
+    location: String,
 }
 
 impl Repack {

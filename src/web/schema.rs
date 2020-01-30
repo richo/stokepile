@@ -84,6 +84,8 @@ table! {
         rigger -> Int4,
         equipment -> Int4,
         date -> Date,
+        service -> Varchar,
+        location -> Varchar,
     }
 }
 
