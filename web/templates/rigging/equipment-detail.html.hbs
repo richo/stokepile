@@ -42,6 +42,18 @@
       </tr>
       {{/each}}
     </table>
+      <form method="POST" class="pure-form" action="/rigging/equipment/{{data.equipment.equipment.id}}/repack">
+        <fieldset>
+          <legend>Create repack record</legend>
+          <input type="text" name="place" placeholder="Place">
+          <!-- TODO(richo) Populate seal and serial automatically -->
+          <input type="text" name="certificate" placeholder="Certificate">
+          <input type="text" name="seal" placeholder="Serial">
+          <input type="textbox" name="service" placeholder="service">
+          <input type="date" name="date" placeholder="Date">
+        </fieldset>
+        <button type="submit" class="pure-button pure-button-primary">repack</button>
+      </form>
   </div>
 </div>
 {{> common/footer }}
