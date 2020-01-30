@@ -46,6 +46,14 @@ impl Equipment {
             next_due,
         })
     }
+
+    pub fn by_user_and_id(user: &User, equipment_id: i32, conn: &PgConnection) -> QueryResult<Equipment> {
+        use crate::web::schema::equipment::dsl::*;
+        equipment
+            .filter(id.eq(equipment_id))
+            .filter(user_id.eq(user.id))
+            .get_result::<Equipment>(conn)
+    }
 }
 
 // Should htis actually just be a Equipment::create ?

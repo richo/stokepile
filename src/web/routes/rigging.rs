@@ -4,13 +4,15 @@ use crate::web::links;
 use crate::web::db::DbConn;
 use crate::web::auth::WebUser;
 use crate::web::context::Context;
-use crate::web::models::{Assembly, Customer, NewCustomer, Equipment, NewCompleteEquipment, User};
+use crate::web::models::{Assembly, Customer, NewCustomer, Equipment, NewCompleteEquipment, User, Repack};
 
 use rocket::request::{Form, FromForm, FormItems, FlashMessage};
 use rocket::response::{status, Flash, Redirect};
 use rocket_contrib::templates::Template;
 
 use chrono::naive::NaiveDate;
+
+pub static EQUIPMENT_KINDS: &[&'static str] = &["container", "reserve", "aad"];
 
 #[get("/")]
 pub fn index(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>) -> Template {
@@ -40,7 +42,6 @@ pub fn customers(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>
 struct CustomerDetailView {
     customer: Customer,
     equipment: Vec<Equipment>,
-    repacks: (),
 }
 
 #[get("/customer/<id>")]
@@ -51,7 +52,6 @@ pub fn customer_detail(user: WebUser, conn: DbConn, id: i32, flash: Option<Flash
     let view_data = CustomerDetailView {
         customer,
         equipment,
-        repacks: (),
     };
 
     let context = Context::rigging(view_data)
@@ -104,7 +104,7 @@ pub fn service_bulletins(user: WebUser, conn: DbConn, flash: Option<FlashMessage
 struct EquipmentView {
     equipment: Vec<Assembly>,
     customer: Option<Customer>,
-    equipment_kinds: Vec<String>,
+    equipment_kinds: &'static [&'static str],
 }
 
 #[derive(Debug, Serialize)]
@@ -224,7 +224,7 @@ pub fn equipment(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>
     let equipment = EquipmentView {
         equipment: list,
         customer,
-        equipment_kinds: vec!["container".into(), "reserve".into(), "aad".into()],
+        equipment_kinds: EQUIPMENT_KINDS,
     };
 
     let context = Context::rigging(equipment)
@@ -252,6 +252,32 @@ fn get_equipment(conn: &DbConn, user: &User, customer_id: Option<i32>) -> Vec<As
     .into_iter()
     .map(|equipment| { equipment.to_assembly(&*conn).expect("Couldn't load assembly") })
     .collect()
+}
+
+#[derive(Debug, Serialize)]
+struct EquipmentDetailView {
+    equipment: Assembly,
+    repacks: Vec<Repack>,
+}
+
+#[get("/equipment/<equipment_id>")]
+pub fn equipment_detail(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>, equipment_id: i32) -> Template {
+    let equipment = Equipment::by_user_and_id(&user, equipment_id, &*conn)
+        .expect("Couldn't load equipment")
+        .to_assembly(&*conn)
+        .expect("Couldn't convert to assembly");
+    let repacks = equipment.repacks(&*conn)
+        .expect("Couldn't load repacks");
+
+    let view = EquipmentDetailView {
+        equipment,
+        repacks,
+    };
+
+    let context = Context::rigging(view)
+        .set_user(Some(user))
+        .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
+    Template::render("rigging/equipment-detail", context)
 }
 
 #[derive(Debug, Serialize)]

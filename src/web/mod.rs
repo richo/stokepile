@@ -52,6 +52,10 @@ handlebars_helper!(rigging_customer_link_for_equipment: |customer_id: i64| {
     format!("/rigging/customer/{}", &customer_id)
 });
 
+handlebars_helper!(rigging_equipment_detail: |equipment_id: i64| {
+    format!("/rigging/equipment/{}", &equipment_id)
+});
+
 pub fn configure_rocket() -> Rocket {
     rocket::ignite()
         .manage(init_pool(false))
@@ -114,6 +118,7 @@ pub fn configure_rocket() -> Rocket {
                 routes::rigging::customer_detail,
                 routes::rigging::equipment,
                 routes::rigging::equipment_create,
+                routes::rigging::equipment_detail,
                 routes::rigging::service_bulletins,
 
             ]
@@ -141,6 +146,7 @@ fn template_engine() -> impl rocket::fairing::Fairing {
         engines.handlebars.register_helper("maintainer_info", Box::new(maintainer_info));
         engines.handlebars.register_helper("rigging_equipment_link_for_customer", Box::new(rigging_equipment_link_for_customer));
         engines.handlebars.register_helper("rigging_customer_link_for_equipment", Box::new(rigging_customer_link_for_equipment));
+        engines.handlebars.register_helper("rigging_equipment_detail", Box::new(rigging_equipment_detail));
         engines.handlebars.set_strict_mode(true);
     })
 }
