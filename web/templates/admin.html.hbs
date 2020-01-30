@@ -3,11 +3,7 @@
 
 <div class="pure-g">
   <div class="pure-u-1">
-    {{#if flash_message}}
-    <div class="flash-message flash-message-{{flash_message.0}}">
-      {{flash_message.1}}
-    </div>
-    {{/if}}
+    {{> common/flash-message}}
 
     <div>
       <form method="POST" class="pure-form" action="/admin/invite">
