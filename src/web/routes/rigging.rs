@@ -6,6 +6,7 @@ use crate::web::auth::WebUser;
 use crate::web::context::Context;
 use crate::web::models::{Assembly, Customer, NewCustomer, Equipment, NewCompleteEquipment, User, Repack};
 
+use rocket::http::RawStr;
 use rocket::request::{Form, FromForm, FormItems, FlashMessage};
 use rocket::response::{status, Flash, Redirect};
 use rocket_contrib::templates::Template;
@@ -123,10 +124,50 @@ struct ProtoComponent {
     pub dom: Option<NaiveDate>,
 }
 
+#[derive(Debug, Default)]
+struct OptionalProtoComponent {
+    pub manufacturer: Option<String>,
+    pub model: Option<String>,
+    pub serial: Option<String>,
+    pub dom: Option<NaiveDate>,
+}
+
+trait UnpackValue {
+    fn convert_value(&self, value: &RawStr) -> Result<String, EquipmentFormError> {
+        value.url_decode().map_err(|e| EquipmentFormError::Parsing(e))
+    }
+
+    fn convert_date(&self, value: &RawStr) -> Result<NaiveDate, EquipmentFormError> {
+        NaiveDate::parse_from_str(&self.convert_value(value)?, "%Y-%m-%d")
+            .map_err(|e| EquipmentFormError::DateParsing(e))
+    }
+}
+
+impl UnpackValue for ProtoComponent {}
+impl UnpackValue for OptionalProtoComponent {}
+
 impl TryFrom<ProtoComponent> for Component {
     type Error = EquipmentFormError;
 
     fn try_from(value: ProtoComponent) -> Result<Self, Self::Error> {
+        if let (Some(manufacturer), Some(model), Some(serial), Some(dom)) = (value.manufacturer, value.model, value.serial, value.dom) {
+            Ok(Component {
+                manufacturer,
+                model,
+                serial,
+                dom,
+            })
+        } else {
+            // TODO(richo) Good error
+            Err(EquipmentFormError::MissingField)
+        }
+    }
+}
+
+impl TryFrom<OptionalProtoComponent> for Component {
+    type Error = EquipmentFormError;
+
+    fn try_from(value: OptionalProtoComponent) -> Result<Self, Self::Error> {
         if let (Some(manufacturer), Some(model), Some(serial), Some(dom)) = (value.manufacturer, value.model, value.serial, value.dom) {
             Ok(Component {
                 manufacturer,
@@ -151,21 +192,22 @@ pub enum EquipmentFormError {
 
 // TODO(richo) Support for an optional AAD
 macro_rules! equipment_form_members {
-    ( $self:expr, $item:expr, $( $name:ident => $struct:expr ),+ ) => (
+    ( $item:expr, $( $name:ident => $struct:expr ),+ ) => (
         match $item.key.as_str() {
+            // TODO(richo) Should we just stash the potentiaal errors in the proto object for a
+            // while and barf later trying to convert?
             $(
                 concat!(stringify!($name), "_manufacturer") => {
-                    $struct.manufacturer = Some($item.value.url_decode().map_err(|e| EquipmentFormError::Parsing(e))?);
+                    $struct.manufacturer = Some($struct.convert_value($item.value)?);
                 },
                 concat!(stringify!($name), "_model") => {
-                    $struct.model = Some($item.value.url_decode().map_err(|e| EquipmentFormError::Parsing(e))?);
+                    $struct.model = Some($struct.convert_value($item.value)?);
                 },
                 concat!(stringify!($name), "_serial") => {
-                    $struct.serial = Some($item.value.url_decode().map_err(|e| EquipmentFormError::Parsing(e))?);
+                    $struct.serial = Some($struct.convert_value($item.value)?);
                 },
                 concat!(stringify!($name), "_dom") => {
-                    $struct.dom = Some(NaiveDate::parse_from_str(&$item.value.url_decode().map_err(|e| EquipmentFormError::Parsing(e))?, "%Y-%m-%d")
-                        .map_err(|e| EquipmentFormError::DateParsing(e))?);
+                    $struct.dom = Some($struct.convert_date($item.value)?);
                 },
             )+
                 // TODO(richo)
@@ -182,10 +224,10 @@ impl<'f> FromForm<'f> for NewEquipmentForm {
     fn from_form(items: &mut FormItems<'f>, strict: bool) -> Result<NewEquipmentForm, EquipmentFormError> {
         let mut container = ProtoComponent::default();
         let mut reserve = ProtoComponent::default();
-        let mut aad = ProtoComponent::default();
+        let mut aad = OptionalProtoComponent::default();
 
         for item in items {
-            equipment_form_members!(self, item,
+            equipment_form_members!(item,
                 container => container,
                 reserve => reserve,
                 aad => aad);
