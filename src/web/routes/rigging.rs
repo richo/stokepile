@@ -357,3 +357,141 @@ pub fn equipment_create(user: WebUser,
 
     Ok(Redirect::to(links::equipment_link_for_customer(customer_id.into())))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::web::test_helpers::*;
+    use crate::web::test_helpers::rigging::*;
+
+    use rocket::http::{ContentType, Status};
+
+    client_for_routes!(equipment_create => client);
+
+    #[test]
+    fn test_create_equipment_with_aad() {
+        init_env();
+
+        let client = client();
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+        signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
+
+        let form = "\
+container_manufacturer=c_mfgr&\
+container_model=c_mdl&\
+container_serial=c_srl&\
+container_dom=2010-12-30&\
+reserve_manufacturer=r_mfgr&\
+reserve_model=r_mdl&\
+reserve_serial=r_srl&\
+reserve_dom=2011-11-29&\
+aad_manufacturer=a_mfgr&\
+aad_model=a_mdl&\
+aad_serial=a_srl&\
+aad_dom=2012-10-28&\
+";
+
+        let conn = db_conn(&client);
+        let customer = create_customer(&user, &*conn);
+        drop(conn);
+
+        let req = client
+            .post(format!("/customer/{}/equipment", customer.id))
+            .header(ContentType::Form)
+            .body(form);
+
+        let response = req.dispatch();
+
+        assert_eq!(response.status(), Status::SeeOther);
+
+        let conn = db_conn(&client);
+        let mut equipment = customer.equipment(&*conn).expect("Couldn't load equipment");
+        assert_eq!(1, equipment.len());
+
+        let assembly = equipment.pop()
+            .unwrap()
+            .to_assembly(&*conn)
+            .expect("Couldn't load assembly");
+        assert_eq!(3, assembly.components.len());
+
+        let container = assembly.container();
+        assert_eq!(container.manufacturer, "c_mfgr");
+        assert_eq!(container.model, "c_mdl");
+        assert_eq!(container.serial, "c_srl");
+        assert_eq!(container.manufactured, NaiveDate::from_ymd(2010, 12, 30));
+
+        let reserve = assembly.reserve();
+        assert_eq!(reserve.manufacturer, "r_mfgr");
+        assert_eq!(reserve.model, "r_mdl");
+        assert_eq!(reserve.serial, "r_srl");
+        assert_eq!(reserve.manufactured, NaiveDate::from_ymd(2011, 11, 29));
+
+        let aad = assembly.aad().unwrap();
+        assert_eq!(aad.manufacturer, "a_mfgr");
+        assert_eq!(aad.model, "a_mdl");
+        assert_eq!(aad.serial, "a_srl");
+        assert_eq!(aad.manufactured, NaiveDate::from_ymd(2012, 10, 28));
+    }
+
+    #[test]
+    fn test_create_equipment_without_aad() {
+        init_env();
+
+        let client = client();
+        let user = create_user(&client, "test@email.com", "p@55w0rd");
+        signin(&client, "test%40email.com", "p%4055w0rd").unwrap();
+
+        let form = "\
+container_manufacturer=c_mfgr&\
+container_model=c_mdl&\
+container_serial=c_srl&\
+container_dom=2010-12-30&\
+reserve_manufacturer=r_mfgr&\
+reserve_model=r_mdl&\
+reserve_serial=r_srl&\
+reserve_dom=2011-11-29&\
+aad_manufacturer=&\
+aad_model=&\
+aad_serial=&\
+aad_dom=\
+";
+
+        let conn = db_conn(&client);
+        let customer = create_customer(&user, &*conn);
+        drop(conn);
+
+        let req = client
+            .post(format!("/customer/{}/equipment", customer.id))
+            .header(ContentType::Form)
+            .body(form);
+
+        let response = req.dispatch();
+
+        assert_eq!(response.status(), Status::SeeOther);
+
+        let conn = db_conn(&client);
+        let mut equipment = customer.equipment(&*conn).expect("Couldn't load equipment");
+        assert_eq!(1, equipment.len());
+
+        let assembly = equipment.pop()
+            .unwrap()
+            .to_assembly(&*conn)
+            .expect("Couldn't load assembly");
+        assert_eq!(3, assembly.components.len());
+
+        let container = assembly.container();
+        assert_eq!(container.manufacturer, "c_mfgr");
+        assert_eq!(container.model, "c_mdl");
+        assert_eq!(container.serial, "c_srl");
+        assert_eq!(container.manufactured, NaiveDate::from_ymd(2010, 12, 30));
+
+        let reserve = assembly.reserve();
+        assert_eq!(reserve.manufacturer, "r_mfgr");
+        assert_eq!(reserve.model, "r_mdl");
+        assert_eq!(reserve.serial, "r_srl");
+        assert_eq!(reserve.manufactured, NaiveDate::from_ymd(2011, 11, 29));
+
+        let aad = assembly.aad();
+        assert!(aad.is_none());
+    }
+}
