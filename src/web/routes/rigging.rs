@@ -121,15 +121,7 @@ struct ProtoComponent {
     pub manufacturer: Option<String>,
     pub model: Option<String>,
     pub serial: Option<String>,
-    pub dom: Option<NaiveDate>,
-}
-
-#[derive(Debug, Default)]
-struct OptionalProtoComponent {
-    pub manufacturer: Option<String>,
-    pub model: Option<String>,
-    pub serial: Option<String>,
-    pub dom: Option<NaiveDate>,
+    pub dom: Option<String>,
 }
 
 trait UnpackValue {
@@ -137,47 +129,35 @@ trait UnpackValue {
         value.url_decode().map_err(|e| EquipmentFormError::Parsing(e))
     }
 
-    fn convert_date(&self, value: &RawStr) -> Result<NaiveDate, EquipmentFormError> {
-        NaiveDate::parse_from_str(&self.convert_value(value)?, "%Y-%m-%d")
+    fn convert_date(value: &str) -> Result<NaiveDate, EquipmentFormError> {
+        NaiveDate::parse_from_str(value, "%Y-%m-%d")
             .map_err(|e| EquipmentFormError::DateParsing(e))
     }
 }
 
 impl UnpackValue for ProtoComponent {}
-impl UnpackValue for OptionalProtoComponent {}
 
 impl TryFrom<ProtoComponent> for Component {
     type Error = EquipmentFormError;
 
     fn try_from(value: ProtoComponent) -> Result<Self, Self::Error> {
-        if let (Some(manufacturer), Some(model), Some(serial), Some(dom)) = (value.manufacturer, value.model, value.serial, value.dom) {
-            Ok(Component {
-                manufacturer,
-                model,
-                serial,
-                dom,
-            })
-        } else {
-            // TODO(richo) Good error
-            Err(EquipmentFormError::MissingField)
-        }
-    }
-}
-
-impl TryFrom<OptionalProtoComponent> for Component {
-    type Error = EquipmentFormError;
-
-    fn try_from(value: OptionalProtoComponent) -> Result<Self, Self::Error> {
-        if let (Some(manufacturer), Some(model), Some(serial), Some(dom)) = (value.manufacturer, value.model, value.serial, value.dom) {
-            Ok(Component {
-                manufacturer,
-                model,
-                serial,
-                dom,
-            })
-        } else {
-            // TODO(richo) Good error
-            Err(EquipmentFormError::MissingField)
+        match (value.manufacturer, value.model, value.serial, value.dom) {
+            (Some(manufacturer), Some(model), Some(serial), _) if
+                manufacturer == "" && model == "" && serial == "" =>  {
+                    Err(EquipmentFormError::ComponentNotProvided)
+                },
+                (Some(manufacturer), Some(model), Some(serial), Some(dom)) =>  {
+                    Ok(Component {
+                        manufacturer,
+                        model,
+                        serial,
+                        dom: ProtoComponent::convert_date(&dom)?,
+                    })
+            },
+            _ => {
+                // TODO(richo) Good error
+                Err(EquipmentFormError::MissingField)
+            }
         }
     }
 }
@@ -188,6 +168,8 @@ pub enum EquipmentFormError {
     DateParsing(chrono::ParseError),
     MissingField,
     ExtraFields,
+
+    ComponentNotProvided,
 }
 
 // TODO(richo) Support for an optional AAD
@@ -207,7 +189,7 @@ macro_rules! equipment_form_members {
                     $struct.serial = Some($struct.convert_value($item.value)?);
                 },
                 concat!(stringify!($name), "_dom") => {
-                    $struct.dom = Some($struct.convert_date($item.value)?);
+                    $struct.dom = Some($struct.convert_value($item.value)?);
                 },
             )+
                 // TODO(richo)
@@ -224,7 +206,7 @@ impl<'f> FromForm<'f> for NewEquipmentForm {
     fn from_form(items: &mut FormItems<'f>, strict: bool) -> Result<NewEquipmentForm, EquipmentFormError> {
         let mut container = ProtoComponent::default();
         let mut reserve = ProtoComponent::default();
-        let mut aad = OptionalProtoComponent::default();
+        let mut aad = ProtoComponent::default();
 
         for item in items {
             equipment_form_members!(item,
@@ -233,11 +215,17 @@ impl<'f> FromForm<'f> for NewEquipmentForm {
                 aad => aad);
         }
 
+        // deal with the aad specifically since we want to throw away kind kind of error
+        let aad = match aad.try_into() {
+            Ok(aad) => Some(aad),
+            Err(EquipmentFormError::ComponentNotProvided) => None,
+            Err(e) => Err(e)?,
+        };
+
         Ok(NewEquipmentForm {
             container: container.try_into()?,
             reserve: reserve.try_into()?,
-            // hahaaaaaa this is a stretch
-            aad: aad.try_into().ok(),
+            aad,
         })
     }
 }
@@ -477,7 +465,7 @@ aad_dom=\
             .unwrap()
             .to_assembly(&*conn)
             .expect("Couldn't load assembly");
-        assert_eq!(3, assembly.components.len());
+        assert_eq!(2, assembly.components.len());
 
         let container = assembly.container();
         assert_eq!(container.manufacturer, "c_mfgr");
