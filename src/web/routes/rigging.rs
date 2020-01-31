@@ -11,7 +11,7 @@ use rocket::request::{Form, FromForm, FormItems, FlashMessage};
 use rocket::response::{status, Flash, Redirect};
 use rocket_contrib::templates::Template;
 
-use chrono::naive::NaiveDate;
+use chrono::prelude::*;
 
 pub static EQUIPMENT_KINDS: &[&'static str] = &["container", "reserve", "aad"];
 
@@ -300,6 +300,15 @@ fn get_equipment(conn: &DbConn, user: &User, customer_id: Option<i32>) -> Vec<As
 struct EquipmentDetailView {
     equipment: Assembly,
     repacks: Vec<Repack>,
+    today: String,
+}
+
+pub fn today_for_form() -> String {
+    // TODO(richo) timezones? Do we do this in JS?
+
+    Utc::today()
+        .format("%Y-%m-%d")
+        .to_string()
 }
 
 #[get("/equipment/<equipment_id>")]
@@ -314,6 +323,7 @@ pub fn equipment_detail(user: WebUser, conn: DbConn, flash: Option<FlashMessage<
     let view = EquipmentDetailView {
         equipment,
         repacks,
+        today: today_for_form(),
     };
 
     let context = Context::rigging(view)
