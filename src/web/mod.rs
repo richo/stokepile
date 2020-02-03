@@ -10,6 +10,7 @@ use logging::RequestLogger;
 pub mod auth;
 pub mod context;
 pub mod db;
+pub mod form_hacks;
 pub mod models;
 pub mod oauth;
 pub mod routes;
@@ -19,6 +20,10 @@ mod logging;
 pub mod links {
     pub fn equipment_link_for_customer(customer_id: i64) -> String {
         format!("/rigging/equipment?customer_id={}", &customer_id)
+    }
+
+    pub fn equipment_detail_link(equipment_id: i64) -> String {
+        format!("/rigging/equipment/{}", &equipment_id)
     }
 }
 
@@ -53,7 +58,7 @@ handlebars_helper!(rigging_customer_link_for_equipment: |customer_id: i64| {
 });
 
 handlebars_helper!(rigging_equipment_detail: |equipment_id: i64| {
-    format!("/rigging/equipment/{}", &equipment_id)
+    links::equipment_detail_link(equipment_id)
 });
 
 pub fn configure_rocket() -> Rocket {
@@ -119,8 +124,8 @@ pub fn configure_rocket() -> Rocket {
                 routes::rigging::equipment,
                 routes::rigging::equipment_create,
                 routes::rigging::equipment_detail,
+                routes::rigging::repack_create,
                 routes::rigging::service_bulletins,
-
             ]
         )
         .mount("/static", StaticFiles::from("web/static"))

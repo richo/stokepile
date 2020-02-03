@@ -30,6 +30,7 @@
           <th>rigger</th>
           <th>certificate</th>
           <th>seal</th>
+          <th>location</th>
         </tr>
       </thead>
       <!-- TODO(richo) breaks between rigs -->
@@ -37,8 +38,9 @@
       <tr>
         <td>{{this.date}}</td>
         <td>{{this.rigger}}</td>
-        <td>certificate</td>
-        <td>seal</td>
+        <td>this.certificate</td>
+        <td>this.seal</td>
+        <td>{{this.location}}</td>
       </tr>
       {{/each}}
     </table>
@@ -48,7 +50,7 @@
           <input type="text" name="place" placeholder="Place">
           <!-- TODO(richo) Populate seal and serial automatically -->
           <input type="text" name="certificate" placeholder="Certificate">
-          <input type="text" name="seal" placeholder="Serial">
+          <input type="text" name="seal" placeholder="Seal">
           <input type="textbox" name="service" placeholder="service">
           <input type="date" name="date" placeholder="Date" value={{data.today}}>
         </fieldset>

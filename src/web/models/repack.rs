@@ -2,6 +2,11 @@ use diesel::prelude::*;
 use chrono::{Duration, NaiveDate};
 
 use crate::web::schema::repacks;
+use crate::web::models::User;
+
+// TODO(richo) Move this out into a forms module
+use crate::web::routes::rigging::RepackForm;
+
 
 #[derive(Identifiable, Queryable, Debug, Serialize)]
 pub struct Repack {
@@ -32,8 +37,30 @@ impl Repack {
 
 #[derive(Insertable, Debug)]
 #[table_name = "repacks"]
-pub struct NewRepack {
+pub struct NewRepack<'a> {
     rigger: i32,
     equipment: i32,
     date: NaiveDate,
+    service: &'a str,
+    location: &'a str,
+}
+
+impl<'a> NewRepack<'a> {
+    pub fn create(&self, conn: &PgConnection) -> QueryResult<Repack> {
+        use diesel::insert_into;
+
+        insert_into(repacks::table)
+            .values(self)
+            .get_result::<Repack>(conn)
+    }
+
+    pub fn from_form(rigger: &User, equipment: i32, form: &'a RepackForm) -> NewRepack<'a> {
+        NewRepack {
+            rigger: rigger.id,
+            equipment,
+            date: *form.date,
+            service: &form.service,
+            location: &form.place,
+        }
+    }
 }

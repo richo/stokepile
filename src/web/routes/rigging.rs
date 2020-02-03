@@ -4,7 +4,14 @@ use crate::web::links;
 use crate::web::db::DbConn;
 use crate::web::auth::WebUser;
 use crate::web::context::Context;
-use crate::web::models::{Assembly, Customer, NewCustomer, Equipment, NewCompleteEquipment, User, Repack};
+use crate::web::models::{
+    Assembly,
+    Customer, NewCustomer,
+    Equipment, NewCompleteEquipment,
+    Repack, NewRepack,
+    User,
+};
+use crate::web::form_hacks::NaiveDateForm;
 
 use rocket::http::RawStr;
 use rocket::request::{Form, FromForm, FormItems, FlashMessage};
@@ -321,8 +328,15 @@ pub fn equipment_detail(user: WebUser, conn: DbConn, flash: Option<FlashMessage<
 }
 
 #[derive(Debug, Serialize)]
+pub enum MissingRecordKind {
+    Customer,
+    Equipment,
+}
+
+#[derive(Debug, Serialize)]
 pub struct ErrorContext {
-    customer_id: i32,
+    kind: MissingRecordKind,
+    id: i32,
 }
 
 #[post("/customer/<customer_id>/equipment", data = "<equipment>")]
@@ -334,9 +348,12 @@ pub fn equipment_create(user: WebUser,
     let customer = match user.user.customer_by_id(&*conn, customer_id) {
         Ok(customer) => customer,
         Err(not_found) => {
-            let error = ErrorContext { customer_id };
+            let error = ErrorContext {
+                kind: MissingRecordKind::Customer,
+                id: customer_id,
+            };
             let context = Context::error(error);
-            return Err(status::NotFound(Template::render("rigging/customer_not_found", context)))
+            return Err(status::NotFound(Template::render("rigging/not-found", context)))
         }
     };
 
@@ -344,6 +361,42 @@ pub fn equipment_create(user: WebUser,
     assembly.create(&*conn).expect("Couldn't create new equipment");
 
     Ok(Redirect::to(links::equipment_link_for_customer(customer_id.into())))
+}
+
+#[derive(Debug, Serialize, FromForm)]
+pub struct RepackForm {
+    pub place: String,
+    pub certificate: String,
+    pub seal: String,
+    pub service: String,
+    pub date: NaiveDateForm,
+}
+
+#[post("/equipment/<equipment_id>/repack", data = "<repack>")]
+pub fn repack_create(user: WebUser,
+                        conn: DbConn,
+                        flash: Option<FlashMessage<'_, '_>>,
+                        repack: Form<RepackForm>,
+                        equipment_id: i32) -> Result<Redirect, status::NotFound<Template>> {
+    let equipment = match user.user.equipment_by_id(&*conn, equipment_id) {
+        Ok(equipment) => equipment,
+        Err(not_found) => {
+            let error = ErrorContext {
+                kind: MissingRecordKind::Equipment,
+                id: equipment_id,
+            };
+            let context = Context::error(error);
+            // TODO(richo) Load this onto the ErrorContext?
+            // If all the View structs have their renderers attached it should be easier to assert
+            // that they're correct
+            return Err(status::NotFound(Template::render("rigging/not-found", context)))
+        }
+    };
+
+    let record = NewRepack::from_form(&user.user, equipment_id, &repack);
+    record.create(&*conn).expect("Couldn't create record");
+
+    Ok(Redirect::to(links::equipment_detail_link(equipment_id.into())))
 }
 
 #[cfg(test)]
