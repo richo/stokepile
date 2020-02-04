@@ -121,6 +121,7 @@ pub fn configure_rocket() -> Rocket {
                 routes::rigging::customers,
                 routes::rigging::customer_create,
                 routes::rigging::customer_detail,
+                routes::rigging::due_equipment,
                 routes::rigging::equipment,
                 routes::rigging::equipment_create,
                 routes::rigging::equipment_detail,

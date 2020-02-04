@@ -270,6 +270,38 @@ pub fn equipment(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>
     Template::render("rigging/equipment", context)
 }
 
+// TODO(richo) Is this just a param on the /equipment endpoint?
+#[get("/equipment/due")]
+pub fn due_equipment(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>) -> Template {
+    use chrono::Duration;
+
+    let list = get_equipment(&conn, &user.user, None);
+    let filter_date = Utc::now()
+        .naive_utc()
+        .checked_add_signed(Duration::days(30))
+        .expect("30 days from now")
+        .date();
+
+    let list = list.into_iter().filter(|asm| {
+        if let Some(due) = asm.next_due {
+            due < filter_date
+        } else {
+            true
+        }
+    });
+
+    let equipment = EquipmentView {
+        equipment: list.collect(),
+        customer: None,
+        equipment_kinds: EQUIPMENT_KINDS,
+    };
+
+    let context = Context::rigging(equipment)
+        .set_user(Some(user))
+        .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
+    Template::render("rigging/equipment", context)
+}
+
 fn get_equipment(conn: &DbConn, user: &User, customer_id: Option<i32>) -> Vec<Assembly> {
     match customer_id {
         Some(id) => {
