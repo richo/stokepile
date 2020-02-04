@@ -2,7 +2,7 @@ use diesel::prelude::*;
 
 use crate::web::schema::customers;
 use crate::web::models::Equipment;
-use crate::web::routes::rigging::NewCustomerForm;
+use crate::web::forms::rigging::NewCustomerForm;
 
 #[derive(Identifiable, Queryable, Debug, Serialize)]
 pub struct Customer {

@@ -4,8 +4,7 @@ use chrono::{Duration, NaiveDate};
 use crate::web::schema::repacks;
 use crate::web::models::User;
 
-// TODO(richo) Move this out into a forms module
-use crate::web::routes::rigging::RepackForm;
+use crate::web::forms::rigging::RepackForm;
 
 
 #[derive(Identifiable, Queryable, Debug, Serialize)]

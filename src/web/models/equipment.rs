@@ -1,7 +1,7 @@
 use diesel::prelude::*;
 
 use crate::web::schema::equipment;
-use crate::web::routes::rigging::NewEquipmentForm;
+use crate::web::forms::rigging::NewEquipmentForm;
 use crate::web::models::{Assembly, User, Customer, Component, NewComponent, Repack};
 
 #[derive(Identifiable, Queryable, Debug, Serialize)]

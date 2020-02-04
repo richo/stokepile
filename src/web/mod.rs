@@ -11,6 +11,7 @@ pub mod auth;
 pub mod context;
 pub mod db;
 pub mod form_hacks;
+pub mod forms;
 pub mod models;
 pub mod oauth;
 pub mod routes;
