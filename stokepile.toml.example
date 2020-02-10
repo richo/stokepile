@@ -30,6 +30,7 @@ mountpoint="/mnt/stokepile/mass_storage"
 # The extensions of files that we should be archiving
 # Only files with this extension will be uploaded and removed, leaving the directories intact
 extensions = ["mp4"]
+cleanup_extensions = ["lrv", "thm"]
 
 #  [gswoop]
 #  binary = "/Applications/gSwoop.app/Contents/MacOS/gswoop"

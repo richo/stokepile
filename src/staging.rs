@@ -335,6 +335,17 @@ pub trait StageFromDevice: Sized {
         Ok(i)
     }
 
+    /// As per `stage_files` but returns the underlying object so you can inspect it in a test
+    /// setting.
+    #[cfg(test)]
+    fn stage_files_for_test<T: StagingLocation>(self, name: &str, stager: &Stager<T>) -> Result<Self, Error> {
+        for file in self.files()? {
+            stager.stage(file, name)?;
+        }
+        self.cleanup()?;
+        Ok(self)
+    }
+
     fn cleanup(&self) -> Result<(), Error> {
         Ok(())
     }
