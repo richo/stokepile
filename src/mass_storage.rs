@@ -1,5 +1,5 @@
 use std::fs::{self, File};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::config::{MassStorageConfig, MountableDeviceLocation};
 use crate::mountable::{MountableFilesystem, MountedFilesystem, MountableKind};
@@ -113,6 +113,20 @@ impl MountedMassStorage {
                     let extension = ext.to_str().unwrap().to_lowercase();
                     if !extensions.contains(&extension) {
                         return None;
+                    }
+
+                    if let Some(Some(filename)) = path.file_name().map(|s|s.to_str()) {
+                        if filename.starts_with("._") {
+                            return None
+                        }
+                    }
+
+                    for anc in path.ancestors() {
+                        if let Some(Some(dirname)) = anc.file_name().map(|s|s.to_str()) {
+                            if dirname == ".Trashes" {
+                                return None
+                            }
+                        }
                     }
 
                     return Some(path.to_path_buf());
