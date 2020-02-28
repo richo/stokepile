@@ -291,7 +291,13 @@ pub fn locate_gopros(ctx: &ctx::Ctx) -> Result<Vec<Gopro<'_>>, Error> {
     // ti's gunna be rough af.
     #[cfg(feature = "usb")]
     for device in ctx.usb_ctx.devices()?.iter() {
-        let device_desc = device.device_descriptor()?;
+        let device_desc = match device.device_descriptor() {
+            Ok(desc) => desc,
+            Err(e) => {
+                error!("Oh noes: {:?}", e.strerror());
+                Err(e)?
+            }
+        };
 
         if device_desc.vendor_id() != GOPRO_VENDOR {
             continue;
