@@ -9,7 +9,7 @@ use time::Duration;
 /// assert_eq!(human_readable_size(36700244), "35m".to_string());
 /// assert_eq!(human_readable_size(3650722201), "3.4g".to_string());
 /// ```
-pub fn human_readable_size(bytes: usize) -> String {
+pub fn human_readable_size(bytes: u64) -> String {
     let mut multiplier = 1;
 
     if bytes < 1024 {
@@ -64,7 +64,7 @@ mod tests {
         // TODO(richo) This would be way better as 1m I think
         assert_eq!(human_readable_size(1024 * 1024), "1.0m".to_string());
         assert_eq!(human_readable_size(1144 * 1024), "1.1m".to_string());
-        assert_eq!(human_readable_size((5.5 * 1024f64 * 1024f64) as usize), "5.5m".to_string());
+        assert_eq!(human_readable_size((5.5 * 1024f64 * 1024f64) as u64), "5.5m".to_string());
         assert_eq!(human_readable_size(1024 * 100 + 100), "100k".to_string());
         assert_eq!(human_readable_size(5), "5".to_string());
         assert_eq!(human_readable_size(2000), "2k".to_string());

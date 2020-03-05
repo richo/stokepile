@@ -8,7 +8,7 @@ use handlebars::{Handlebars, TemplateRenderError};
 use serde::ser::{Serialize, Serializer, SerializeStruct};
 
 handlebars_helper!(header: |v: str| format!("{}\n{}", v, str::repeat("=", v.len())));
-handlebars_helper!(human_size: |v: u64| format!("{}b", human_readable_size(v as usize)));
+handlebars_helper!(human_size: |v: u64| format!("{}b", human_readable_size(v)));
 
 fn handlebars() -> Handlebars {
     let mut handlebars = Handlebars::new();
@@ -66,7 +66,7 @@ fn format_report<S>(desc: &UploadDescriptor, serializer: S) -> Result<S::Ok, S::
 {
     let mut ser = serializer.serialize_struct("UploadDescriptor", 3)?;
     ser.serialize_field("remote_path", &desc.remote_path())?;
-    ser.serialize_field("size", &human_readable_size(desc.size as usize))?;
+    ser.serialize_field("size", &human_readable_size(desc.size))?;
     ser.end()
 
 }

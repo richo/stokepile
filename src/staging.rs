@@ -141,7 +141,7 @@ where T: StorableFile,
             .context("Copying file to staging")?;
         assert_eq!(size, desc.size);
         desc.content_hash.copy_from_slice(&hash);
-        info!("Staged {}: shasum={:x} size={}", &staging_name, &hash, formatting::human_readable_size(size as usize));
+        info!("Staged {}: shasum={:x} size={}", &staging_name, &hash, formatting::human_readable_size(size));
     } // Ensure that we've closed our staging file
 
     {
