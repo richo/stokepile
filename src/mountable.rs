@@ -157,8 +157,13 @@ fn device_for_label(lbl: &str) -> PathBuf {
 
 fn attached_by_label(lbl: &str) -> bool {
     let pb = device_for_label(lbl);
-    info!("Checking if {:?} exists", &pb);
-    pb.exists()
+    if pb.exists() {
+        info!("Checking if {:?} exists.. found!", &pb);
+        true
+    } else {
+        info!("Checking if {:?} exists.. not found", &pb);
+        false
+    }
 }
 
 /// This trait is the core of mountable, however various blanket impls exist to make implementation
