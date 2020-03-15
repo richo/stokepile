@@ -32,6 +32,7 @@ impl From<Device> for config::DeviceConfig {
                     // TODO(richo) add a metadata field and store this there
                     extensions: vec!["mp4".into()],
                     location: MountableDeviceLocation::from_label(device.identifier),
+                    cleanup_extensions: None,
                 })
             }
             "flysight" => config::DeviceConfig::Flysight(FlysightConfig {

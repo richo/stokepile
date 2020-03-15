@@ -141,7 +141,7 @@ where T: StorableFile,
             .context("Copying file to staging")?;
         assert_eq!(size, desc.size);
         desc.content_hash.copy_from_slice(&hash);
-        info!("Staged {}: shasum={:x} size={}", &staging_name, &hash, formatting::human_readable_size(size as usize));
+        info!("Staged {}: shasum={:x} size={}", &staging_name, &hash, formatting::human_readable_size(size));
     } // Ensure that we've closed our staging file
 
     {
@@ -333,6 +333,17 @@ pub trait StageFromDevice: Sized {
         }
         self.cleanup()?;
         Ok(i)
+    }
+
+    /// As per `stage_files` but returns the underlying object so you can inspect it in a test
+    /// setting.
+    #[cfg(test)]
+    fn stage_files_for_test<T: StagingLocation>(self, name: &str, stager: &Stager<T>) -> Result<Self, Error> {
+        for file in self.files()? {
+            stager.stage(file, name)?;
+        }
+        self.cleanup()?;
+        Ok(self)
     }
 
     fn cleanup(&self) -> Result<(), Error> {

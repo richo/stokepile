@@ -7,6 +7,7 @@ use crate::ctx;
 use crate::ptp_device;
 use crate::staging::{StageFromDevice, StagingLocation, Stager};
 use crate::mountable::{Mountable, MountableFilesystem};
+use crate::mass_storage;
 
 #[derive(Eq, PartialEq, Debug, Hash)]
 pub struct DeviceDescription {
@@ -42,6 +43,20 @@ impl Device<'_> {
             Device::Gopro(ref desc, _)
             | Device::MassStorage(ref desc, _)
             | Device::Flysight(ref desc, _) => &desc.name[..],
+        }
+    }
+
+    pub fn mass_storage_files(self) -> Result<Vec<mass_storage::MassStorageFile>, Error> {
+        match self {
+            Device::Gopro(desc, gopro) => {
+                unreachable!()
+            },
+            Device::MassStorage(desc, mass_storage) => {
+                Mountable::mount(mass_storage)?.files()
+            },
+            Device::Flysight(desc, flysight) => {
+                unreachable!()
+            },
         }
     }
 }
