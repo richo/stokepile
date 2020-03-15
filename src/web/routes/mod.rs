@@ -10,3 +10,4 @@ pub mod notifications;
 pub mod rigging;
 pub mod sessions;
 pub mod settings;
+pub mod stokelevel;

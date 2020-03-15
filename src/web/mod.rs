@@ -130,6 +130,12 @@ pub fn configure_rocket() -> Rocket {
                 routes::rigging::service_bulletins,
             ]
         )
+        .mount(
+            "/stokelevel",
+            routes![
+                routes::stokelevel::support::power,
+            ]
+        )
         .mount("/static", StaticFiles::from("web/static"))
         .register(catchers![routes::index::not_found])
         .attach(RequestLogger::new())
