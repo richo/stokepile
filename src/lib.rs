@@ -1,4 +1,5 @@
 #![deny(unused_must_use, missing_debug_implementations)]
+#![deny(intra_doc_link_resolution_failure)]
 #![warn(rust_2018_idioms)]
 #![warn(clippy::all)]
 #![cfg_attr(feature = "web", feature(decl_macro, proc_macro_hygiene))]
