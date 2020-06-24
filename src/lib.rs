@@ -134,6 +134,8 @@ mod version;
 /// A notifier that pushes notifications out via the web service.
 mod web_notifier;
 
+pub mod metadata_extractor;
+
 /// What version of stokepile do you have :)
 pub use crate::version::VERSION;
 
