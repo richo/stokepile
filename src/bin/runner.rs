@@ -84,19 +84,14 @@ fn main() {
                 // debugging which more or less implies failure, but maybe there's some
                 // middleground.
                 Err(err) => {
-                    match err.downcast::<io::Error>() {
-                        Ok(err) if err.kind() == io::ErrorKind::Interrupted => {
+                    if let Some(err) = err.downcast_ref::<io::Error>() {
+                        if err.kind() == io::ErrorKind::Interrupted {
                             warn!("Staging device full, continuing");
                             notify(incomplete_msg);
                             break
-                        },
-                        Ok(err) => {
-                            Err(err)?
-                        },
-                        Err(err) => {
-                            Err(err)?
                         }
                     }
+                    Err(err)?
                 }
             }
         }
