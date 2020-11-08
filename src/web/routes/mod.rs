@@ -5,6 +5,7 @@ pub mod healthcheck;
 pub mod index;
 pub mod help;
 pub mod integrations;
+pub mod media_server;
 pub mod notifications;
 pub mod sessions;
 pub mod settings;

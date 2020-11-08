@@ -81,6 +81,11 @@ path = "src/bin/server.rs"
 required-features = ["web"]
 
 [[bin]]
+name = "media-server"
+path = "src/bin/media-server.rs"
+required-features = ["web"]
+
+[[bin]]
 name = "run_migrations"
 path = "src/bin/run_migrations.rs"
 required-features = ["web"]

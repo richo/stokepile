@@ -104,3 +104,12 @@ body {
   background: rgb(202, 60, 60);
 }
 
+.media-menu {
+  display: inline-block;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  margin-left: -160px;
+  width: 160px;
+}
+
