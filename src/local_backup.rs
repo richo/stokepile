@@ -1,6 +1,6 @@
 use crate::config::{LocalBackupConfig, MountableDeviceLocation};
 use crate::mountable::{MountableFilesystem, MountableKind, MountedFilesystem, MOUNTABLE_DEVICE_FOLDER};
-use crate::staging;
+use crate::staging::{self, UploadDescriptorExt};
 use crate::storage::{StorageAdaptor, StorageStatus};
 use dropbox_content_hasher;
 

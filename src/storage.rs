@@ -2,7 +2,7 @@ use std::fmt::Debug;
 use std::fs::File;
 
 use crate::reporting::{ReportEntry, UploadReport, UploadStatus};
-use crate::staging::{self, StagingLocation};
+use crate::staging::{self, StagingLocation, StagedFileExt};
 use crate::formatting;
 
 
@@ -141,7 +141,7 @@ mod tests {
     use std::fs;
     use std::cell::Cell;
     use tempfile;
-    use crate::staging::UploadDescriptor;
+    use crate::staging::{UploadDescriptor, UploadDescriptorExt};
     use crate::test_helpers;
 
     /// A storage adaptor that will succeed on the nth attempt

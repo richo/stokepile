@@ -5,7 +5,7 @@ use serde::{Deserialize, Deserializer};
 use std::io::Read;
 use std::path::Path;
 
-use crate::staging;
+use crate::staging::{self, UploadDescriptorExt};
 use crate::storage::{StorageAdaptor, StorageStatus};
 use crate::version;
 

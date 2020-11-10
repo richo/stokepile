@@ -9,22 +9,16 @@ use dropbox_content_hasher::DropboxContentHasher;
 use crate::formatting;
 use failure::{Error, ResultExt};
 use hashing_copy;
-use serde::{Deserialize, Serialize};
 use serde_json;
 
 use crate::config::{MountableDeviceLocation, StagingConfig};
 use crate::mountable::{MountedFilesystem, MountableFilesystem, MountableKind, MOUNTABLE_DEVICE_FOLDER};
 
-#[derive(Eq, PartialEq, Debug, Serialize, Deserialize)]
-pub enum RemotePathDescriptor {
-    DateTime {
-        capture_time: DateTime<Local>,
-        extension: String,
-    },
-    SpecifiedPath {
-        path: PathBuf,
-    },
-}
+pub use stokepile_shared::staging::{
+    StagedFile,
+    UploadDescriptor,
+    RemotePathDescriptor,
+};
 
 impl MountableFilesystem for StagingConfig {
     type Target = MountedStaging;
@@ -227,22 +221,20 @@ impl<T: StagingLocation> StagingLocation for Box<T> {
     }
 }
 
-#[derive(Debug)]
-pub struct StagedFile {
-    pub content_path: PathBuf,
-    manifest_path: PathBuf,
+pub trait StagedFileExt {
+    fn delete(self) -> Result<(), io::Error>;
+    fn content_handle(&self) -> Result<File, io::Error>;
 }
 
-impl StagedFile {
-    pub fn delete(self) -> Result<(), io::Error> {
-        info!("removing {:?}", &self.manifest_path);
+impl StagedFileExt for StagedFile {
+    fn delete(self) -> Result<(), io::Error> { info!("removing {:?}", &self.manifest_path);
         fs::remove_file(&self.manifest_path)?;
         info!("removing {:?}", &self.content_path);
         fs::remove_file(&self.content_path)?;
         Ok(())
     }
 
-    pub fn content_handle(&self) -> Result<File, io::Error> {
+    fn content_handle(&self) -> Result<File, io::Error> {
         File::open(&self.content_path)
     }
 }
@@ -351,13 +343,6 @@ pub trait StageFromDevice: Sized {
     }
 }
 
-#[derive(PartialEq, Debug, Serialize, Deserialize)]
-pub struct UploadDescriptor {
-    pub(crate) path: RemotePathDescriptor,
-    pub device_name: String,
-    pub content_hash: [u8; 32],
-    pub size: u64,
-}
 
 #[derive(Debug)]
 pub struct UploadDescriptorBuilder {
@@ -389,14 +374,23 @@ impl UploadDescriptorBuilder {
     }
 }
 
-impl UploadDescriptor {
-    pub fn build(device_name: String) -> UploadDescriptorBuilder {
+pub trait UploadDescriptorExt {
+    fn build(device_name: String) -> UploadDescriptorBuilder;
+    fn staging_name(&self) -> String;
+    fn manifest_name(&self) -> String;
+    fn remote_path(&self) -> PathBuf;
+    #[cfg(test)]
+    fn test_descriptor() -> Self;
+}
+
+impl UploadDescriptorExt for UploadDescriptor {
+    fn build(device_name: String) -> UploadDescriptorBuilder {
         UploadDescriptorBuilder {
             device_name,
         }
     }
 
-    pub fn staging_name(&self) -> String {
+    fn staging_name(&self) -> String {
         match &self.path {
             RemotePathDescriptor::DateTime {
                 capture_time, extension
@@ -418,11 +412,11 @@ impl UploadDescriptor {
         }
     }
 
-    pub fn manifest_name(&self) -> String {
+    fn manifest_name(&self) -> String {
         format!("{}.manifest", self.staging_name())
     }
 
-    pub fn remote_path(&self) -> PathBuf {
+    fn remote_path(&self) -> PathBuf {
         match &self.path {
             RemotePathDescriptor::DateTime {
                 capture_time, extension,
@@ -450,7 +444,7 @@ impl UploadDescriptor {
     }
 
     #[cfg(test)]
-    pub fn test_descriptor() -> Self {
+    fn test_descriptor() -> Self {
         UploadDescriptor {
             path: RemotePathDescriptor::DateTime {
                 capture_time: Local.ymd(2018, 8, 26).and_hms(14, 30, 0),

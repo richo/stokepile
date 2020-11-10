@@ -7,7 +7,7 @@ use serde_json;
 use tus;
 use url::Url;
 
-use crate::staging;
+use crate::staging::{self, UploadDescriptorExt, StagedFileExt};
 use crate::storage::{StorageAdaptor, StorageStatus};
 
 /// A client for the vimeo API
