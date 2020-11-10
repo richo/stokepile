@@ -1,4 +1,4 @@
-pub mod index;
+pub mod api;
 
 use rocket::request::FlashMessage;
 use rocket_contrib::templates::Template;

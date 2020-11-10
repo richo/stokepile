@@ -2,7 +2,8 @@ use chrono::prelude::*;
 use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+// #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct StagedFile {
     pub content_path: PathBuf,
     pub manifest_path: PathBuf,

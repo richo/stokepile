@@ -1,4 +1,4 @@
-import init, { load_staged_media } from '/wasm/stokepile.js';
+import init, { load_staged_media, testing } from '/wasm/stokepile_wasm.js';
 
 console.log("Loaded");
 async function run() {
