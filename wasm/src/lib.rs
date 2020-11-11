@@ -1,5 +1,5 @@
 use web_sys;
-use web_sys::{Request, RequestInit, RequestMode, Response};
+use web_sys::{Request, RequestInit, RequestMode, Response, Element};
 
 mod utils;
 
@@ -25,6 +25,7 @@ fn document() -> web_sys::Document {
 
 #[wasm_bindgen(start)]
 pub fn main() -> Result<(), JsValue> {
+    utils::set_panic_hook();
     Ok(())
 }
 
@@ -34,14 +35,10 @@ extern {
 }
 
 #[wasm_bindgen]
-pub async fn testing() {
-    alert("haha butts");
-}
-
-#[wasm_bindgen]
 pub async fn load_staged_media() {
     let document = document();
-    let media_list = document.get_element_by_id("media-list").expect("document should have a body");
+    let media_list = media_list();
+    clear_staged_media().await;
     if let Ok(media) = fetch_staged_media().await {
         for file in media {
             let val = document.create_element("li").expect("Create element");
@@ -49,6 +46,19 @@ pub async fn load_staged_media() {
             media_list.append_child(&val).expect("append");
         }
     }
+}
+
+#[wasm_bindgen]
+pub async fn clear_staged_media() {
+    let children = media_list().children();
+    for i in 0..=children.length() {
+        children.item(i).map(|x| x.remove());
+    }
+}
+
+fn media_list() -> Element {
+    let document = document();
+    document.get_element_by_id("media-list").expect("document should have a body")
 }
 
 pub async fn fetch_staged_media() -> Result<Vec<StagedFile>, JsValue> {
