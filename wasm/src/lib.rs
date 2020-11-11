@@ -7,7 +7,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
-use stokepile_shared::staging::StagedFile;
+use stokepile_shared::staging::UploadDescriptor;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -42,7 +42,7 @@ pub async fn load_staged_media() {
     if let Ok(media) = fetch_staged_media().await {
         for file in media {
             let val = document.create_element("li").expect("Create element");
-            val.set_inner_html(file.content_path.to_str().expect("couldn't convert patht o string"));
+            val.set_inner_html(&file.device_name);
             media_list.append_child(&val).expect("append");
         }
     }
@@ -61,7 +61,7 @@ fn media_list() -> Element {
     document.get_element_by_id("media-list").expect("document should have a body")
 }
 
-pub async fn fetch_staged_media() -> Result<Vec<StagedFile>, JsValue> {
+pub async fn fetch_staged_media() -> Result<Vec<UploadDescriptor>, JsValue> {
     let mut opts = RequestInit::new();
     opts.method("GET");
     opts.mode(RequestMode::Cors);
