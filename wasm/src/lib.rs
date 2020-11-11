@@ -51,8 +51,8 @@ pub async fn load_staged_media() {
 #[wasm_bindgen]
 pub async fn clear_staged_media() {
     let children = media_list().children();
-    for i in 0..=children.length() {
-        children.item(i).map(|x| x.remove());
+    for _ in 0..children.length() {
+        children.item(0).map(|x| x.remove());
     }
 }
 
