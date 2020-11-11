@@ -21,6 +21,7 @@ pub fn configure_rocket() -> Rocket {
         routes![
             routes::index,
             routes::api::get_media,
+            routes::api::stream_media,
         ]
     )
     .manage(ctx)
