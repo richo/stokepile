@@ -1,3 +1,4 @@
+use hex;
 use web_sys;
 use web_sys::{Request, RequestInit, RequestMode, Response, Element};
 
@@ -8,6 +9,8 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
 use stokepile_shared::staging::UploadDescriptor;
+
+static BASE_URL: &'static str = "http://localhost:8000";
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -43,6 +46,8 @@ pub async fn load_staged_media() {
         for file in media {
             let val = document.create_element("li").expect("Create element");
             val.set_inner_html(&file.device_name);
+            val.set_class_name("pure-menu-item media-list-item");
+            val.set_attribute("data-content-hash", &hex::encode(&file.content_hash)).unwrap();
             media_list.append_child(&val).expect("append");
         }
     }
@@ -50,7 +55,27 @@ pub async fn load_staged_media() {
 
 #[wasm_bindgen]
 pub async fn clear_staged_media() {
-    let children = media_list().children();
+    clear_element_children(&media_list())
+}
+
+#[wasm_bindgen]
+pub async fn play_media(hash: String) {
+    let document = document();
+    let player = document.get_element_by_id("media-player")
+        .expect("couldn't find media player");
+    clear_element_children(&player);
+
+    let source = document.create_element("source")
+        .expect("create source");
+    source.set_attribute("src", &format!("{}/api/media/{}", BASE_URL, hash))
+        .unwrap();
+
+    player.append_child(&source)
+        .unwrap();
+}
+
+fn clear_element_children(el: &Element) {
+    let children = el.children();
     for _ in 0..children.length() {
         children.item(0).map(|x| x.remove());
     }
@@ -67,7 +92,7 @@ pub async fn fetch_staged_media() -> Result<Vec<UploadDescriptor>, JsValue> {
     opts.mode(RequestMode::Cors);
 
     // TODO(richo) pull the window object apart to figure out where we are
-    let url = "http://localhost:8000/api/media";
+    let url = format!("{}/api/media", BASE_URL);
 
     let request = Request::new_with_str_and_init(&url, &opts)?;
 

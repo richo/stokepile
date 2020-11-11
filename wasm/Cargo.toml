@@ -32,6 +32,7 @@ stokepile-shared = { path = "../shared" }
 
 serde = { version = "1.0.80", features = ["derive"] }
 serde_derive = "^1.0.59"
+hex = "0.4.2"
 
 [dependencies.web-sys]
 version = "0.3.45"
