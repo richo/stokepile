@@ -406,6 +406,14 @@ impl UploadDescriptorExt for UploadDescriptor {
                     &self.device_name, capture_time, extension
                 )
             },
+            RemotePathDescriptor::DateName {
+                capture_date, name, extension
+            } => {
+                format!(
+                    "{}-{}-{}.{}",
+                    &self.device_name, capture_date, name, extension,
+                )
+            },
             RemotePathDescriptor::SpecifiedPath {
                 path
             } => {
@@ -434,6 +442,19 @@ impl UploadDescriptorExt for UploadDescriptor {
                     day = capture_time.day(),
                     device= &self.device_name,
                     filename = capture_time.format("%H-%M-%S"),
+                    extension = extension,
+                ).into()
+            },
+            RemotePathDescriptor::DateName {
+                capture_date, name, extension
+            } => {
+                format!(
+                    "/{year:04}/{month:02}/{day:02}/{device}/{filename}.{extension}",
+                    year = capture_date.year(),
+                    month = capture_date.month(),
+                    day = capture_date.day(),
+                    device= &self.device_name,
+                    filename = name,
                     extension = extension,
                 ).into()
             },

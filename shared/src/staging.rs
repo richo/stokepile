@@ -26,6 +26,13 @@ pub enum RemotePathDescriptor {
         capture_time: DateTime<Local>,
         extension: String,
     },
+    DateName {
+        // Date<Local> does not implement Serialize,Deserialize so we use a datetime, but we
+        // discard the time component in favour of the given name.
+        capture_date: NaiveDate,
+        name: String,
+        extension: String,
+    },
     SpecifiedPath {
         path: PathBuf,
     },
