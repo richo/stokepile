@@ -1,7 +1,7 @@
-use hex;
 use rocket_contrib::json::Json;
 use rocket::State;
 use rocket::response::Stream;
+use uuid::Uuid;
 
 use stokepile_shared::staging::UploadDescriptor;
 use crate::staging::{MountedStaging, StagingLocation};
@@ -18,12 +18,19 @@ pub fn get_media(staging: State<'_, MountedStaging>) -> Json<Vec<UploadDescripto
     Json(files)
 }
 
-#[get("/api/media/<hash>")]
-pub fn stream_media(staging: State<'_, MountedStaging>, hash: String) -> Option<Stream<File>> {
+#[get("/api/media/<uuid>")]
+pub fn stream_media(staging: State<'_, MountedStaging>, uuid: String) -> Option<Stream<File>> {
+    let uuid = match Uuid::parse_str(&uuid) {
+        Ok(uuid) => uuid,
+        Err(e) => {
+            warn!("Error parsing uuid: {:?}", e);
+            return None;
+        }
+    };
     staging.staged_files()
         .expect("Couldn't load staged_files")
         .iter()
-        .filter(|file| hex::encode(file.descriptor.content_hash) == &hash[..])
+        .filter(|file| file.descriptor.uuid == uuid)
         .next()
         .map(|file| File::open(&file.content_path).ok())
         .flatten()
