@@ -5,7 +5,7 @@ use serde::{Deserialize, Deserializer};
 use std::io::Read;
 use std::path::Path;
 
-use crate::staging::{self, UploadDescriptorExt};
+use crate::staging::{self, DescriptorNameable};
 use crate::storage::{StorageAdaptor, StorageStatus};
 use crate::version;
 
@@ -332,6 +332,7 @@ mod tests {
     use sha2::Digest;
     use std::env;
     use std::fs;
+    use crate::staging::UploadDescriptorExt;
 
     #[test]
     #[ignore]

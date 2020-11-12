@@ -14,6 +14,7 @@ use uuid::Uuid;
 
 use crate::config::{MountableDeviceLocation, StagingConfig};
 use crate::mountable::{MountedFilesystem, MountableFilesystem, MountableKind, MOUNTABLE_DEVICE_FOLDER};
+use crate::reporting::ReportEntryDescription;
 
 pub use stokepile_shared::staging::{
     StagedFile,
@@ -382,91 +383,20 @@ impl UploadDescriptorBuilder {
 
 pub trait UploadDescriptorExt {
     fn build(device_name: String) -> UploadDescriptorBuilder;
+    #[cfg(test)]
+    fn test_descriptor() -> Self;
+}
+
+pub trait DescriptorNameable {
     fn staging_name(&self) -> String;
     fn manifest_name(&self) -> String;
     fn remote_path(&self) -> PathBuf;
-    #[cfg(test)]
-    fn test_descriptor() -> Self;
 }
 
 impl UploadDescriptorExt for UploadDescriptor {
     fn build(device_name: String) -> UploadDescriptorBuilder {
         UploadDescriptorBuilder {
             device_name,
-        }
-    }
-
-    fn staging_name(&self) -> String {
-        match &self.path {
-            RemotePathDescriptor::DateTime {
-                capture_time, extension
-            } => {
-                format!(
-                    "{}-{}.{}",
-                    &self.device_name, capture_time, extension
-                )
-            },
-            RemotePathDescriptor::DateName {
-                capture_date, name, extension
-            } => {
-                format!(
-                    "{}-{}-{}.{}",
-                    &self.device_name, capture_date, name, extension,
-                )
-            },
-            RemotePathDescriptor::SpecifiedPath {
-                path
-            } => {
-                format!(
-                    "{}-{}",
-                    &self.device_name,
-                    path.to_str().expect("path wasn't valid utf8").replace("/", "-"),
-                )
-            }
-        }
-    }
-
-    fn manifest_name(&self) -> String {
-        format!("{}.manifest", self.staging_name())
-    }
-
-    fn remote_path(&self) -> PathBuf {
-        match &self.path {
-            RemotePathDescriptor::DateTime {
-                capture_time, extension,
-            } => {
-                format!(
-                    "/{year:04}/{month:02}/{day:02}/{device}/{filename}.{extension}",
-                    year = capture_time.year(),
-                    month = capture_time.month(),
-                    day = capture_time.day(),
-                    device= &self.device_name,
-                    filename = capture_time.format("%H-%M-%S"),
-                    extension = extension,
-                ).into()
-            },
-            RemotePathDescriptor::DateName {
-                capture_date, name, extension
-            } => {
-                format!(
-                    "/{year:04}/{month:02}/{day:02}/{device}/{filename}.{extension}",
-                    year = capture_date.year(),
-                    month = capture_date.month(),
-                    day = capture_date.day(),
-                    device= &self.device_name,
-                    filename = name,
-                    extension = extension,
-                ).into()
-            },
-            RemotePathDescriptor::SpecifiedPath {
-                path
-            } => {
-                let mut buf = PathBuf::from("/");
-                buf.push(&self.device_name);
-                assert!(!path.is_absolute());
-                buf.extend(path);
-                buf
-            }
         }
     }
 
@@ -480,7 +410,23 @@ impl UploadDescriptorExt for UploadDescriptor {
             device_name: "test-device".into(),
             content_hash: Default::default(),
             size: 1024,
+            uuid: Uuid::new_v4(),
         }
+    }
+}
+
+// impl<T: Into<U>, U: DescriptorNameable> DescriptorNameable for T {
+impl DescriptorNameable for UploadDescriptor {
+    fn staging_name(&self) -> String {
+        ReportEntryDescription::from(self).staging_name()
+    }
+
+    fn manifest_name(&self) -> String {
+        ReportEntryDescription::from(self).manifest_name()
+    }
+
+    fn remote_path(&self) -> PathBuf {
+        ReportEntryDescription::from(self).remote_path()
     }
 }
 
@@ -521,6 +467,7 @@ mod tests {
             device_name: "test".to_string(),
             content_hash: [0; 32],
             size: 0,
+            uuid: Uuid::new_v4(),
         };
 
         assert_eq!(
@@ -541,6 +488,7 @@ mod tests {
             device_name: "test".to_string(),
             content_hash: [0; 32],
             size: 0,
+            uuid: Uuid::new_v4(),
         };
 
         assert_eq!(
@@ -561,6 +509,7 @@ mod tests {
             device_name: "test".to_string(),
             content_hash: [0; 32],
             size: 0,
+            uuid: Uuid::new_v4(),
         };
 
         let serialized = serde_json::to_string(&original).expect("Couldn't serialize test vector");

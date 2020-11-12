@@ -1,6 +1,8 @@
+use chrono::prelude::*;
 use std::collections::HashMap;
+use std::path::PathBuf;
 
-use crate::staging::{UploadDescriptor, UploadDescriptorExt, RemotePathDescriptor};
+use crate::staging::{UploadDescriptor, UploadDescriptorExt, DescriptorNameable, RemotePathDescriptor};
 use crate::formatting::human_readable_size;
 
 use failure::Error;
@@ -64,6 +66,82 @@ pub struct ReportEntryDescription {
     device_name: String,
 }
 
+impl DescriptorNameable for ReportEntryDescription {
+    fn staging_name(&self) -> String {
+        match &self.remote_path {
+            RemotePathDescriptor::DateTime {
+                capture_time, extension
+            } => {
+                format!(
+                    "{}-{}.{}",
+                    &self.device_name, capture_time, extension
+                )
+            },
+            RemotePathDescriptor::DateName {
+                capture_date, name, extension
+            } => {
+                format!(
+                    "{}-{}-{}.{}",
+                    &self.device_name, capture_date, name, extension,
+                )
+            },
+            RemotePathDescriptor::SpecifiedPath {
+                path
+            } => {
+                format!(
+                    "{}-{}",
+                    &self.device_name,
+                    path.to_str().expect("path wasn't valid utf8").replace("/", "-"),
+                )
+            }
+        }
+    }
+
+    fn manifest_name(&self) -> String {
+        format!("{}.manifest", self.staging_name())
+    }
+
+    fn remote_path(&self) -> PathBuf {
+        match &self.remote_path {
+            RemotePathDescriptor::DateTime {
+                capture_time, extension,
+            } => {
+                format!(
+                    "/{year:04}/{month:02}/{day:02}/{device}/{filename}.{extension}",
+                    year = capture_time.year(),
+                    month = capture_time.month(),
+                    day = capture_time.day(),
+                    device= &self.device_name,
+                    filename = capture_time.format("%H-%M-%S"),
+                    extension = extension,
+                ).into()
+            },
+            RemotePathDescriptor::DateName {
+                capture_date, name, extension
+            } => {
+                format!(
+                    "/{year:04}/{month:02}/{day:02}/{device}/{filename}.{extension}",
+                    year = capture_date.year(),
+                    month = capture_date.month(),
+                    day = capture_date.day(),
+                    device= &self.device_name,
+                    filename = name,
+                    extension = extension,
+                ).into()
+            },
+            RemotePathDescriptor::SpecifiedPath {
+                path
+            } => {
+                let mut buf = PathBuf::from("/");
+                buf.push(&self.device_name);
+                assert!(!path.is_absolute());
+                buf.extend(path);
+                buf
+            }
+        }
+    }
+}
+
 // We serialize with a custom serializer here, in order to use our date representation in the
 // reports.
 //
@@ -73,8 +151,9 @@ fn format_report<S>(desc: &ReportEntryDescription, serializer: S) -> Result<S::O
     where S: Serializer,
 {
     let mut ser = serializer.serialize_struct("UploadDescriptor", 3)?;
-    ser.serialize_field("remote_path", &desc.remote_path)?;
+    ser.serialize_field("remote_path", &desc.remote_path())?;
     ser.serialize_field("size", &human_readable_size(desc.size))?;
+    ser.serialize_field("device_name", &desc.device_name)?;
     ser.end()
 
 }
@@ -154,7 +233,7 @@ mod tests {
             .date_time(Local.ymd(2018, 8, 24).and_hms(9, 55, 30), "mp4".to_string());
         desc.size = 15487;
         report.record_activity(ReportEntry::new(
-                desc,
+                &desc,
                 vec![
                     ("vimeo".into(), UploadStatus::Succeeded),
                     ("youtube".into(), UploadStatus::Succeeded),
@@ -165,7 +244,7 @@ mod tests {
                 .date_time(Local.ymd(2018, 8, 24).and_hms(12, 30, 30), "mp4".to_string());
         desc.size = 2900000;
         report.record_activity(ReportEntry::new(
-                desc,
+                &desc,
                 vec![
                     ("vimeo".into(), UploadStatus::Succeeded),
                     ("youtube".into(), UploadStatus::Errored(format_err!("Something bad happened"))),
@@ -176,7 +255,7 @@ mod tests {
                 .manual_file("richo/double sled.mp4".into());
         desc.size = 16000000;
         report.record_activity(ReportEntry::new(
-                desc,
+                &desc,
                 vec![
                     ("vimeo".into(), UploadStatus::Succeeded),
                     ("youtube".into(), UploadStatus::Succeeded),
@@ -187,7 +266,7 @@ mod tests {
                 .manual_file("richo/gigantic video.mp4".into());
         desc.size = 38 * 1024 * 1024 * 1024;
         report.record_activity(ReportEntry::new(
-                desc,
+                &desc,
                 vec![
                     ("vimeo".into(), UploadStatus::Succeeded),
                     ("youtube".into(), UploadStatus::AlreadyUploaded),
@@ -213,7 +292,7 @@ mod tests {
                .manual_file(path.into());
            desc.size = 138 * 1024 * 1024 * 1024;
             report.record_activity(ReportEntry::new(
-                    desc,
+                    &desc,
                     vec![
                         ("provider".into(), UploadStatus::Succeeded),
                     ],

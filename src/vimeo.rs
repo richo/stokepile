@@ -7,7 +7,7 @@ use serde_json;
 use tus;
 use url::Url;
 
-use crate::staging::{self, UploadDescriptorExt, StagedFileExt};
+use crate::staging::{self, DescriptorNameable};
 use crate::storage::{StorageAdaptor, StorageStatus};
 
 /// A client for the vimeo API
@@ -131,6 +131,7 @@ impl Drop for UploadHandle {
 mod tests {
     use super::*;
     use std::env;
+    use crate::staging::UploadDescriptorExt;
 
     #[test]
     #[ignore]
