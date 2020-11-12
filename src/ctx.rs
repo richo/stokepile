@@ -1,4 +1,6 @@
 use std::fmt;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 use failure::Error;
 
@@ -28,6 +30,8 @@ pub struct Ctx {
     // This lock is optional, since we can opt into building it without, but by making the lock
     // part of this API we can't accidentally end up not having one.
     _lock: Option<lockfile::Lockfile>,
+    /// Whether or not we ought to proceed, this provides a hook for early exit
+    running: Arc<AtomicBool>,
 }
 
 impl fmt::Debug for Ctx {
@@ -75,12 +79,15 @@ impl Ctx {
             None
         };
 
+        let running = Arc::new(AtomicBool::new(true));
+
         Ok(Ctx {
             usb_ctx: libusb::Context::new()?,
             cfg,
             notifier,
             mailer,
             _lock,
+            running,
         })
     }
 
@@ -96,6 +103,17 @@ impl Ctx {
             return notifier.notify(msg)
         }
         Ok(())
+    }
+
+    pub fn setup_ctrlc_handler(&self) -> Result<(), ctrlc::Error> {
+        let running = self.running.clone();
+        ctrlc::set_handler(move || {
+            running.store(false, Ordering::SeqCst);
+        })
+    }
+
+    pub fn running(&self) -> bool {
+        self.running.load(Ordering::SeqCst)
     }
 }
 

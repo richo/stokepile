@@ -3,6 +3,7 @@ use crate::{GIT_HASH, AUTHOR, VERSION};
 use std::io::Read;
 use clap::{App, Arg};
 use dotenv;
+use ctrlc;
 
 lazy_static! {
     static ref VERSION_STRING: String = if let Some(hash) = GIT_HASH {
