@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::staging::{UploadDescriptor, UploadDescriptorExt};
+use crate::staging::{UploadDescriptor, UploadDescriptorExt, RemotePathDescriptor};
 use crate::formatting::human_readable_size;
 
 use failure::Error;
@@ -52,8 +52,16 @@ pub struct UploadReport {
 #[derive(Debug, Serialize)]
 pub struct ReportEntry {
     #[serde(serialize_with = "format_report")]
-    desc: UploadDescriptor,
+    desc: ReportEntryDescription,
     results: Vec<(String, UploadStatus)>,
+}
+
+/// Shadow struct for the parts of a UploadDescriptor that we care about
+#[derive(Debug)]
+pub struct ReportEntryDescription {
+    remote_path: RemotePathDescriptor,
+    size: u64,
+    device_name: String,
 }
 
 // We serialize with a custom serializer here, in order to use our date representation in the
@@ -61,20 +69,33 @@ pub struct ReportEntry {
 //
 // This naively seems like it'd be easier to implement on the UploadDescriptor, but it's
 // `Serialize` impl is responsible for making sure it round trips the disc safely.
-fn format_report<S>(desc: &UploadDescriptor, serializer: S) -> Result<S::Ok, S::Error>
+fn format_report<S>(desc: &ReportEntryDescription, serializer: S) -> Result<S::Ok, S::Error>
     where S: Serializer,
 {
     let mut ser = serializer.serialize_struct("UploadDescriptor", 3)?;
-    ser.serialize_field("remote_path", &desc.remote_path())?;
+    ser.serialize_field("remote_path", &desc.remote_path)?;
     ser.serialize_field("size", &human_readable_size(desc.size))?;
     ser.end()
 
 }
 
+impl From<&UploadDescriptor> for ReportEntryDescription {
+    fn from(desc: &UploadDescriptor) -> ReportEntryDescription {
+        ReportEntryDescription {
+            remote_path: desc.path.clone(),
+            size: desc.size,
+            device_name: desc.device_name.clone(),
+        }
+    }
+}
+
 impl ReportEntry {
     /// Bind an UploadDescriptor to this entry, returning the finalised ReportEntry.
-    pub fn new(desc: UploadDescriptor, results: Vec<(String, UploadStatus)>) -> ReportEntry {
-        ReportEntry { desc, results }
+    pub fn new(desc: &UploadDescriptor, results: Vec<(String, UploadStatus)>) -> ReportEntry {
+        ReportEntry {
+            desc: desc.into(),
+            results,
+        }
     }
 }
 

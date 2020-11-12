@@ -10,6 +10,7 @@ use crate::formatting;
 use failure::{Error, ResultExt};
 use hashing_copy;
 use serde_json;
+use uuid::Uuid;
 
 use crate::config::{MountableDeviceLocation, StagingConfig};
 use crate::mountable::{MountedFilesystem, MountableFilesystem, MountableKind, MOUNTABLE_DEVICE_FOLDER};
@@ -72,6 +73,8 @@ pub trait StorableFile {
             content_hash: [0; 32],
             device_name: name.to_string(),
             size: self.size()?,
+            uuid: Uuid::new_v4(),
+
         })
     }
 }
@@ -186,7 +189,7 @@ pub trait StagingLocation: Debug + Sync + Send {
     fn read_dir(&self) -> Result<fs::ReadDir, io::Error>;
 
     // TODO(richo) iterator
-    fn staged_files(&self) -> Result<Vec<(StagedFile, UploadDescriptor)>, Error> {
+    fn staged_files(&self) -> Result<Vec<StagedFile>, Error> {
         let mut out = vec![];
         for entry in self.read_dir().context("Reading staged files")? {
             // Find manifests and work backward
@@ -201,11 +204,12 @@ pub trait StagingLocation: Debug + Sync + Send {
             let manifest = File::open(&manifest_path)
                 .context("Reading manifest")?;
 
-            let manifest: UploadDescriptor = serde_json::from_reader(manifest)?;
-            out.push((StagedFile {
+            let descriptor: UploadDescriptor = serde_json::from_reader(manifest)?;
+            out.push(StagedFile {
                 content_path,
                 manifest_path,
-            }, manifest));
+                descriptor,
+            });
         }
         Ok(out)
     }
@@ -359,6 +363,7 @@ impl UploadDescriptorBuilder {
             content_hash: Default::default(),
             device_name: self.device_name,
             size: 0,
+            uuid: Uuid::new_v4(),
         }
     }
 
@@ -370,6 +375,7 @@ impl UploadDescriptorBuilder {
             content_hash: Default::default(),
             device_name: self.device_name,
             size: 0,
+            uuid: Uuid::new_v4(),
         }
     }
 }

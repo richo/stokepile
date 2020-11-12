@@ -13,7 +13,7 @@ pub fn get_media(staging: State<'_, MountedStaging>) -> Json<Vec<UploadDescripto
     let files = staging.staged_files()
         .expect("Couldn't load staged_files")
         .into_iter()
-        .map(|x| x.1)
+        .map(|x| x.descriptor)
         .collect();
     Json(files)
 }
@@ -23,9 +23,9 @@ pub fn stream_media(staging: State<'_, MountedStaging>, hash: String) -> Option<
     staging.staged_files()
         .expect("Couldn't load staged_files")
         .iter()
-        .filter(|(_, d)| hex::encode(d.content_hash) == &hash[..])
+        .filter(|file| hex::encode(file.descriptor.content_hash) == &hash[..])
         .next()
-        .map(|(f, _)| File::open(&f.content_path).ok())
+        .map(|file| File::open(&file.content_path).ok())
         .flatten()
-        .map(|f| Stream::chunked(f, 4096))
+        .map(|fh| Stream::chunked(fh, 4096))
 }

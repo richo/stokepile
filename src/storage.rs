@@ -70,7 +70,7 @@ pub fn upload_from_staged(
 ) -> Result<UploadReport, Error> {
     let mut report: UploadReport = Default::default();
     info!("Starting upload from {:?}", &staged);
-    for (staged_file, manifest) in staged.staged_files()? {
+    for staged_file in staged.staged_files()? {
 
         let results: Vec<_> = adaptors
             .iter()
@@ -86,7 +86,7 @@ pub fn upload_from_staged(
                 let start = Utc::now();
                 info!("Starting {} adaptor for {:?}", ad.name(), &staged_file.content_path);
                 info!("Checking if file already exists");
-                if ad.already_uploaded(&manifest) {
+                if ad.already_uploaded(&staged_file.descriptor) {
                     info!("File was already uploaded - skipping");
                     return (ad.name(), UploadStatus::AlreadyUploaded);
                 }
@@ -99,7 +99,7 @@ pub fn upload_from_staged(
                         Ok(content) => content,
                         Err(e) => return Some(e.into()),
                     };
-                    match ad.upload(content, &manifest) {
+                    match ad.upload(content, &staged_file.descriptor) {
                         Ok(_resp) => {
                             let finish = Utc::now();
                             info!("Upload succeeded in {}", formatting::human_readable_time(finish - start));
@@ -124,7 +124,7 @@ pub fn upload_from_staged(
             })
             .collect();
 
-        let entry = ReportEntry::new(manifest, results);
+        let entry = ReportEntry::new(&staged_file.descriptor, results);
         if entry.is_success() {
             staged_file.delete()?;
         } else {
