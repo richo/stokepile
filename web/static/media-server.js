@@ -1,4 +1,5 @@
 import init, { load_staged_media, clear_staged_media, activate_media } from '/wasm/stokepile_wasm.js';
+import '/vendor/nouislider/nouislider.min.js';
 
 async function run() {
   await init();
@@ -12,6 +13,19 @@ async function run() {
     .addEventListener("click", function(event) {
       activate_media(event.srcElement.dataset.uuid);
     })
+
+  // This all becomes a part of the "select media" call
+  var slider = document.getElementById('trim-slider');
+
+  noUiSlider.create(slider, {
+    start: [0, 1000],
+    connect: true,
+    range: {
+      'min': 0,
+      'max': 1000,
+    }
+  });
+
   load_staged_media();
 }
 run()

@@ -27,4 +27,5 @@ pub fn configure_rocket() -> Rocket {
     .manage(ctx)
     .manage(staging)
     .mount("/wasm", StaticFiles::from("wasm/pkg"))
+    .mount("/vendor", StaticFiles::from("web/vendor"))
 }
