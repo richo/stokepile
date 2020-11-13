@@ -1,5 +1,7 @@
 use chrono::prelude::*;
+use std::ops::Deref;
 use std::path::PathBuf;
+use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -11,6 +13,14 @@ pub struct StagedFile {
     pub descriptor: UploadDescriptor,
 }
 
+impl Deref for StagedFile {
+    type Target = UploadDescriptor;
+
+    fn deref(&self) -> &Self::Target {
+        &self.descriptor
+    }
+}
+
 #[derive(PartialEq, Debug, Serialize, Deserialize)]
 pub struct UploadDescriptor {
     pub path: RemotePathDescriptor,
@@ -18,6 +28,12 @@ pub struct UploadDescriptor {
     pub content_hash: [u8; 32],
     pub size: u64,
     pub uuid: Uuid,
+}
+
+impl UploadDescriptor {
+    pub fn name(&self) -> String {
+        self.path.name()
+    }
 }
 
 #[derive(Eq, PartialEq, Debug, Serialize, Deserialize, Clone)]
@@ -36,4 +52,36 @@ pub enum RemotePathDescriptor {
     SpecifiedPath {
         path: PathBuf,
     },
+}
+
+pub trait GroupByDevice {
+    fn grouped_by_device<'a>(&'a self) -> HashMap<&'a str, Vec<&'a UploadDescriptor>>;
+}
+
+impl GroupByDevice for Vec<UploadDescriptor> {
+    fn grouped_by_device<'a>(&'a self) -> HashMap<&'a str, Vec<&'a UploadDescriptor>> {
+        let mut out = HashMap::new();
+        for d in self.iter() {
+            let vec = &mut *out.entry(&d.device_name[..]).or_insert(vec![]);
+            vec.push(d);
+        }
+        out
+    }
+}
+
+impl RemotePathDescriptor {
+    pub fn name(&self) -> String {
+        use RemotePathDescriptor::*;
+        match self {
+            DateTime { capture_time, extension } => {
+                format!("{}.{}", capture_time, extension)
+            },
+            DateName { name, extension, .. } => {
+                format!("{}.{}", name, extension)
+            },
+            SpecifiedPath { path } => {
+                path.file_name().expect("file_name()").to_str().expect("as_str()").to_string()
+            },
+        }
+    }
 }
