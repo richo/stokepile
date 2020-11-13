@@ -32,11 +32,7 @@ fn main() {
 
         let dir = matches.value_of("PATH").expect("Couldn't get path");
         let path = PathBuf::from(dir);
-        let device_name = path.file_name()
-            .expect("Couldn't get file name")
-            .to_str()
-            .expect("Couldn't convert device name to str")
-            .to_string();
+        let device_name = "manual";
 
         let staging = ctx.staging().mount()?;
         info!("Staging to: {:?}", &staging);

@@ -14,8 +14,10 @@ pub struct ManualFile {
     file: File,
     /// Where do we find this file on the filesystem
     source_path: PathBuf,
-    /// Where should we store this file, ignoring the root
-    dest_path: PathBuf,
+    /// The name we're going to store it as
+    name: String,
+    /// The filetype to store as
+    extension: String,
 }
 
 impl ManualFile {
@@ -25,29 +27,40 @@ impl ManualFile {
     /// dest_path is the path that we will be storing this file.
     ///
     /// This would mean that for a file at `/path/to/event/name/video.ogv` you could create it as:
-    /// ```rust,ignore
-    /// ManualFile::from_paths(PathBuf::from("/path/to/event/name/video.ogv"),
-    ///                        PathBuf::from("name/video.ogv"));
+    /// ```rust
+    /// # use stokepile::manual_file::ManualFile;
+    /// # use std::path::PathBuf;
+    /// ManualFile::from_path(PathBuf::from("/path/to/event/name/video.ogv"));
     /// ```
-    // TODO(richo) Is there some better way to express this in the API without all the duplication?
-    fn from_paths<U, T>(source_path: U, dest_path: T) -> Result<ManualFile, Error>
-    where U: AsRef<Path> + Debug,
-          T: AsRef<Path> + Debug {
-
-        assert!(source_path.as_ref().ends_with(&dest_path), "source_path: {:?}, dest_path: {:?}", &source_path, &dest_path);
-        assert!(dest_path.as_ref().is_relative());
+    ///
+    /// Yielding a ManualFile to stage `video.ogv` filed by the mtime of the file. Filename and
+    /// path are stored separately on the ManualFile to make intermediate renaming simpler, since
+    /// both the source path and file handle are stored elsewhere.
+    pub fn from_path<U>(source_path: U) -> Result<ManualFile, Error>
+    where U: AsRef<Path> + Debug {
 
         let source_path = source_path.as_ref().to_path_buf();
-        let dest_path = dest_path.as_ref().to_path_buf();
         let file = File::open(&source_path)
             .context("Opening local copy for a ManualFile")?;
+        let name = source_path.file_stem()
+            .map(|x| x.to_str())
+            .flatten()
+            .ok_or_else(|| format_err!("error extracting filename, path: {:?}", &source_path))?
+            .to_string();
+        let extension = source_path.extension()
+            .map(|x| x.to_str())
+            .flatten()
+            .ok_or_else(|| format_err!("error extracting extension, path: {:?}", &source_path))?
+            .to_string();
+
         let captured = file.metadata()?.modified()?.into();
 
         Ok(ManualFile {
             captured,
             file,
             source_path,
-            dest_path,
+            name,
+            extension,
         })
     }
 
@@ -66,13 +79,13 @@ impl ManualFile {
             })
             .map(move |e| {
                 let entry = e.expect("couldn't get path");
-                // I believe this is safe, since we're constructing `entry` from `path` it
-                // shouldn't be possible to hit this assertion, except potentially with symlinks?
-                let dest = entry.path().strip_prefix(&path)
-                    .expect("Couldn't remove prefix");
-                ManualFile::from_paths(entry.path(), dest)
-                    .unwrap_or_else(|e| panic!("Couldn't get ManualFile: {:?}, {:?}, {:?}", e, entry.path(), &dest))
+                ManualFile::from_path(entry.path())
+                    .unwrap_or_else(|e| panic!("Couldn't get ManualFile: {:?}, {:?}", e, entry.path()))
             })
+    }
+
+    pub fn rename(&mut self, name: String) {
+        self.name = name;
     }
 }
 
@@ -80,8 +93,10 @@ impl StorableFile for ManualFile {
     type Reader = File;
 
     fn remote_path(&self) -> Result<RemotePathDescriptor, Error> {
-        Ok(RemotePathDescriptor::SpecifiedPath {
-            path: self.dest_path.to_path_buf(),
+        Ok(RemotePathDescriptor::DateName {
+            capture_date: self.captured.naive_local().date(),
+            name: self.name.clone(),
+            extension: self.extension.clone(),
         })
     }
 
@@ -117,7 +132,7 @@ mod tests {
         let mut test_data = File::create(&path).expect("Test file create");
         assert!(test_data.write_all(b"This is some test data").is_ok());
 
-        let fh = ManualFile::from_paths(path, PathBuf::from("test-file.ogv")).expect("Couldn't create manualfile");
+        let fh = ManualFile::from_path(path).expect("Couldn't create manualfile");
         let desc = fh.descriptor("test-upload");
 
         stager.stage(fh, "manual").expect("Didn't stage correct");
@@ -140,14 +155,18 @@ mod tests {
 
         let path = day.join("video.ogv");
         let mut test_data = File::create(&path).expect("Test file create");
+        let captured: DateTime<Local> = test_data.metadata().unwrap().modified().unwrap().into();
         assert!(test_data.write_all(b"This is some test data").is_ok());
 
         let mut iter = ManualFile::iter_from(event);
         let mf = iter.next().expect("Couldn't get a test file");
         let desc = mf.descriptor("event name").expect("Couldn't get descriptor");
+
         assert_eq!(&desc.path,
-                   &staging::RemotePathDescriptor::SpecifiedPath {
-                       path: PathBuf::from("person/day/video.ogv")
+                   &staging::RemotePathDescriptor::DateName {
+                       capture_date: captured.naive_local().date(),
+                       name: "video".into(),
+                       extension: "ogv".into(),
                    });
 
         assert_eq!(&desc.device_name,
