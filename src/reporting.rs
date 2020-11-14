@@ -2,7 +2,7 @@ use chrono::prelude::*;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use crate::staging::{UploadDescriptor, UploadDescriptorExt, DescriptorNameable, RemotePathDescriptor};
+use crate::staging::{UploadDescriptor, DescriptorNameable, RemotePathDescriptor};
 use crate::formatting::human_readable_size;
 
 use failure::Error;
@@ -68,33 +68,8 @@ pub struct ReportEntryDescription {
 
 impl DescriptorNameable for ReportEntryDescription {
     fn staging_name(&self) -> String {
-        match &self.remote_path {
-            RemotePathDescriptor::DateTime {
-                capture_time, extension
-            } => {
-                format!(
-                    "{}-{}.{}",
-                    &self.device_name, capture_time, extension
-                )
-            },
-            RemotePathDescriptor::DateName {
-                capture_date, name, extension
-            } => {
-                format!(
-                    "{}-{}-{}.{}",
-                    &self.device_name, capture_date, name, extension,
-                )
-            },
-            RemotePathDescriptor::SpecifiedPath {
-                path
-            } => {
-                format!(
-                    "{}-{}",
-                    &self.device_name,
-                    path.to_str().expect("path wasn't valid utf8").replace("/", "-"),
-                )
-            }
-        }
+        let group = self.remote_path.group().replace("/", "-");
+        format!("{}-{}-{}", self.device_name, group, self.remote_path.name())
     }
 
     fn manifest_name(&self) -> String {
@@ -103,39 +78,22 @@ impl DescriptorNameable for ReportEntryDescription {
 
     fn remote_path(&self) -> PathBuf {
         match &self.remote_path {
-            RemotePathDescriptor::DateTime {
-                capture_time, extension,
-            } => {
+            RemotePathDescriptor::DateTime { .. } |
+            RemotePathDescriptor::DateName { .. } => {
                 format!(
-                    "/{year:04}/{month:02}/{day:02}/{device}/{filename}.{extension}",
-                    year = capture_time.year(),
-                    month = capture_time.month(),
-                    day = capture_time.day(),
-                    device= &self.device_name,
-                    filename = capture_time.format("%H-%M-%S"),
-                    extension = extension,
-                ).into()
-            },
-            RemotePathDescriptor::DateName {
-                capture_date, name, extension
-            } => {
-                format!(
-                    "/{year:04}/{month:02}/{day:02}/{device}/{filename}.{extension}",
-                    year = capture_date.year(),
-                    month = capture_date.month(),
-                    day = capture_date.day(),
-                    device= &self.device_name,
-                    filename = name,
-                    extension = extension,
+                    "/{group}/{device}/{name}",
+                    group = self.remote_path.group(),
+                    device = &self.device_name,
+                    name = self.remote_path.name()
                 ).into()
             },
             RemotePathDescriptor::SpecifiedPath {
-                path
+                group, ..
             } => {
                 let mut buf = PathBuf::from("/");
                 buf.push(&self.device_name);
-                assert!(!path.is_absolute());
-                buf.extend(path);
+                buf.push(group);
+                buf.push(self.remote_path.name());
                 buf
             }
         }
@@ -225,6 +183,7 @@ impl UploadReport {
 mod tests {
     use super::*;
     use chrono::prelude::*;
+    use crate::staging::UploadDescriptorExt;
 
     fn dummy_report() -> UploadReport {
         let mut report: UploadReport = Default::default();
@@ -252,7 +211,7 @@ mod tests {
         ));
 
         let mut desc = UploadDescriptor::build("Flock n Dock".to_string())
-                .manual_file("richo/double sled.mp4".into());
+                .manual_file("richo".into(), "double sled", "mp4");
         desc.size = 16000000;
         report.record_activity(ReportEntry::new(
                 &desc,
@@ -263,7 +222,7 @@ mod tests {
         ));
 
         let mut desc = UploadDescriptor::build("Flock n Dock".to_string())
-                .manual_file("richo/gigantic video.mp4".into());
+                .manual_file("richo".into(), "gigantic video", "mp4");
         desc.size = 38 * 1024 * 1024 * 1024;
         report.record_activity(ReportEntry::new(
                 &desc,
@@ -285,142 +244,85 @@ mod tests {
     #[test]
     fn test_deals_with_large_totals() {
         let mut report: UploadReport = Default::default();
+        let device = "testing";
         for i in 0..20 {
-           let name = format!("Dummy-file{}.mp4", i);
-           let path = format!("richo/Dummy-file{}.mp4", i);
-           let mut desc = UploadDescriptor::build(name)
-               .manual_file(path.into());
-           desc.size = 138 * 1024 * 1024 * 1024;
+            let filename = format!("Dummy-file{}", i);
+            let mut desc = UploadDescriptor::build(device.into())
+                .manual_file("richo".into(), filename, "mp4");
+            desc.size = 138 * 1024 * 1024 * 1024;
             report.record_activity(ReportEntry::new(
                     &desc,
                     vec![
-                        ("provider".into(), UploadStatus::Succeeded),
+                    ("provider".into(), UploadStatus::Succeeded),
                     ],
-                    ));
+            ));
         }
 
         let expected = format!("\
 STOKEPILE UPLOAD REPORT
 =======================
 
-Dummy-file0.mp4
-===============
+testing
+=======
 
-    /Dummy-file0.mp4/richo/Dummy-file0.mp4 (138gb)
+    /testing/richo/Dummy-file0.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file1.mp4
-===============
-
-    /Dummy-file1.mp4/richo/Dummy-file1.mp4 (138gb)
+    /testing/richo/Dummy-file1.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file10.mp4
-================
-
-    /Dummy-file10.mp4/richo/Dummy-file10.mp4 (138gb)
+    /testing/richo/Dummy-file2.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file11.mp4
-================
-
-    /Dummy-file11.mp4/richo/Dummy-file11.mp4 (138gb)
+    /testing/richo/Dummy-file3.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file12.mp4
-================
-
-    /Dummy-file12.mp4/richo/Dummy-file12.mp4 (138gb)
+    /testing/richo/Dummy-file4.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file13.mp4
-================
-
-    /Dummy-file13.mp4/richo/Dummy-file13.mp4 (138gb)
+    /testing/richo/Dummy-file5.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file14.mp4
-================
-
-    /Dummy-file14.mp4/richo/Dummy-file14.mp4 (138gb)
+    /testing/richo/Dummy-file6.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file15.mp4
-================
-
-    /Dummy-file15.mp4/richo/Dummy-file15.mp4 (138gb)
+    /testing/richo/Dummy-file7.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file16.mp4
-================
-
-    /Dummy-file16.mp4/richo/Dummy-file16.mp4 (138gb)
+    /testing/richo/Dummy-file8.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file17.mp4
-================
-
-    /Dummy-file17.mp4/richo/Dummy-file17.mp4 (138gb)
+    /testing/richo/Dummy-file9.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file18.mp4
-================
-
-    /Dummy-file18.mp4/richo/Dummy-file18.mp4 (138gb)
+    /testing/richo/Dummy-file10.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file19.mp4
-================
-
-    /Dummy-file19.mp4/richo/Dummy-file19.mp4 (138gb)
+    /testing/richo/Dummy-file11.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file2.mp4
-===============
-
-    /Dummy-file2.mp4/richo/Dummy-file2.mp4 (138gb)
+    /testing/richo/Dummy-file12.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file3.mp4
-===============
-
-    /Dummy-file3.mp4/richo/Dummy-file3.mp4 (138gb)
+    /testing/richo/Dummy-file13.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file4.mp4
-===============
-
-    /Dummy-file4.mp4/richo/Dummy-file4.mp4 (138gb)
+    /testing/richo/Dummy-file14.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file5.mp4
-===============
-
-    /Dummy-file5.mp4/richo/Dummy-file5.mp4 (138gb)
+    /testing/richo/Dummy-file15.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file6.mp4
-===============
-
-    /Dummy-file6.mp4/richo/Dummy-file6.mp4 (138gb)
+    /testing/richo/Dummy-file16.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file7.mp4
-===============
-
-    /Dummy-file7.mp4/richo/Dummy-file7.mp4 (138gb)
+    /testing/richo/Dummy-file17.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file8.mp4
-===============
-
-    /Dummy-file8.mp4/richo/Dummy-file8.mp4 (138gb)
+    /testing/richo/Dummy-file18.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file9.mp4
-===============
-
-    /Dummy-file9.mp4/richo/Dummy-file9.mp4 (138gb)
+    /testing/richo/Dummy-file19.mp4 (138gb)
     # provider: Succeeded
 
 Uploaded Data

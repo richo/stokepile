@@ -124,6 +124,8 @@ where T: StorableFile,
     let manifest_name = desc.manifest_name();
 
     let mut options = fs::OpenOptions::new();
+    // TODO(richo) create_new would be a lot less scary here.
+    // Currently a duplicate file mtime will overwrite data
     let options = options.write(true).create(true).truncate(true);
 
     let staging_path = destination.path_for_name(&staging_name);
@@ -131,7 +133,8 @@ where T: StorableFile,
 
     info!("Staging {} to {:?}", &staging_name, &staging_path);
     {
-        let mut staged = options.open(&staging_path)?;
+        let mut staged = options.open(&staging_path)
+            .context(format!("Open staging path: {:?}", &staging_path))?;
         let (size, hash) = hashing_copy::copy_and_hash::<_, _, DropboxContentHasher>(
             file.reader(),
             &mut staged,
@@ -314,7 +317,7 @@ impl<T: StagingLocation> Stager<T> {
     }
 }
 pub trait StageFromDevice: Sized {
-    type FileType: StorableFile;
+    type FileType: StorableFile + Debug;
 
     /// List all stageable files on this device.
     fn files(&self) -> Result<Vec<Self::FileType>, Error>;
@@ -336,7 +339,8 @@ pub trait StageFromDevice: Sized {
     /// setting.
     #[cfg(test)]
     fn stage_files_for_test<T: StagingLocation>(self, name: &str, stager: &Stager<T>) -> Result<Self, Error> {
-        for file in self.files()? {
+        for file in self.files()
+            .context("Locate files")? {
             stager.stage(file, name)?;
         }
         self.cleanup()?;
@@ -368,10 +372,15 @@ impl UploadDescriptorBuilder {
         }
     }
 
-    pub fn manual_file(self, path: PathBuf) -> UploadDescriptor {
+    pub fn manual_file<S1, S2>(self, group: PathBuf, name: S1, extension: S2) -> UploadDescriptor
+    where S1: Into<String>,
+          S2: Into<String> {
+        let name = name.into();
+        let extension = extension.into();
+
         UploadDescriptor {
             path: RemotePathDescriptor::SpecifiedPath {
-                path,
+                group, name, extension,
             },
             content_hash: Default::default(),
             device_name: self.device_name,
@@ -415,7 +424,6 @@ impl UploadDescriptorExt for UploadDescriptor {
     }
 }
 
-// impl<T: Into<U>, U: DescriptorNameable> DescriptorNameable for T {
 impl DescriptorNameable for UploadDescriptor {
     fn staging_name(&self) -> String {
         ReportEntryDescription::from(self).staging_name()

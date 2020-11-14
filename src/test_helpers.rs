@@ -4,8 +4,10 @@ use walkdir;
 use std::fs::{self, File};
 use std::io::{Seek, Write};
 use std::path::PathBuf;
+use chrono::Duration;
 use chrono::prelude::*;
 use failure::Error;
+use rand;
 
 use crate::staging::{StageFromDevice, Stager, DateTimeUploadable};
 
@@ -54,6 +56,7 @@ impl DummyDataDevice {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct DummyDataFile {
     file: File,
     deleted: bool,
@@ -93,7 +96,9 @@ impl DateTimeUploadable for DummyDataFile {
     }
 
     fn capture_datetime(&self) -> Result<DateTime<Local>, chrono::ParseError> {
-        Ok(Local::now())
+        // Gross but at least the tests will be a lot less flaky.
+        let offset: u16 = rand::random();
+        Ok(Local::now() + Duration::seconds(offset.into()))
     }
 
     fn reader(&mut self) -> &mut Self::Reader {
@@ -111,10 +116,6 @@ impl DateTimeUploadable for DummyDataFile {
 }
 
 pub(crate) fn staged_data(num_files: usize) -> Result<tempfile::TempDir, Error> {
-    lazy_static! {
-        static ref TEST_DATA: PathBuf = PathBuf::from("staged-data/staging");
-    }
-
     let data_dir = tempfile::tempdir()?;
 
     // Create a dummy device

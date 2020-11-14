@@ -34,6 +34,16 @@ impl UploadDescriptor {
     pub fn name(&self) -> String {
         self.path.name()
     }
+
+    pub fn group(&self) -> String {
+        self.path.group()
+    }
+
+    pub fn device(&self) -> String {
+        // We return a String here just to keep things consistent this alloc is completely
+        // unnecessary
+        self.device_name.clone()
+    }
 }
 
 #[derive(Eq, PartialEq, Debug, Serialize, Deserialize, Clone)]
@@ -50,15 +60,18 @@ pub enum RemotePathDescriptor {
         extension: String,
     },
     SpecifiedPath {
-        path: PathBuf,
+        group: PathBuf,
+        name: String,
+        extension: String,
     },
 }
 
-pub trait GroupByDevice {
+pub trait DescriptorGrouping {
     fn grouped_by_device<'a>(&'a self) -> HashMap<&'a str, Vec<&'a UploadDescriptor>>;
+    fn grouped_by_device_by_group<'a>(&'a self) -> HashMap<&'a str, HashMap<String, Vec<&'a UploadDescriptor>>>;
 }
 
-impl GroupByDevice for Vec<UploadDescriptor> {
+impl DescriptorGrouping for Vec<UploadDescriptor> {
     fn grouped_by_device<'a>(&'a self) -> HashMap<&'a str, Vec<&'a UploadDescriptor>> {
         let mut out = HashMap::new();
         for d in self.iter() {
@@ -67,20 +80,49 @@ impl GroupByDevice for Vec<UploadDescriptor> {
         }
         out
     }
+
+    fn grouped_by_device_by_group<'a>(&'a self) -> HashMap<&'a str, HashMap<String, Vec<&'a UploadDescriptor>>> {
+        // TODO(richo) There's probably some way to do this without the intermediate hashmap, maybe
+        // do all of these with tuples under the hood and some boilerplate over them that
+        // collect()s?
+        let mut out = HashMap::new();
+        for (device, media) in self.grouped_by_device() {
+            let d = &mut *out.entry(device).or_insert(HashMap::new());
+            for entry in media {
+                let m = &mut *d.entry(entry.group()).or_insert(vec![]);
+                m.push(entry)
+            }
+        }
+        out
+    }
 }
 
 impl RemotePathDescriptor {
+    /// The logical group this media belongs to. For things with a date this would be the day of
+    /// the recording.
+    pub fn group(&self) -> String {
+        use RemotePathDescriptor::*;
+        match self {
+            DateTime { capture_time, .. } => {
+                format!("{:04}/{:02}/{:02}", capture_time.year(), capture_time.month(), capture_time.day())
+            },
+            DateName { name, extension, .. } |
+            SpecifiedPath { name, extension, .. } => {
+                format!("{}.{}", name, extension)
+            },
+        }
+    }
+    /// The logical name of the recording. For named files this is the name including the
+    /// extension, for date filed recordings this is the time with the extension.
     pub fn name(&self) -> String {
         use RemotePathDescriptor::*;
         match self {
             DateTime { capture_time, extension } => {
-                format!("{}.{}", capture_time, extension)
+                format!("{:02}-{:02}-{:02}.{}", capture_time.hour(), capture_time.minute(), capture_time.second(), extension)
             },
-            DateName { name, extension, .. } => {
+            DateName { name, extension, .. } |
+            SpecifiedPath { name, extension, .. } => {
                 format!("{}.{}", name, extension)
-            },
-            SpecifiedPath { path } => {
-                path.file_name().expect("file_name()").to_str().expect("as_str()").to_string()
             },
         }
     }
