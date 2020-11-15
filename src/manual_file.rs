@@ -43,13 +43,11 @@ impl ManualFile {
         let file = File::open(&source_path)
             .context("Opening local copy for a ManualFile")?;
         let name = source_path.file_stem()
-            .map(|x| x.to_str())
-            .flatten()
+            .and_then(|x| x.to_str())
             .ok_or_else(|| format_err!("error extracting filename, path: {:?}", &source_path))?
             .to_string();
         let extension = source_path.extension()
-            .map(|x| x.to_str())
-            .flatten()
+            .and_then(|x| x.to_str())
             .ok_or_else(|| format_err!("error extracting extension, path: {:?}", &source_path))?
             .to_string();
 

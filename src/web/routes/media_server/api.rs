@@ -32,7 +32,6 @@ pub fn stream_media(staging: State<'_, MountedStaging>, uuid: String) -> Option<
         .iter()
         .filter(|file| file.descriptor.uuid == uuid)
         .next()
-        .map(|file| File::open(&file.content_path).ok())
-        .flatten()
+        .and_then(|file| File::open(&file.content_path).ok())
         .map(|fh| Stream::chunked(fh, 4096))
 }
