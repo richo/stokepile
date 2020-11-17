@@ -12,10 +12,9 @@ pub struct StagedFile {
     pub content_path: PathBuf,
     pub manifest_path: PathBuf,
     pub descriptor: UploadDescriptor,
-    pub transforms: Vec<MediaTransform>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub enum MediaTransform {
     Trim(TrimDetail),
 }
@@ -36,7 +35,7 @@ impl MediaTransform {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub struct TrimDetail {
     pub start: u64,
     pub end: u64,
@@ -77,6 +76,7 @@ pub struct UploadDescriptor {
     pub content_hash: [u8; 32],
     pub size: u64,
     pub uuid: Uuid,
+    pub transforms: Vec<MediaTransform>,
 }
 
 impl UploadDescriptor {

@@ -76,7 +76,7 @@ pub trait StorableFile {
             device_name: name.to_string(),
             size: self.size()?,
             uuid: Uuid::new_v4(),
-
+            transforms: vec![],
         })
     }
 }
@@ -214,7 +214,6 @@ pub trait StagingLocation: Debug + Sync + Send {
                 content_path,
                 manifest_path,
                 descriptor,
-                transforms: vec![],
             });
         }
         Ok(out)
@@ -235,6 +234,7 @@ pub trait StagedFileExt {
     fn delete(self) -> Result<(), io::Error>;
     fn content_handle(&self) -> Result<File, io::Error>;
     fn apply_transforms(self) -> Result<StagedFile, (StagedFile, Error)>;
+    fn add_transform(&mut self, transform: MediaTransform) -> Result<(), Error>;
 }
 
 impl StagedFileExt for StagedFile {
@@ -253,6 +253,21 @@ impl StagedFileExt for StagedFile {
     /// transforms fail returning this unmodified file and the error.
     fn apply_transforms(self) -> Result<StagedFile, (StagedFile, Error)> {
         unimplemented!()
+    }
+
+    fn add_transform(&mut self, transform: MediaTransform) -> Result<(), Error> {
+        self.descriptor.transforms.push(transform);
+
+        let mut options = fs::OpenOptions::new();
+        // TODO(richo) create_new would be a lot less scary here.
+        // Currently a duplicate file mtime will overwrite data
+        let options = options.write(true).create(true).truncate(true);
+
+        // TODO(richo) Dedupe all of this logic
+        let mut staged = options.open(&self.manifest_path)
+            .context("Opening manifest")?;
+        serde_json::to_writer(&mut staged, &self.descriptor)?;
+        Ok(())
     }
 }
 
@@ -378,6 +393,7 @@ impl UploadDescriptorBuilder {
             device_name: self.device_name,
             size: 0,
             uuid: Uuid::new_v4(),
+            transforms: vec![],
         }
     }
 
@@ -395,6 +411,7 @@ impl UploadDescriptorBuilder {
             device_name: self.device_name,
             size: 0,
             uuid: Uuid::new_v4(),
+            transforms: vec![],
         }
     }
 }
@@ -429,6 +446,7 @@ impl UploadDescriptorExt for UploadDescriptor {
             content_hash: Default::default(),
             size: 1024,
             uuid: Uuid::new_v4(),
+            transforms: vec![],
         }
     }
 }

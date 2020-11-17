@@ -9,13 +9,14 @@ use stokepile_shared::staging::{
     AsTransform,
     RemotePathDescriptor,
     Trimmer,
+    MediaTransform,
 };
 use dropbox_content_hasher::DropboxContentHasher;
 use hashing_copy;
 use uuid::Uuid;
 
 use std::process::{Command, Stdio};
-use crate::staging::DescriptorNameable;
+use crate::staging::{DescriptorNameable, StagedFileExt};
 
 #[derive(Debug)]
 pub struct FFMpegTrimmer {
@@ -123,12 +124,17 @@ impl Trimmer for FFMpegTrimmer {
                 &mut new)?;
             content_hash.copy_from_slice(&hash);
 
+            let transforms = file.transforms.iter()
+                .filter(|t| ! matches!(t, MediaTransform::Trim { .. }))
+                .map(|t| t.clone())
+                .collect();
             let descriptor = UploadDescriptor {
                 path: file.descriptor.path.with_modification(&detail),
                 device_name: file.descriptor.device_name.clone(),
                 content_hash,
                 size,
                 uuid: Uuid::new_v4(),
+                transforms,
             };
 
             // We've now created the trimmed file, now just to make a manifest for it.
@@ -145,13 +151,14 @@ impl Trimmer for FFMpegTrimmer {
                 content_path: content_path.clone(),
                 manifest_path: manifest_path.clone(),
                 descriptor,
-                // We still need to plumb any remaining transforms through
-                transforms: vec![],
             })
         })();
 
         match res {
-            Ok(new_file) => Ok(new_file),
+            Ok(new_file) => {
+                let _ = file.delete();
+                Ok(new_file)
+            }
             Err(err) => {
                 cleanup();
                 Err((file, err))
