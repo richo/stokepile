@@ -1,4 +1,4 @@
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::io;
 use std::path::PathBuf;
 use failure::Error;
@@ -14,6 +14,7 @@ use hashing_copy;
 use uuid::Uuid;
 
 use std::process::{Command, Stdio};
+use crate::staging::DescriptorNameable;
 
 #[derive(Debug)]
 pub struct FFMpegTrimmer {
@@ -92,7 +93,8 @@ impl FFMpegTrimmer {
 
     pub fn trim(file: StagedFile, detail: TrimDetail) -> Result<StagedFile, Error> {
         let old = File::open(&file.content_path)?;
-        let mut new = File::create(file.content_path.with_modification(&detail))?;
+        let new_path = file.content_path.with_modification(&detail);
+        let mut new = File::create(&new_path)?;
         let mut content_hash = [0; 32];
         let ffmpeg = Command::new("ffmpeg")
             .stdin(old)
@@ -115,8 +117,18 @@ impl FFMpegTrimmer {
 
         // We've now created the trimmed file, now just to make a manifest for it.
 
+        let mut options = OpenOptions::new();
+        let options = options.write(true).create(true).truncate(true);
 
-
+        let mut manifest_path = new_path.clone();
+        let mut file_name = manifest_path.file_name().expect("filename")
+            .to_str().expect("to_str()").to_string();
+        file_name.push_str(".manifest");
+        manifest_path.set_file_name(file_name);
+        {
+            let mut staged = options.open(&manifest_path)?;
+            serde_json::to_writer(&mut staged, &descriptor)?;
+        }
 
         unreachable!()
     }
@@ -125,6 +137,9 @@ impl FFMpegTrimmer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_helpers::*;
+    use crate::staging::StagingLocation;
+    use stokepile_shared::staging::MediaTransform;
 
     #[test]
     fn test_can_calc_name() {
@@ -132,5 +147,23 @@ mod tests {
         let trim = pb.with_modification(&MediaTransform::trim(3, 6));
         let trimmed: PathBuf = "/path/to/file-trim-3:6.ext".into();
         assert_eq!(trimmed, trim);
+    }
+
+    #[test]
+    fn test_path_calculation() {
+        // stage a file
+        let data = staged_data(1).expect("staged_data");
+        let file = &data.staged_files().expect("staged_files")[0];
+        let detail = MediaTransform::trim(1, 2);
+        let new_path = file.content_path.with_modification(&detail);
+
+        let mut content_hash = [0; 32];
+        let descriptor = UploadDescriptor {
+            path: file.descriptor.path.with_modification(&detail),
+            device_name: "".into(),
+            content_hash,
+            size: 0,
+            uuid: Uuid::new_v4(),
+        };
     }
 }
