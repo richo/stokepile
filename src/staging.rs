@@ -503,6 +503,7 @@ mod tests {
             content_hash: [0; 32],
             size: 0,
             uuid: Uuid::new_v4(),
+            transforms: vec![],
         };
 
         assert_eq!(
@@ -524,6 +525,7 @@ mod tests {
             content_hash: [0; 32],
             size: 0,
             uuid: Uuid::new_v4(),
+            transforms: vec![],
         };
 
         assert_eq!(
@@ -545,6 +547,7 @@ mod tests {
             content_hash: [0; 32],
             size: 0,
             uuid: Uuid::new_v4(),
+            transforms: vec![],
         };
 
         let serialized = serde_json::to_string(&original).expect("Couldn't serialize test vector");
