@@ -1,4 +1,4 @@
-use std::fs::{File, OpenOptions};
+use std::fs::{self, File, OpenOptions};
 use std::io;
 use std::path::PathBuf;
 use failure::Error;
@@ -91,46 +91,69 @@ impl FFMpegTrimmer {
             .map(|_output| FFMpegTrimmer { _unused: () })
     }
 
-    pub fn trim(file: StagedFile, detail: TrimDetail) -> Result<StagedFile, Error> {
-        let old = File::open(&file.content_path)?;
-        let new_path = file.content_path.with_modification(&detail);
-        let mut new = File::create(&new_path)?;
-        let mut content_hash = [0; 32];
-        let ffmpeg = Command::new("ffmpeg")
-            .stdin(old)
-            .stdout(Stdio::piped())
-            .env_clear()
-            .spawn()?;
+    pub fn trim(file: StagedFile, detail: TrimDetail) -> Result<StagedFile, (StagedFile, Error)> {
+        let content_path = file.content_path.with_modification(&detail);
+        let mut manifest_path = content_path.clone();
 
-        let (size, hash) = hashing_copy::copy_and_hash::<_, _, DropboxContentHasher>(
-            &mut ffmpeg.stdout.expect("stdout"),
-            &mut new)?;
-        content_hash.copy_from_slice(&hash);
-
-        let descriptor = UploadDescriptor {
-            path: file.descriptor.path.with_modification(&detail),
-            device_name: file.descriptor.device_name,
-            content_hash,
-            size,
-            uuid: Uuid::new_v4(),
-        };
-
-        // We've now created the trimmed file, now just to make a manifest for it.
-
-        let mut options = OpenOptions::new();
-        let options = options.write(true).create(true).truncate(true);
-
-        let mut manifest_path = new_path.clone();
         let mut file_name = manifest_path.file_name().expect("filename")
             .to_str().expect("to_str()").to_string();
         file_name.push_str(".manifest");
         manifest_path.set_file_name(file_name);
-        {
-            let mut staged = options.open(&manifest_path)?;
-            serde_json::to_writer(&mut staged, &descriptor)?;
-        }
 
-        unreachable!()
+        let cleanup = || {
+            let _ = fs::remove_file(&content_path);
+            let _ = fs::remove_file(&manifest_path);
+        };
+
+        let res = (|| {
+            let old = File::open(&file.content_path)?;
+            let mut new = File::create(&content_path)?;
+            let mut content_hash = [0; 32];
+            let ffmpeg = Command::new("ffmpeg")
+                .stdin(old)
+                .stdout(Stdio::piped())
+                .env_clear()
+                .spawn()?;
+
+            let (size, hash) = hashing_copy::copy_and_hash::<_, _, DropboxContentHasher>(
+                &mut ffmpeg.stdout.expect("stdout"),
+                &mut new)?;
+            content_hash.copy_from_slice(&hash);
+
+            let descriptor = UploadDescriptor {
+                path: file.descriptor.path.with_modification(&detail),
+                device_name: file.descriptor.device_name.clone(),
+                content_hash,
+                size,
+                uuid: Uuid::new_v4(),
+            };
+
+            // We've now created the trimmed file, now just to make a manifest for it.
+
+            let mut options = OpenOptions::new();
+            let options = options.write(true).create(true).truncate(true);
+
+            {
+                let mut staged = options.open(&manifest_path)?;
+                serde_json::to_writer(&mut staged, &descriptor)?;
+            }
+
+            Ok(StagedFile {
+                content_path: content_path.clone(),
+                manifest_path: manifest_path.clone(),
+                descriptor,
+                // We still need to plumb any remaining transforms through
+                transforms: vec![],
+            })
+        })();
+
+        match res {
+            Ok(new_file) => Ok(new_file),
+            Err(err) => {
+                cleanup();
+                Err((file, err))
+            }
+        }
     }
 }
 
