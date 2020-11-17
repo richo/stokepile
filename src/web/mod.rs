@@ -14,6 +14,7 @@ pub mod models;
 pub mod oauth;
 pub mod routes;
 pub mod schema;
+mod form_hacks;
 mod logging;
 mod range;
 
