@@ -8,6 +8,7 @@ use stokepile_shared::staging::{
     UploadDescriptor,
     AsTransform,
     RemotePathDescriptor,
+    Trimmer,
 };
 use dropbox_content_hasher::DropboxContentHasher;
 use hashing_copy;
@@ -90,8 +91,10 @@ impl FFMpegTrimmer {
             .output()
             .map(|_output| FFMpegTrimmer { _unused: () })
     }
+}
 
-    pub fn trim(file: StagedFile, detail: TrimDetail) -> Result<StagedFile, (StagedFile, Error)> {
+impl Trimmer for FFMpegTrimmer {
+    fn trim(file: StagedFile, detail: TrimDetail) -> Result<StagedFile, (StagedFile, Error)> {
         let content_path = file.content_path.with_modification(&detail);
         let mut manifest_path = content_path.clone();
 

@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use failure::Error;
 
 // #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 #[derive(Debug, Serialize, Deserialize)]
@@ -58,7 +59,7 @@ impl AsTransform for MediaTransform {
 }
 
 pub trait Trimmer {
-    fn trim(file: StagedFile, detail: TrimDetail) -> StagedFile;
+    fn trim(file: StagedFile, detail: TrimDetail) -> Result<StagedFile, (StagedFile, Error)>;
 }
 
 impl Deref for StagedFile {
