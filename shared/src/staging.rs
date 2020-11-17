@@ -11,6 +11,54 @@ pub struct StagedFile {
     pub content_path: PathBuf,
     pub manifest_path: PathBuf,
     pub descriptor: UploadDescriptor,
+    pub transforms: Vec<MediaTransform>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum MediaTransform {
+    Trim(TrimDetail),
+}
+
+impl MediaTransform {
+    pub fn tweak_name(&self) -> String {
+        match self {
+            MediaTransform::Trim(transform) => {
+                format!("-trim-{}:{}", transform.start, transform.end)
+            }
+        }
+    }
+}
+
+impl MediaTransform {
+    pub fn trim(start: u64, end: u64) -> MediaTransform {
+        MediaTransform::Trim(TrimDetail { start, end })
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TrimDetail {
+    pub start: u64,
+    pub end: u64,
+}
+
+pub trait AsTransform {
+    fn as_transform(&self) -> MediaTransform;
+}
+
+impl AsTransform for TrimDetail {
+    fn as_transform(&self) -> MediaTransform {
+        MediaTransform::Trim(self.clone())
+    }
+}
+
+impl AsTransform for MediaTransform {
+    fn as_transform(&self) -> MediaTransform {
+        self.clone()
+    }
+}
+
+pub trait Trimmer {
+    fn trim(file: StagedFile, detail: TrimDetail) -> StagedFile;
 }
 
 impl Deref for StagedFile {

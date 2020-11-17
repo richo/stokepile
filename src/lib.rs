@@ -126,6 +126,9 @@ pub mod staging;
 /// pointlessly uploading things that are already there) and cleaning up the local staging area.
 pub mod storage;
 
+/// The trimmer transform, which allows for trimming media before uploading it.
+pub mod trimmer;
+
 /// The vimeo upload backend.
 pub mod vimeo;
 

@@ -20,6 +20,7 @@ pub use stokepile_shared::staging::{
     StagedFile,
     UploadDescriptor,
     RemotePathDescriptor,
+    MediaTransform, TrimDetail,
 };
 
 impl MountableFilesystem for StagingConfig {
@@ -213,6 +214,7 @@ pub trait StagingLocation: Debug + Sync + Send {
                 content_path,
                 manifest_path,
                 descriptor,
+                transforms: vec![],
             });
         }
         Ok(out)
@@ -232,6 +234,7 @@ impl<T: StagingLocation> StagingLocation for Box<T> {
 pub trait StagedFileExt {
     fn delete(self) -> Result<(), io::Error>;
     fn content_handle(&self) -> Result<File, io::Error>;
+    fn apply_transforms(self) -> Result<StagedFile, (StagedFile, Error)>;
 }
 
 impl StagedFileExt for StagedFile {
@@ -244,6 +247,12 @@ impl StagedFileExt for StagedFile {
 
     fn content_handle(&self) -> Result<File, io::Error> {
         File::open(&self.content_path)
+    }
+
+    /// Apply the transforms, consuming this StagedFile and returning the new one, or if the
+    /// transforms fail returning this unmodified file and the error.
+    fn apply_transforms(self) -> Result<StagedFile, (StagedFile, Error)> {
+        unimplemented!()
     }
 }
 
