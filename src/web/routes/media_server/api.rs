@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 use stokepile_shared::staging::UploadDescriptor;
 use crate::staging::{MountedStaging, StagingLocation};
+use crate::web::RangeResponder;
 
 use std::fs::File;
 
@@ -19,7 +20,7 @@ pub fn get_media(staging: State<'_, MountedStaging>) -> Json<Vec<UploadDescripto
 }
 
 #[get("/api/media/<uuid>")]
-pub fn stream_media(staging: State<'_, MountedStaging>, uuid: String) -> Option<Stream<File>> {
+pub fn stream_media(staging: State<'_, MountedStaging>, uuid: String) -> Option<RangeResponder<File>> {
     let uuid = match Uuid::parse_str(&uuid) {
         Ok(uuid) => uuid,
         Err(e) => {
@@ -33,5 +34,5 @@ pub fn stream_media(staging: State<'_, MountedStaging>, uuid: String) -> Option<
         .filter(|file| file.descriptor.uuid == uuid)
         .next()
         .and_then(|file| File::open(&file.content_path).ok())
-        .map(|fh| Stream::chunked(fh, 4096))
+        .map(|fh| RangeResponder::new(fh))
 }

@@ -15,6 +15,9 @@ pub mod oauth;
 pub mod routes;
 pub mod schema;
 mod logging;
+mod range;
+
+pub use range::RangeResponder;
 
 pub mod media_server;
 pub mod config_server;

@@ -15,6 +15,7 @@ async function run() {
     })
 
   // This all becomes a part of the "select media" call
+  var video = document.getElementById('media-player');
   var slider = document.getElementById('trim-slider');
 
   noUiSlider.create(slider, {
@@ -25,6 +26,12 @@ async function run() {
       'max': 1000,
     }
   });
+  slider.noUiSlider.on('update', function(values, handle) {
+    let ticks = video.duration / 1000;
+    let position = parseInt(values[handle]);
+    video.currentTime = position * ticks;
+  });
+  // end of the jank that needs to be movedj:w
 
   load_staged_media();
 }
