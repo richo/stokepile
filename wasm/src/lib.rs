@@ -8,7 +8,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
-use stokepile_shared::staging::{UploadDescriptor, GroupByDevice};
+use stokepile_shared::staging::{UploadDescriptor, DescriptorGrouping};
 use uuid::Uuid;
 
 static BASE_URL: &'static str = "http://localhost:8000";
@@ -44,19 +44,25 @@ pub async fn load_staged_media() {
     let media_list = media_list();
     clear_staged_media().await;
     if let Ok(media) = fetch_staged_media().await {
-        for (device, media) in media.grouped_by_device() {
+        for (device, groups) in media.grouped_by_device_by_group() {
             let val = document.create_element("li").expect("Create element");
             val.set_inner_html(device);
             val.set_class_name("pure-menu-item pure-menu-heading");
             media_list.append_child(&val).expect("append");
 
-            for file in media {
+            for (group, entries) in groups {
                 let val = document.create_element("li").expect("Create element");
-                val.set_inner_html(&file.name());
-                val.set_class_name("pure-menu-item media-list-item");
-                val.set_attribute("data-content-hash", &hex::encode(&file.content_hash)).unwrap();
-                val.set_attribute("data-uuid", file.uuid.to_hyphenated().encode_lower(&mut Uuid::encode_buffer())).unwrap();
+                val.set_inner_html(&group);
+                val.set_class_name("pure-menu-item pure-menu-heading");
                 media_list.append_child(&val).expect("append");
+                for media in entries {
+                    let val = document.create_element("li").expect("Create element");
+                    val.set_inner_html(&media.name());
+                    val.set_class_name("pure-menu-item media-list-item");
+                    val.set_attribute("data-content-hash", &hex::encode(&media.content_hash)).unwrap();
+                    val.set_attribute("data-uuid", media.uuid.to_hyphenated().encode_lower(&mut Uuid::encode_buffer())).unwrap();
+                    media_list.append_child(&val).expect("append");
+                }
             }
         }
     }
