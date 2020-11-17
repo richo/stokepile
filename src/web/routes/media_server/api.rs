@@ -2,8 +2,8 @@ use rocket_contrib::json::Json;
 use rocket::State;
 use rocket::response::Stream;
 
-use stokepile_shared::staging::UploadDescriptor;
-use crate::staging::{MountedStaging, StagingLocation};
+use stokepile_shared::staging::{UploadDescriptor, MediaTransform};
+use crate::staging::{MountedStaging, StagingLocation, StagedFileExt};
 use crate::web::RangeResponder;
 use crate::web::form_hacks::UuidParam;
 
@@ -28,4 +28,20 @@ pub fn stream_media(staging: State<'_, MountedStaging>, uuid: UuidParam) -> Opti
         .next()
         .and_then(|file| File::open(&file.content_path).ok())
         .map(|fh| RangeResponder::new(fh))
+}
+
+#[derive(Debug, FromForm, Deserialize)]
+pub struct TrimForm {
+    start: u64,
+    end: u64,
+}
+
+#[post("/api/media/<uuid>/trim", format = "json", data = "<trim>")]
+pub fn add_trim(staging: State<'_, MountedStaging>, uuid: UuidParam, trim: Json<TrimForm>) -> Option<()> {
+    staging.staged_files()
+        .expect("Couldn't load staged_files")
+        .iter_mut()
+        .filter(|file| file.descriptor.uuid == *uuid)
+        .next()
+        .and_then(|file| file.add_transform(MediaTransform::trim(trim.start, trim.end)).ok())
 }
