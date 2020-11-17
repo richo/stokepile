@@ -197,6 +197,7 @@ mod tests {
             content_hash,
             size: 0,
             uuid: Uuid::new_v4(),
+            transforms: vec![],
         };
     }
 }
