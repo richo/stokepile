@@ -113,16 +113,21 @@ impl Trimmer for FFMpegTrimmer {
             let old = File::open(&file.content_path)?;
             let mut new = File::create(&content_path)?;
             let mut content_hash = [0; 32];
-            let ffmpeg = Command::new("ffmpeg")
+            let mut ffmpeg = Command::new("ffmpeg")
                 .stdin(old)
                 .stdout(Stdio::piped())
                 .env_clear()
                 .spawn()?;
 
             let (size, hash) = hashing_copy::copy_and_hash::<_, _, DropboxContentHasher>(
-                &mut ffmpeg.stdout.expect("stdout"),
+                &mut ffmpeg.stdout.take().expect("stdout"),
                 &mut new)?;
             content_hash.copy_from_slice(&hash);
+
+            let res = ffmpeg.wait()?;
+            if !res.success() {
+                bail!("ffmpeg failed");
+            }
 
             let transforms = file.transforms.iter()
                 .filter(|t| ! matches!(t, MediaTransform::Trim { .. }))
