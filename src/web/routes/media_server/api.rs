@@ -7,6 +7,8 @@ use crate::staging::{MountedStaging, StagingLocation, StagedFileExt};
 use crate::web::RangeResponder;
 use crate::web::form_hacks::UuidParam;
 
+use failure::Error;
+
 use std::fs::File;
 
 #[get("/api/media")]
@@ -45,6 +47,14 @@ pub fn add_trim(staging: State<'_, MountedStaging>, uuid: UuidParam, trim: Json<
         .filter(|file| file.descriptor.uuid == *uuid)
         .next()
         .and_then(|file| file.add_transform(MediaTransform::trim(trim.start, trim.end)).ok())
+}
+
+#[post("/api/media/apply_transforms")]
+pub fn apply_transforms(staging: State<'_, MountedStaging>) -> Result<(), Error> {
+    for file in staging.staged_files()? {
+        let _ = file.apply_transforms();
+    }
+    Ok(())
 }
 
 #[cfg(test)]
