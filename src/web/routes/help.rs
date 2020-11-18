@@ -27,7 +27,7 @@ mod tests {
 
     use rocket::http::Status;
 
-    client_for_routes!(beta, help => client);
+    client_for_routes!(config: beta, help => client);
 
     #[test]
     fn test_help_loads() {

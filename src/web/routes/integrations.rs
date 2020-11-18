@@ -138,7 +138,7 @@ mod tests {
 
     use rocket::http::{ContentType, Header, Status};
 
-    client_for_routes!(connect_integration, disconnect_integration, finish_integration => client);
+    client_for_routes!(config: connect_integration, disconnect_integration, finish_integration => client);
 
     #[test]
     fn test_connect_integration() {

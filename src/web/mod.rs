@@ -61,21 +61,6 @@ fn configure_rocket(routes: Vec<Route>) -> Rocket {
         }))
 }
 
-pub fn create_test_rocket(routes: Vec<rocket::Route>) -> Rocket {
-    rocket::ignite()
-        .manage(init_pool(true))
-        .mount(
-            "/",
-            routes,
-        )
-        .attach(RequestLogger::new())
-        .attach(Template::custom(|engines| {
-            engines.handlebars.register_helper("maybe_selected", Box::new(maybe_selected));
-            engines.handlebars.register_helper("maintainer_info", Box::new(maintainer_info));
-            engines.handlebars.set_strict_mode(true);
-        }))
-}
-
 pub fn global_state(conn: &DbConn) -> diesel::prelude::QueryResult<models::GlobalSetting> {
     models::GlobalSetting::get(conn)
 }
