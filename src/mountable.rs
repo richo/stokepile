@@ -302,6 +302,9 @@ impl Unmounter for crate::test_helpers::TempDirUnmounter {
 impl From<tempfile::TempDir> for MountedFilesystem {
     fn from(temp: tempfile::TempDir) -> Self {
         use crate::test_helpers::TempDirUnmounter;
+        // MountedFilesystem's require the 'stokepile' directory to exist:
+        fs::create_dir(temp.path().join(PathBuf::from("stokepile")))
+            .expect("create_dir");
         MountedFilesystem {
             mountpoint: temp.path().to_path_buf(),
             device: temp.path().to_path_buf(),

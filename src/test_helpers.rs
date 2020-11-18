@@ -47,7 +47,7 @@ impl StageFromDevice for DummyDataDevice {
 }
 
 impl DummyDataDevice {
-    fn new(num_files: usize) -> DummyDataDevice {
+    pub(crate) fn new(num_files: usize) -> DummyDataDevice {
         DummyDataDevice {
             files: (0..num_files).map(|_| {
                 DummyDataFile::new().expect("Couldn't create dummy data")

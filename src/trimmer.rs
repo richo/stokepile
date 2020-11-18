@@ -133,7 +133,7 @@ impl Trimmer for FFMpegTrimmer {
                 device_name: file.descriptor.device_name.clone(),
                 content_hash,
                 size,
-                uuid: Uuid::new_v4(),
+                uuid: file.descriptor.uuid,
                 transforms,
             };
 
