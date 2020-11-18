@@ -138,3 +138,17 @@ pub(crate) fn temp_stager() -> Stager<tempfile::TempDir> {
 pub(crate) fn tempdir() -> tempfile::TempDir {
     tempfile::tempdir().unwrap()
 }
+
+#[derive(Debug)]
+pub struct TempDirUnmounter {
+    dir: tempfile::TempDir,
+}
+
+impl From<tempfile::TempDir> for TempDirUnmounter {
+    fn from(temp: tempfile::TempDir) -> Self {
+        TempDirUnmounter {
+            dir: temp,
+        }
+    }
+}
+

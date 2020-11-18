@@ -622,6 +622,18 @@ impl StagingLocation for tempfile::TempDir {
     }
 }
 
+#[cfg(test)]
+impl From<tempfile::TempDir> for MountedStaging {
+    fn from(temp: tempfile::TempDir) -> Self {
+        MountedStaging {
+            staging: StagingConfig {
+                location: MountableDeviceLocation::Location(temp.path().to_path_buf()),
+            },
+            mount: MountedFilesystem::from(temp),
+        }
+    }
+}
+
 impl<T> StagingLocation for &T where T: StagingLocation {
     fn relative_path(&self, path: &Path) -> PathBuf {
         (*self).relative_path(path)
