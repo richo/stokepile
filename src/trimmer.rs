@@ -82,15 +82,21 @@ impl PathWithTransform for RemotePathDescriptor {
     }
 }
 
+static FFMPEG_CMD: &'static str = "ffmpeg";
+
 impl FFMpegTrimmer {
     /// Create an ffmpeg trimmer. If the Err case is returned ffmpeg is either broken or
     /// nonexistant.
     // TODO(richo) Don't leak the io::Error
     pub fn new() -> Result<Self, io::Error> {
-        Command::new("ffmpeg")
+        info!("probing ffmpeg");
+        Command::new(FFMPEG_CMD)
             .arg("-version")
             .output()
-            .map(|_output| FFMpegTrimmer { _unused: () })
+            .map(|_output| {
+                info!("ffmpeg probe output: {:?}", _output);
+                FFMpegTrimmer { _unused: () }
+            })
     }
 }
 
@@ -116,9 +122,11 @@ impl Trimmer for FFMpegTrimmer {
                 .context("Creating new file")?;
 
             let mut content_hash = [0; 32];
-            let mut ffmpeg = Command::new("ffmpeg")
+            info!("Starting ffmpeg");
+            let mut ffmpeg = Command::new(FFMPEG_CMD)
                 .stdin(old)
                 .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
                 .arg("-i").arg("-")
                 .arg("-ss").arg(&detail.start_as_ffmpeg())
                 .arg("-t").arg(&detail.end_as_ffmpeg())
@@ -126,17 +134,19 @@ impl Trimmer for FFMpegTrimmer {
                 .arg("-c:a").arg("copy")
                 .arg("-f").arg("mp4") // TODO(richo)
                 .arg("-")
-                .env_clear()
-                .spawn()?;
+                .spawn()
+                .context("Command { ffmpeg }.spawn()")?;
 
+            info!("Copying and hashing");
             let (size, hash) = hashing_copy::copy_and_hash::<_, _, DropboxContentHasher>(
                 &mut ffmpeg.stdout.take().expect("stdout"),
                 &mut new)?;
             content_hash.copy_from_slice(&hash);
 
+            info!("waiting on ffmpeg");
             let res = ffmpeg.wait()?;
             if !res.success() {
-                bail!("ffmpeg failed");
+                bail!("ffmpeg failed, output: {:?}", ffmpeg.stderr.take());
             }
 
             let transforms = file.transforms.iter()
@@ -175,6 +185,7 @@ impl Trimmer for FFMpegTrimmer {
                 Ok(new_file)
             }
             Err(err) => {
+                info!("In error handler, clenaing up");
                 cleanup();
                 Err((file, err))
             }
@@ -188,6 +199,7 @@ mod tests {
     use crate::test_helpers::*;
     use crate::staging::StagingLocation;
     use stokepile_shared::staging::MediaTransform;
+    use uuid::Uuid;
 
     #[test]
     fn test_can_calc_name() {
