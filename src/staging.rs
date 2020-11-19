@@ -15,12 +15,14 @@ use uuid::Uuid;
 use crate::config::{MountableDeviceLocation, StagingConfig};
 use crate::mountable::{MountedFilesystem, MountableFilesystem, MountableKind, MOUNTABLE_DEVICE_FOLDER};
 use crate::reporting::ReportEntryDescription;
+use crate::trimmer::FFMpegTrimmer;
 
 pub use stokepile_shared::staging::{
     StagedFile,
     UploadDescriptor,
     RemotePathDescriptor,
     MediaTransform, TrimDetail,
+    Trimmer,
 };
 
 impl MountableFilesystem for StagingConfig {
@@ -252,7 +254,18 @@ impl StagedFileExt for StagedFile {
     /// Apply the transforms, consuming this StagedFile and returning the new one, or if the
     /// transforms fail returning this unmodified file and the error.
     fn apply_transforms(self) -> Result<StagedFile, (StagedFile, Error)> {
-        unimplemented!()
+        let transforms = self.transforms.clone();
+        let trimmer = FFMpegTrimmer::new()
+            .expect("Trimmer");
+            // .map_err(|e| (self, e.into()))?;
+        transforms.iter().fold(Ok(self), |file, transform| {
+            let file = file?;
+            match transform {
+                MediaTransform::Trim(detail) => {
+                    trimmer.trim(file, detail)
+                }
+            }
+        })
     }
 
     fn add_transform(&mut self, transform: MediaTransform) -> Result<(), Error> {

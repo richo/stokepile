@@ -74,7 +74,7 @@ impl AsTransform for MediaTransform {
 }
 
 pub trait Trimmer {
-    fn trim(file: StagedFile, detail: TrimDetail) -> Result<StagedFile, (StagedFile, Error)>;
+    fn trim(&self, file: StagedFile, detail: &TrimDetail) -> Result<StagedFile, (StagedFile, Error)>;
 }
 
 impl Deref for StagedFile {

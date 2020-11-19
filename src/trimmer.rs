@@ -13,10 +13,10 @@ use stokepile_shared::staging::{
 };
 use dropbox_content_hasher::DropboxContentHasher;
 use hashing_copy;
-use uuid::Uuid;
+use crate::failure::ResultExt;
 
 use std::process::{Command, Stdio};
-use crate::staging::{DescriptorNameable, StagedFileExt};
+use crate::staging::StagedFileExt;
 
 #[derive(Debug)]
 pub struct FFMpegTrimmer {
@@ -95,8 +95,8 @@ impl FFMpegTrimmer {
 }
 
 impl Trimmer for FFMpegTrimmer {
-    fn trim(file: StagedFile, detail: TrimDetail) -> Result<StagedFile, (StagedFile, Error)> {
-        let content_path = file.content_path.with_modification(&detail);
+    fn trim(&self, file: StagedFile, detail: &TrimDetail) -> Result<StagedFile, (StagedFile, Error)> {
+        let content_path = file.content_path.with_modification(detail);
         let mut manifest_path = content_path.clone();
 
         let mut file_name = manifest_path.file_name().expect("filename")
@@ -110,8 +110,11 @@ impl Trimmer for FFMpegTrimmer {
         };
 
         let res = (|| {
-            let old = File::open(&file.content_path)?;
-            let mut new = File::create(&content_path)?;
+            let old = File::open(&file.content_path)
+                .context("Opening old file")?;
+            let mut new = File::create(&content_path)
+                .context("Creating new file")?;
+
             let mut content_hash = [0; 32];
             let mut ffmpeg = Command::new("ffmpeg")
                 .stdin(old)
@@ -141,7 +144,7 @@ impl Trimmer for FFMpegTrimmer {
                 .map(|t| t.clone())
                 .collect();
             let descriptor = UploadDescriptor {
-                path: file.descriptor.path.with_modification(&detail),
+                path: file.descriptor.path.with_modification(detail),
                 device_name: file.descriptor.device_name.clone(),
                 content_hash,
                 size,
