@@ -1,4 +1,5 @@
 use chrono::prelude::*;
+use chrono::Duration;
 use std::ops::Deref;
 use std::path::PathBuf;
 use std::collections::HashMap;
@@ -39,6 +40,21 @@ impl MediaTransform {
 pub struct TrimDetail {
     pub start: u64,
     pub end: u64,
+}
+
+impl TrimDetail {
+    pub fn start_as_ffmpeg(&self) -> String {
+        Self::time_as_ffmpeg(self.start)
+    }
+
+    pub fn end_as_ffmpeg(&self) -> String {
+        Self::time_as_ffmpeg(self.end)
+    }
+
+    fn time_as_ffmpeg(secs: u64) -> String {
+        let time = Duration::seconds(secs as i64);
+        format!("{}:{}:{}", time.num_hours(), time.num_minutes(), time.num_seconds())
+    }
 }
 
 pub trait AsTransform {

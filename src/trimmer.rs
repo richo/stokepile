@@ -116,6 +116,13 @@ impl Trimmer for FFMpegTrimmer {
             let mut ffmpeg = Command::new("ffmpeg")
                 .stdin(old)
                 .stdout(Stdio::piped())
+                .arg("-i").arg("-")
+                .arg("-ss").arg(&detail.start_as_ffmpeg())
+                .arg("-t").arg(&detail.end_as_ffmpeg())
+                .arg("-c:v").arg("copy")
+                .arg("-c:a").arg("copy")
+                .arg("-f").arg("mp4") // TODO(richo)
+                .arg("-")
                 .env_clear()
                 .spawn()?;
 
