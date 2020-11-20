@@ -14,7 +14,10 @@ async function run() {
       activate_media(event.srcElement.dataset.uuid);
     })
 
-  // This all becomes a part of the "select media" call
+  load_staged_media();
+}
+
+window.init_slider = function() {
   var video = document.getElementById('media-player');
   var slider = document.getElementById('trim-slider');
 
@@ -31,8 +34,12 @@ async function run() {
     let position = parseInt(values[handle]);
     video.currentTime = position * ticks;
   });
-  // end of the jank that needs to be movedj:w
+};
 
-  load_staged_media();
-}
+window.get_slider_values = function() {
+  var slider = document.getElementById('trim-slider');
+  values = slider.noUiSlider.get();
+  return [parseInt(slider[0]), parseInt(slider[1])];
+};
+
 run()

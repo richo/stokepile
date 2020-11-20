@@ -10,6 +10,17 @@ use wasm_bindgen_futures::JsFuture;
 
 use stokepile_shared::staging::{UploadDescriptor, DescriptorGrouping};
 use uuid::Uuid;
+use serde::{Serialize, Deserialize};
+
+use handlebars::Handlebars;
+thread_local! {
+        static HANDLEBARS: Handlebars = {
+            let mut handlebars = Handlebars::new();
+            handlebars.register_template_string("media-view", include_str!("../../web/templates/media_server/media-view.html.hbs"))
+                .expect("registrating template");
+            handlebars
+        }
+}
 
 static BASE_URL: &'static str = "http://localhost:8000";
 
@@ -36,6 +47,8 @@ pub fn main() -> Result<(), JsValue> {
 #[wasm_bindgen]
 extern {
     fn alert(s: &str);
+    fn init_slider();
+    fn get_slider_values() -> Box<[u64]>;
 }
 
 #[wasm_bindgen]
@@ -73,6 +86,12 @@ pub async fn clear_staged_media() {
     clear_element_children(&media_list())
 }
 
+#[derive(Serialize, Debug)]
+struct MediaCtx<'a> {
+    video_name: &'a str,
+    video_source: String,
+}
+
 #[wasm_bindgen]
 pub async fn activate_media(uuid: String) {
     // TODO(richo) cache this
@@ -81,28 +100,27 @@ pub async fn activate_media(uuid: String) {
     let parsed = Uuid::parse_str(&uuid).expect("parse uuid");
 
     let document = document();
-    let player = document.get_element_by_id("media-player")
-        .expect("couldn't find media player");
-    clear_element_children(&player);
+    // let player = document.get_element_by_id("media-player")
+    //     .expect("couldn't find media player");
+    // clear_element_children(&player);
 
     let desc = media.iter()
         .filter(|desc| desc.uuid == parsed)
         .next()
         .expect(&format!("Couldn't find media with uuid: {}", parsed));
 
-    let name_field = document.get_element_by_id("name")
-        .expect("couldn't find media player");
-    // TODO(richo) This doesn't make any sense rn
-    name_field.set_attribute("value", &desc.device_name)
-        .expect("setAttribute");
+    let ctx = MediaCtx {
+        video_name: &desc.device_name,
+        video_source: format!("{}/api/media/{}", BASE_URL, uuid),
+    };
+    let inner_html = HANDLEBARS.with(|h| h.render("media-view", &ctx))
+        .expect("rendering");
 
-    let source = document.create_element("source")
-        .expect("create source");
-    source.set_attribute("src", &format!("{}/api/media/{}", BASE_URL, uuid))
-        .unwrap();
+    let name_field = document.get_element_by_id("media-view")
+        .expect("get media-view");
+    name_field.set_inner_html(&inner_html);
 
-    player.append_child(&source)
-        .unwrap();
+    init_slider();
 }
 
 fn clear_element_children(el: &Element) {
