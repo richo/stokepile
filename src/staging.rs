@@ -117,7 +117,7 @@ impl<T> StorableFile for T where T: DateTimeUploadable {
     }
 }
 
-fn stage_file<T, U>(file: &mut T, destination: &U, name: &str) -> Result<(), Error>
+fn stage_file<T, U>(file: &mut T, destination: &U, name: &str) -> Result<StagedFile, Error>
 where T: StorableFile,
       U: StagingLocation,
 {
@@ -156,7 +156,11 @@ where T: StorableFile,
         serde_json::to_writer(&mut staged, &desc)?;
     }
 
-    Ok(())
+    Ok(StagedFile {
+        content_path: staging_path,
+        manifest_path,
+        descriptor: desc,
+    })
 }
 
 /// The contract of StageableLocation is a directory with a bunch of flat files under it. Doing
@@ -277,6 +281,7 @@ impl StagedFileExt for StagedFile {
         let options = options.write(true).create(true).truncate(true);
 
         // TODO(richo) Dedupe all of this logic
+        info!("Opening manifest to add transform: {:?}", &self.manifest_path);
         let mut staged = options.open(&self.manifest_path)
             .context("Opening manifest")?;
         serde_json::to_writer(&mut staged, &self.descriptor)?;
@@ -332,16 +337,16 @@ impl<T: StagingLocation> Stager<T> {
         }
     }
 
-    pub fn stage<F>(&self, mut file: F, name: &str) -> Result<(), Error>
+    pub fn stage<F>(&self, mut file: F, name: &str) -> Result<StagedFile, Error>
         where F: StorableFile
     {
-        stage_file(&mut file, &self.location, name)?;
+        let res = stage_file(&mut file, &self.location, name)?;
 
         if self.destructive {
             file.delete()?;
         }
 
-        Ok(())
+        Ok(res)
     }
 
     pub fn staging_location(&self) -> &T {

@@ -8,19 +8,24 @@ use stokepile::cli;
 use stokepile::config;
 use stokepile::ctx::Ctx;
 use stokepile::manual_file::ManualFile;
-use stokepile::staging::Stager;
+use stokepile::staging::{Stager, StagedFileExt};
 use stokepile::mountable::Mountable;
+use stokepile_shared::staging::MediaTransform;
 
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
     cli::base_opts()
         .about("Stages media from the local filesystem for the next upload run")
         .arg(Arg::with_name("PATH")
-             .help("Path to upload from")
-             .required(true)
-             .index(1))
+            .help("Path to upload from")
+            .required(true)
+            .index(1))
         .arg(Arg::with_name("preserve")
-             .long("preserve")
-             .help("Don't erase files after staging them"))
+            .long("preserve")
+            .help("Don't erase files after staging them"))
+        .arg(Arg::with_name("trim")
+            .long("trim")
+            .takes_value(true)
+            .help("add a trim annotation"))
 }
 
 fn main() {
@@ -33,6 +38,14 @@ fn main() {
         let dir = matches.value_of("PATH").expect("Couldn't get path");
         let path = PathBuf::from(dir);
         let device_name = "manual";
+
+        let trim = matches.value_of("trim")
+            .map(|trim| {
+                let parts: Vec<_> = trim.split(":").collect();
+                assert_eq!(parts.len(), 2);
+                MediaTransform::trim(parts[0].parse().expect("start"),
+                                     parts[1].parse().expect("end"))
+            });
 
         let staging = ctx.staging().mount()?;
         info!("Staging to: {:?}", &staging);
@@ -50,7 +63,12 @@ fn main() {
 
 
         for file in ManualFile::iter_from(path) {
-            stager.stage(file, &device_name)?;
+            let mut file = stager.stage(file, &device_name)?;
+            if let Some(ref trim) = trim {
+                info!("Adding trim annotation");
+                file.add_transform(trim.clone())
+                    .expect("add trim");
+            }
         }
 
         Ok(())

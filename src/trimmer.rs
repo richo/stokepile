@@ -116,23 +116,20 @@ impl Trimmer for FFMpegTrimmer {
         };
 
         let res = (|| {
-            let old = File::open(&file.content_path)
-                .context("Opening old file")?;
             let mut new = File::create(&content_path)
                 .context("Creating new file")?;
 
             let mut content_hash = [0; 32];
             info!("Starting ffmpeg");
             let mut ffmpeg = Command::new(FFMPEG_CMD)
-                .stdin(old)
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
-                .arg("-i").arg("-")
+                .arg("-i").arg(&file.content_path)
                 .arg("-ss").arg(&detail.start_as_ffmpeg())
-                .arg("-t").arg(&detail.end_as_ffmpeg())
+                .arg("-to").arg(&detail.end_as_ffmpeg())
                 .arg("-c:v").arg("copy")
                 .arg("-c:a").arg("copy")
-                .arg("-f").arg("mp4") // TODO(richo)
+                .arg("-f").arg("ismv") // TODO(richo)
                 .arg("-")
                 .spawn()
                 .context("Command { ffmpeg }.spawn()")?;
@@ -146,7 +143,10 @@ impl Trimmer for FFMpegTrimmer {
             info!("waiting on ffmpeg");
             let res = ffmpeg.wait()?;
             if !res.success() {
-                bail!("ffmpeg failed, output: {:?}", ffmpeg.stderr.take());
+                use std::io::Read;
+                let mut error_text = String::new();
+                let _ = ffmpeg.stderr.take().unwrap().read_to_string(&mut error_text);
+                bail!("ffmpeg failed, output: {:?}", error_text);
             }
 
             let transforms = file.transforms.iter()
@@ -181,6 +181,7 @@ impl Trimmer for FFMpegTrimmer {
 
         match res {
             Ok(new_file) => {
+                info!("Applying transform was successsful, erasing file");
                 let _ = file.delete();
                 Ok(new_file)
             }
