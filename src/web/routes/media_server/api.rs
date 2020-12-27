@@ -36,29 +36,24 @@ pub fn stream_media(staging: State<'_, MountedStaging>, uuid: UuidParam) -> Opti
 }
 
 #[derive(Debug, FromForm, Deserialize)]
-pub struct TrimForm {
-    start: u64,
-    end: u64,
-}
-
-#[post("/api/media/<uuid>/trim", format = "json", data = "<trim>")]
-pub fn add_trim(staging: State<'_, MountedStaging>, uuid: UuidParam, trim: Json<TrimForm>) -> Option<()> {
-    // TODO(richo) this should actually replace any existing trim
-    file_by_uuid(&staging, *uuid)
-        .and_then(|mut file| file.add_transform(MediaTransform::trim(trim.start, trim.end)).ok())
-}
-
-#[derive(Debug, FromForm, Deserialize)]
-pub struct RenameForm {
+pub struct UpdateForm {
     new_name: String,
+    trim_start: u64,
+    trim_end: u64,
 }
 
 // this lives in /api but isn't really an api per se since it's meant to be hit wiht a form post
 #[post("/api/media/<uuid>/rename", data = "<rename>")]
-pub fn rename(staging: State<'_, MountedStaging>, uuid: UuidParam, rename: Form<RenameForm>) -> Option<Redirect> {
+pub fn update_media(staging: State<'_, MountedStaging>, uuid: UuidParam, rename: Form<UpdateForm>) -> Option<Redirect> {
     // TODO(richo) add Flash to show the user success
     file_by_uuid(&staging, *uuid)
-        .map(|mut file| file.rename(rename.into_inner().new_name))?;
+        .map(|mut file| {
+            if rename.trim_start != 0 ||
+                rename.trim_end != 100 {
+                    let _ = file.add_transform(MediaTransform::trim(rename.trim_start, rename.trim_end));
+            }
+            file.rename(rename.into_inner().new_name);
+        })?;
 
     Some(Redirect::to("/"))
 }
