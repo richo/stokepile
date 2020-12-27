@@ -17,22 +17,26 @@ async function run() {
   load_staged_media();
 }
 
-window.init_slider = function() {
+window.init_slider = function(start, finish) {
   var video = document.getElementById('media-player');
   var slider = document.getElementById('trim-slider');
 
+  var begin = start || 0;
+  var end = finish || video.duration;
+
+  var length = video.duration;
+
   noUiSlider.create(slider, {
-    start: [0, 1000],
+    start: [begin, end],
     connect: true,
     range: {
       'min': 0,
-      'max': 1000,
+      'max': length,
     }
   });
   slider.noUiSlider.on('update', function(values, handle) {
-    let ticks = video.duration / 1000;
     let position = parseInt(values[handle]);
-    video.currentTime = position * ticks;
+    video.currentTime = position;
   });
 };
 

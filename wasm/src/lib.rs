@@ -47,7 +47,7 @@ pub fn main() -> Result<(), JsValue> {
 #[wasm_bindgen]
 extern {
     fn alert(s: &str);
-    fn init_slider();
+    fn init_slider(start: Option<u64>, finish: Option<u64>);
     fn get_slider_values() -> Box<[u64]>;
 }
 

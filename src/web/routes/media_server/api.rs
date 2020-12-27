@@ -3,7 +3,7 @@ use rocket::State;
 use rocket::request::{Form};
 use rocket::response::{Stream, Redirect};
 
-use stokepile_shared::staging::{UploadDescriptor, MediaTransform};
+use stokepile_shared::staging::{UploadDescriptor, TrimDetail};
 use crate::staging::{MountedStaging, StagingLocation, StagedFileExt, StagedFile};
 use crate::web::RangeResponder;
 use crate::web::form_hacks::UuidParam;
@@ -42,6 +42,15 @@ pub struct UpdateForm {
     trim_end: u64,
 }
 
+impl UpdateForm {
+    fn as_trim_detail(&self) -> TrimDetail {
+        TrimDetail {
+            start: self.trim_start,
+            end: self.trim_end,
+        }
+    }
+}
+
 // this lives in /api but isn't really an api per se since it's meant to be hit wiht a form post
 #[post("/api/media/<uuid>/rename", data = "<rename>")]
 pub fn update_media(staging: State<'_, MountedStaging>, uuid: UuidParam, rename: Form<UpdateForm>) -> Option<Redirect> {
@@ -50,7 +59,7 @@ pub fn update_media(staging: State<'_, MountedStaging>, uuid: UuidParam, rename:
         .map(|mut file| {
             if rename.trim_start != 0 ||
                 rename.trim_end != 100 {
-                    let _ = file.add_transform(MediaTransform::trim(rename.trim_start, rename.trim_end));
+                    let _ = file.add_trim(rename.as_trim_detail());
             }
             file.rename(rename.into_inner().new_name);
         })?;
@@ -67,9 +76,9 @@ fn file_by_uuid(staging: &MountedStaging, uuid: Uuid) -> Option<StagedFile> {
 }
 
 #[post("/api/media/apply_transforms")]
-pub fn apply_transforms(staging: State<'_, MountedStaging>) -> Result<(), Error> {
+pub fn apply_trims(staging: State<'_, MountedStaging>) -> Result<(), Error> {
     for file in staging.staged_files()? {
-        let _ = file.apply_transforms();
+        let _ = file.apply_trim();
     }
     Ok(())
 }

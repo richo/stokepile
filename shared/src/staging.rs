@@ -22,27 +22,6 @@ impl StagedFile {
 }
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
-pub enum MediaTransform {
-    Trim(TrimDetail),
-}
-
-impl MediaTransform {
-    pub fn tweak_name(&self) -> String {
-        match self {
-            MediaTransform::Trim(transform) => {
-                format!("-trim-{}:{}", transform.start, transform.end)
-            }
-        }
-    }
-}
-
-impl MediaTransform {
-    pub fn trim(start: u64, end: u64) -> MediaTransform {
-        MediaTransform::Trim(TrimDetail { start, end })
-    }
-}
-
-#[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub struct TrimDetail {
     pub start: u64,
     pub end: u64,
@@ -64,18 +43,12 @@ impl TrimDetail {
 }
 
 pub trait AsTransform {
-    fn as_transform(&self) -> MediaTransform;
+    fn tweak_name(&self) -> String;
 }
 
 impl AsTransform for TrimDetail {
-    fn as_transform(&self) -> MediaTransform {
-        MediaTransform::Trim(self.clone())
-    }
-}
-
-impl AsTransform for MediaTransform {
-    fn as_transform(&self) -> MediaTransform {
-        self.clone()
+    fn tweak_name(&self) -> String {
+        format!("-trim-{}:{}", &self.start, &self.end)
     }
 }
 
@@ -98,7 +71,7 @@ pub struct UploadDescriptor {
     pub content_hash: [u8; 32],
     pub size: u64,
     pub uuid: Uuid,
-    pub transforms: Vec<MediaTransform>,
+    pub trim: Option<TrimDetail>,
 }
 
 impl UploadDescriptor {

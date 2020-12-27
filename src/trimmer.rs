@@ -6,10 +6,9 @@ use stokepile_shared::staging::{
     StagedFile,
     TrimDetail,
     UploadDescriptor,
-    AsTransform,
     RemotePathDescriptor,
+    AsTransform,
     Trimmer,
-    MediaTransform,
 };
 use dropbox_content_hasher::DropboxContentHasher;
 use hashing_copy;
@@ -32,7 +31,7 @@ trait PathWithTransform {
 impl PathWithTransform for PathBuf {
     type Output = PathBuf;
     fn with_modification<T: AsTransform>(&self, detail: &T) -> PathBuf {
-        let tweak = detail.as_transform().tweak_name();
+        let tweak = detail.tweak_name();
 
         let mut stem = self.file_stem().expect("file_stem")
             .to_str().expect("as_str").to_string();
@@ -52,7 +51,7 @@ impl PathWithTransform for RemotePathDescriptor {
     type Output = RemotePathDescriptor;
     fn with_modification<T: AsTransform>(&self, detail: &T) -> RemotePathDescriptor {
         use RemotePathDescriptor::*;
-        let tweak = detail.as_transform().tweak_name();
+        let tweak = detail.tweak_name();
 
         match self {
             // It will be a huge pain to support the {date}/{time}-trim.extension form, so for now
@@ -149,17 +148,13 @@ impl Trimmer for FFMpegTrimmer {
                 bail!("ffmpeg failed, output: {:?}", error_text);
             }
 
-            let transforms = file.transforms.iter()
-                .filter(|t| ! matches!(t, MediaTransform::Trim { .. }))
-                .map(|t| t.clone())
-                .collect();
             let descriptor = UploadDescriptor {
                 path: file.descriptor.path.with_modification(detail),
                 device_name: file.descriptor.device_name.clone(),
                 content_hash,
                 size,
                 uuid: file.descriptor.uuid,
-                transforms,
+                trim: None,
             };
 
             // We've now created the trimmed file, now just to make a manifest for it.

@@ -21,7 +21,7 @@ pub use stokepile_shared::staging::{
     StagedFile,
     UploadDescriptor,
     RemotePathDescriptor,
-    MediaTransform, TrimDetail,
+    TrimDetail,
     Trimmer,
 };
 
@@ -78,7 +78,7 @@ pub trait StorableFile {
             device_name: name.to_string(),
             size: self.size()?,
             uuid: Uuid::new_v4(),
-            transforms: vec![],
+            trim: None,
         })
     }
 }
@@ -239,8 +239,8 @@ impl<T: StagingLocation> StagingLocation for Box<T> {
 pub trait StagedFileExt {
     fn delete(self) -> Result<(), io::Error>;
     fn content_handle(&self) -> Result<File, io::Error>;
-    fn apply_transforms(self) -> Result<StagedFile, (StagedFile, Error)>;
-    fn add_transform(&mut self, transform: MediaTransform) -> Result<(), Error>;
+    fn add_trim(&mut self, detail: TrimDetail) -> Result<(), Error>;
+    fn apply_trim(self) -> Result<StagedFile, (StagedFile, Error)>;
     fn rename(&mut self, new_name: &str) -> Result<(), Error>;
 }
 
@@ -256,25 +256,20 @@ impl StagedFileExt for StagedFile {
         File::open(&self.content_path)
     }
 
-    /// Apply the transforms, consuming this StagedFile and returning the new one, or if the
-    /// transforms fail returning this unmodified file and the error.
-    fn apply_transforms(self) -> Result<StagedFile, (StagedFile, Error)> {
-        let transforms = self.transforms.clone();
+    /// Trim the file, if applicable
+    fn apply_trim(self) -> Result<StagedFile, (StagedFile, Error)> {
         let trimmer = FFMpegTrimmer::new()
             .expect("Trimmer");
             // .map_err(|e| (self, e.into()))?;
-        transforms.iter().fold(Ok(self), |file, transform| {
-            let file = file?;
-            match transform {
-                MediaTransform::Trim(detail) => {
-                    trimmer.trim(file, detail)
-                }
-            }
-        })
+        if let Some(detail) = self.trim.clone() {
+            trimmer.trim(self, &detail)
+        } else {
+            Ok(self)
+        }
     }
 
-    fn add_transform(&mut self, transform: MediaTransform) -> Result<(), Error> {
-        self.descriptor.transforms.push(transform);
+    fn add_trim(&mut self, detail: TrimDetail) -> Result<(), Error> {
+        self.descriptor.trim = Some(detail);
         self.rewrite_manifest()
     }
 
@@ -426,7 +421,7 @@ impl UploadDescriptorBuilder {
             device_name: self.device_name,
             size: 0,
             uuid: Uuid::new_v4(),
-            transforms: vec![],
+            trim: None,
         }
     }
 
@@ -444,7 +439,7 @@ impl UploadDescriptorBuilder {
             device_name: self.device_name,
             size: 0,
             uuid: Uuid::new_v4(),
-            transforms: vec![],
+            trim: None,
         }
     }
 }

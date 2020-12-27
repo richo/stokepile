@@ -48,7 +48,7 @@ pub fn configure_rocket() -> Rocket {
             routes::api::get_media,
             routes::api::stream_media,
             routes::api::update_media,
-            routes::api::apply_transforms,
+            routes::api::apply_trims,
         ]
     )
     .manage(ctx)
