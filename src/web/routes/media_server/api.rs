@@ -1,11 +1,14 @@
 use rocket_contrib::json::Json;
 use rocket::State;
-use rocket::response::Stream;
+use rocket::request::{Form};
+use rocket::response::{Stream, Redirect};
 
 use stokepile_shared::staging::{UploadDescriptor, MediaTransform};
-use crate::staging::{MountedStaging, StagingLocation, StagedFileExt};
+use crate::staging::{MountedStaging, StagingLocation, StagedFileExt, StagedFile};
 use crate::web::RangeResponder;
 use crate::web::form_hacks::UuidParam;
+
+use uuid::Uuid;
 
 use failure::Error;
 
@@ -41,12 +44,31 @@ pub struct TrimForm {
 #[post("/api/media/<uuid>/trim", format = "json", data = "<trim>")]
 pub fn add_trim(staging: State<'_, MountedStaging>, uuid: UuidParam, trim: Json<TrimForm>) -> Option<()> {
     // TODO(richo) this should actually replace any existing trim
+    file_by_uuid(&staging, *uuid)
+        .and_then(|mut file| file.add_transform(MediaTransform::trim(trim.start, trim.end)).ok())
+}
+
+#[derive(Debug, FromForm, Deserialize)]
+pub struct RenameForm {
+    new_name: String,
+}
+
+// this lives in /api but isn't really an api per se since it's meant to be hit wiht a form post
+#[post("/api/media/<uuid>/rename", data = "<rename>")]
+pub fn rename(staging: State<'_, MountedStaging>, uuid: UuidParam, rename: Form<RenameForm>) -> Option<Redirect> {
+    // TODO(richo) add Flash to show the user success
+    file_by_uuid(&staging, *uuid)
+        .map(|mut file| file.rename(rename.into_inner().new_name))?;
+
+    Some(Redirect::to("/"))
+}
+
+fn file_by_uuid(staging: &MountedStaging, uuid: Uuid) -> Option<StagedFile> {
     staging.staged_files()
         .expect("Couldn't load staged_files")
-        .iter_mut()
-        .filter(|file| file.descriptor.uuid == *uuid)
+        .into_iter()
+        .filter(|file| file.descriptor.uuid == uuid)
         .next()
-        .and_then(|file| file.add_transform(MediaTransform::trim(trim.start, trim.end)).ok())
 }
 
 #[post("/api/media/apply_transforms")]

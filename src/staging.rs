@@ -241,6 +241,7 @@ pub trait StagedFileExt {
     fn content_handle(&self) -> Result<File, io::Error>;
     fn apply_transforms(self) -> Result<StagedFile, (StagedFile, Error)>;
     fn add_transform(&mut self, transform: MediaTransform) -> Result<(), Error>;
+    fn rename(&mut self, new_name: &str) -> Result<(), Error>;
 }
 
 impl StagedFileExt for StagedFile {
@@ -274,7 +275,21 @@ impl StagedFileExt for StagedFile {
 
     fn add_transform(&mut self, transform: MediaTransform) -> Result<(), Error> {
         self.descriptor.transforms.push(transform);
+        self.rewrite_manifest()
+    }
 
+    fn rename(&mut self, new_name: &str) -> Result<(), Error> {
+        self.rename(new_name.into());
+        self.rewrite_manifest()
+    }
+}
+
+trait StagedFileHelpers {
+    fn rewrite_manifest(&mut self) -> Result<(), Error>;
+}
+
+impl StagedFileHelpers for StagedFile {
+    fn rewrite_manifest(&mut self) -> Result<(), Error> {
         let mut options = fs::OpenOptions::new();
         // TODO(richo) create_new would be a lot less scary here.
         // Currently a duplicate file mtime will overwrite data

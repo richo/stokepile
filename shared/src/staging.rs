@@ -15,6 +15,12 @@ pub struct StagedFile {
     pub descriptor: UploadDescriptor,
 }
 
+impl StagedFile {
+    pub fn rename(&mut self, new_name: String) {
+        self.descriptor.path = self.descriptor.path.renamed(new_name);
+    }
+}
+
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub enum MediaTransform {
     Trim(TrimDetail),
@@ -100,6 +106,10 @@ impl UploadDescriptor {
         self.path.name()
     }
 
+    pub fn human_name(&self) -> String {
+        self.path.human_name()
+    }
+
     pub fn group(&self) -> String {
         self.path.group()
     }
@@ -129,6 +139,35 @@ pub enum RemotePathDescriptor {
         name: String,
         extension: String,
     },
+}
+
+impl RemotePathDescriptor {
+    fn renamed(&self, new_name: String) -> Self {
+        use RemotePathDescriptor::*;
+        match self {
+            DateTime { capture_time, extension } => {
+                DateName {
+                    capture_date: capture_time.naive_local().date(),
+                    name: new_name,
+                    extension: extension.clone(),
+                }
+            },
+            DateName { capture_date, name, extension } => {
+                DateName {
+                    capture_date: capture_date.clone(),
+                    name: new_name,
+                    extension: extension.clone(),
+                }
+            },
+            SpecifiedPath { group, name, extension } => {
+                SpecifiedPath {
+                    group: group.clone(),
+                    name: new_name,
+                    extension: extension.clone(),
+                }
+            }
+        }
+    }
 }
 
 pub trait DescriptorGrouping {
@@ -180,14 +219,29 @@ impl RemotePathDescriptor {
     /// The logical name of the recording. For named files this is the name including the
     /// extension, for date filed recordings this is the time with the extension.
     pub fn name(&self) -> String {
+        format!("{}.{}", self.human_name(), self.extension())
+    }
+
+    pub fn human_name(&self) -> String {
         use RemotePathDescriptor::*;
         match self {
-            DateTime { capture_time, extension } => {
-                format!("{:02}-{:02}-{:02}.{}", capture_time.hour(), capture_time.minute(), capture_time.second(), extension)
+            DateTime { capture_time, .. } => {
+                format!("{:02}-{:02}-{:02}", capture_time.hour(), capture_time.minute(), capture_time.second())
             },
-            DateName { name, extension, .. } |
-            SpecifiedPath { name, extension, .. } => {
-                format!("{}.{}", name, extension)
+            DateName { name, .. } |
+            SpecifiedPath { name, .. } => {
+                name.to_string()
+            },
+        }
+    }
+
+    pub fn extension(&self) -> &str {
+        use RemotePathDescriptor::*;
+        match self {
+            DateTime { extension, .. } |
+            DateName { extension, .. } |
+            SpecifiedPath { extension, .. } => {
+                extension
             },
         }
     }

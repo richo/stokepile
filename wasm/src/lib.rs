@@ -110,7 +110,7 @@ pub async fn activate_media(uuid: String) {
         .expect(&format!("Couldn't find media with uuid: {}", parsed));
 
     let ctx = MediaCtx {
-        video_name: &desc.device_name,
+        video_name: &desc.human_name(),
         video_source: format!("{}/api/media/{}", BASE_URL, uuid),
     };
     let inner_html = HANDLEBARS.with(|h| h.render("media-view", &ctx))
