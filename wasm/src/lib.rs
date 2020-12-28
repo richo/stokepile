@@ -49,13 +49,7 @@ extern "C" {
     fn alert(s: &str);
     fn init_slider();
     fn init_slider_with_values(start: u32, finish: u32);
-    fn log_values(a: u32, b: u32);
     fn get_slider_values() -> Box<[u32]>;
-}
-
-#[wasm_bindgen]
-pub fn trigger() {
-    log_values(2, 8);
 }
 
 #[wasm_bindgen]
@@ -130,7 +124,6 @@ pub async fn activate_media(uuid: String) {
     name_field.set_inner_html(&inner_html);
 
     if let Some(trim) = &desc.trim {
-        log_values(trim.start, trim.end);
         init_slider_with_values(trim.start, trim.end);
     } else {
         init_slider();

@@ -21,18 +21,10 @@ window.init_slider = function() {
   window.init_slider_with_values(null, null);
 }
 
-window.log_values = function(a, b) {
-  console.log(a, b);
-}
-
 window.init_slider_with_values = function(start, finish) {
-  console.log("init with values", start, finish);
-  var tmp = start;
-  console.log(tmp);
   var video = document.getElementById('media-player');
   var slider = document.getElementById('trim-slider');
   video.addEventListener('loadedmetadata', function() {
-    console.log("start", start);
     var max = Math.ceil(video.duration);
     var begin = start || 0;
     var end = finish || max;
@@ -48,16 +40,16 @@ window.init_slider_with_values = function(start, finish) {
       }
     });
 
-    var start = document.getElementById('trim-start');
-    var end = document.getElementById('trim-end');
+    var slider_start = document.getElementById('trim-start');
+    var slider_end = document.getElementById('trim-end');
     slider.noUiSlider.on('update', function(values, handle) {
       let position = parseInt(values[handle]);
       video.currentTime = position;
 
       if (handle === 0) {
-        start.value = position;
+        slider_start.value = position;
       } else if (handle === 1) {
-        end.value = position;
+        slider_end.value = position;
       }
     });
   })
