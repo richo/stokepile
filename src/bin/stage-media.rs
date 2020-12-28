@@ -10,7 +10,7 @@ use stokepile::ctx::Ctx;
 use stokepile::manual_file::ManualFile;
 use stokepile::staging::{Stager, StagedFileExt};
 use stokepile::mountable::Mountable;
-use stokepile_shared::staging::MediaTransform;
+use stokepile_shared::staging::TrimDetail;
 
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
     cli::base_opts()
@@ -43,8 +43,10 @@ fn main() {
             .map(|trim| {
                 let parts: Vec<_> = trim.split(":").collect();
                 assert_eq!(parts.len(), 2);
-                MediaTransform::trim(parts[0].parse().expect("start"),
-                                     parts[1].parse().expect("end"))
+                TrimDetail {
+                    start: parts[0].parse().expect("start"),
+                    end: parts[1].parse().expect("end"),
+                }
             });
 
         let staging = ctx.staging().mount()?;
@@ -66,7 +68,7 @@ fn main() {
             let mut file = stager.stage(file, &device_name)?;
             if let Some(ref trim) = trim {
                 info!("Adding trim annotation");
-                file.add_transform(trim.clone())
+                file.add_trim(trim.clone())
                     .expect("add trim");
             }
         }

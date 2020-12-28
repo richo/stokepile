@@ -45,10 +45,17 @@ pub fn main() -> Result<(), JsValue> {
 }
 
 #[wasm_bindgen]
-extern {
+extern "C" {
     fn alert(s: &str);
-    fn init_slider(start: Option<u64>, finish: Option<u64>);
-    fn get_slider_values() -> Box<[u64]>;
+    fn init_slider();
+    fn init_slider_with_values(start: u32, finish: u32);
+    fn log_values(a: u32, b: u32);
+    fn get_slider_values() -> Box<[u32]>;
+}
+
+#[wasm_bindgen]
+pub fn trigger() {
+    log_values(2, 8);
 }
 
 #[wasm_bindgen]
@@ -90,6 +97,7 @@ pub async fn clear_staged_media() {
 struct MediaCtx<'a> {
     video_name: &'a str,
     video_source: String,
+    uuid: String,
 }
 
 #[wasm_bindgen]
@@ -112,6 +120,7 @@ pub async fn activate_media(uuid: String) {
     let ctx = MediaCtx {
         video_name: &desc.human_name(),
         video_source: format!("{}/api/media/{}", BASE_URL, uuid),
+        uuid: desc.uuid.to_string(),
     };
     let inner_html = HANDLEBARS.with(|h| h.render("media-view", &ctx))
         .expect("rendering");
@@ -120,7 +129,12 @@ pub async fn activate_media(uuid: String) {
         .expect("get media-view");
     name_field.set_inner_html(&inner_html);
 
-    init_slider();
+    if let Some(trim) = &desc.trim {
+        log_values(trim.start, trim.end);
+        init_slider_with_values(trim.start, trim.end);
+    } else {
+        init_slider();
+    }
 }
 
 fn clear_element_children(el: &Element) {

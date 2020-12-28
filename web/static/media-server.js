@@ -1,4 +1,4 @@
-import init, { load_staged_media, clear_staged_media, activate_media } from '/wasm/stokepile_wasm.js';
+import init, { load_staged_media, clear_staged_media, activate_media, trigger } from '/wasm/stokepile_wasm.js';
 import '/vendor/nouislider/nouislider.min.js';
 
 async function run() {
@@ -17,27 +17,50 @@ async function run() {
   load_staged_media();
 }
 
-window.init_slider = function(start, finish) {
+window.init_slider = function() {
+  window.init_slider_with_values(null, null);
+}
+
+window.log_values = function(a, b) {
+  console.log(a, b);
+}
+
+window.init_slider_with_values = function(start, finish) {
+  console.log("init with values", start, finish);
+  var tmp = start;
+  console.log(tmp);
   var video = document.getElementById('media-player');
   var slider = document.getElementById('trim-slider');
+  video.addEventListener('loadedmetadata', function() {
+    console.log("start", start);
+    var max = Math.ceil(video.duration);
+    var begin = start || 0;
+    var end = finish || max;
 
-  var begin = start || 0;
-  var end = finish || video.duration;
+    document.getElementById('max-trim').value = max;
 
-  var length = video.duration;
+    noUiSlider.create(slider, {
+      start: [begin, end],
+      connect: true,
+      range: {
+        'min': 0,
+        'max': max,
+      }
+    });
 
-  noUiSlider.create(slider, {
-    start: [begin, end],
-    connect: true,
-    range: {
-      'min': 0,
-      'max': length,
-    }
-  });
-  slider.noUiSlider.on('update', function(values, handle) {
-    let position = parseInt(values[handle]);
-    video.currentTime = position;
-  });
+    var start = document.getElementById('trim-start');
+    var end = document.getElementById('trim-end');
+    slider.noUiSlider.on('update', function(values, handle) {
+      let position = parseInt(values[handle]);
+      video.currentTime = position;
+
+      if (handle === 0) {
+        start.value = position;
+      } else if (handle === 1) {
+        end.value = position;
+      }
+    });
+  })
 };
 
 window.get_slider_values = function() {

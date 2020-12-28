@@ -37,9 +37,10 @@ pub fn stream_media(staging: State<'_, MountedStaging>, uuid: UuidParam) -> Opti
 
 #[derive(Debug, FromForm, Deserialize)]
 pub struct UpdateForm {
-    new_name: String,
-    trim_start: u64,
-    trim_end: u64,
+    name: String,
+    trim_start: u32,
+    trim_end: u32,
+    max_trim: u32,
 }
 
 impl UpdateForm {
@@ -52,16 +53,18 @@ impl UpdateForm {
 }
 
 // this lives in /api but isn't really an api per se since it's meant to be hit wiht a form post
-#[post("/api/media/<uuid>/rename", data = "<rename>")]
-pub fn update_media(staging: State<'_, MountedStaging>, uuid: UuidParam, rename: Form<UpdateForm>) -> Option<Redirect> {
+#[post("/api/media/<uuid>/update", data = "<update>")]
+pub fn update_media(staging: State<'_, MountedStaging>, uuid: UuidParam, update: Form<UpdateForm>) -> Option<Redirect> {
     // TODO(richo) add Flash to show the user success
     file_by_uuid(&staging, *uuid)
         .map(|mut file| {
-            if rename.trim_start != 0 ||
-                rename.trim_end != 100 {
-                    let _ = file.add_trim(rename.as_trim_detail());
+            warn!("Found a file, {:?}", &file);
+            if update.trim_start != 0 ||
+                update.trim_end != update.max_trim {
+                    let _ = file.add_trim(update.as_trim_detail());
             }
-            file.rename(rename.into_inner().new_name);
+            file.update_name(&update.name)
+                .expect("failed to rename");
         })?;
 
     Some(Redirect::to("/"))

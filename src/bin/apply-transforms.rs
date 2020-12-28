@@ -25,7 +25,7 @@ fn main() {
         info!("Staging to: {:?}", &staging);
 
         for file in staging.staged_files()? {
-            file.apply_transforms().expect("apply_transforms");
+            file.apply_trim().expect("apply_transforms");
         }
 
         Ok(())

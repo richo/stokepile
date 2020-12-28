@@ -23,8 +23,8 @@ impl StagedFile {
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub struct TrimDetail {
-    pub start: u64,
-    pub end: u64,
+    pub start: u32,
+    pub end: u32,
 }
 
 impl TrimDetail {
@@ -36,7 +36,7 @@ impl TrimDetail {
         Self::time_as_ffmpeg(self.end)
     }
 
-    fn time_as_ffmpeg(secs: u64) -> String {
+    fn time_as_ffmpeg(secs: u32) -> String {
         let time = Duration::seconds(secs as i64);
         format!("{}:{}:{}", time.num_hours(), time.num_minutes(), time.num_seconds())
     }

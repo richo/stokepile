@@ -241,7 +241,7 @@ pub trait StagedFileExt {
     fn content_handle(&self) -> Result<File, io::Error>;
     fn add_trim(&mut self, detail: TrimDetail) -> Result<(), Error>;
     fn apply_trim(self) -> Result<StagedFile, (StagedFile, Error)>;
-    fn rename(&mut self, new_name: &str) -> Result<(), Error>;
+    fn update_name(&mut self, new_name: &str) -> Result<(), Error>;
 }
 
 impl StagedFileExt for StagedFile {
@@ -273,7 +273,7 @@ impl StagedFileExt for StagedFile {
         self.rewrite_manifest()
     }
 
-    fn rename(&mut self, new_name: &str) -> Result<(), Error> {
+    fn update_name(&mut self, new_name: &str) -> Result<(), Error> {
         self.rename(new_name.into());
         self.rewrite_manifest()
     }
