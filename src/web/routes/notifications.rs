@@ -36,7 +36,7 @@ mod tests {
 
     use rocket::http::{ContentType, Header, Status};
 
-    client_for_routes!(notification_send => client);
+    client_for_routes!(config: notification_send => client);
 
     #[test]
     fn test_doesnt_try_to_notify_when_not_configured() {

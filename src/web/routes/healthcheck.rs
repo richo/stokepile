@@ -14,7 +14,7 @@ mod tests {
     use crate::web::test_helpers::*;
     use rocket::http::Status;
 
-    client_for_routes!(healthcheck => client);
+    client_for_routes!(config: healthcheck => client);
 
     #[test]
     fn test_healthcheck() {

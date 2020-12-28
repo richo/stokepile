@@ -22,7 +22,7 @@ extern crate redacted_debug;
 
 #[cfg(all(test, feature = "web"))]
 macro_rules! client_for_routes {
-    ($($route:ident),+ => $client:ident) => {
+    (config: $($route:ident),+ => $client:ident) => {
         fn $client() -> rocket::local::Client {
             let routes = routes![
                 // We always implicitly allow signin since there isn't currently another way to get
@@ -32,7 +32,20 @@ macro_rules! client_for_routes {
 
                 $($route),+
             ];
-            let rocket = crate::web::create_test_rocket(routes);
+            let rocket = crate::web::configure_rocket(routes)
+                .manage(crate::web::db::init_pool(true));
+            rocket::local::Client::new(rocket).expect("valid rocket instance")
+        }
+    };
+    (media: $($route:ident),+ => $client:ident) => {
+        fn $client() -> rocket::local::Client {
+            let staging = crate::staging::MountedStaging::from(crate::test_helpers::tempdir());
+            let routes = routes![
+                $($route),+
+            ];
+            let rocket = crate::web::configure_rocket(routes)
+                .manage(staging);
+
             rocket::local::Client::new(rocket).expect("valid rocket instance")
         }
     };
@@ -125,6 +138,9 @@ pub mod staging;
 /// storage backend. Also deals with deduping (Locally hashing files to ensure that we're not
 /// pointlessly uploading things that are already there) and cleaning up the local staging area.
 pub mod storage;
+
+/// The trimmer transform, which allows for trimming media before uploading it.
+pub mod trimmer;
 
 /// The vimeo upload backend.
 pub mod vimeo;

@@ -1,5 +1,5 @@
 use std::fs::{self, File};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use crate::config::{MassStorageConfig, MountableDeviceLocation};
 use crate::mountable::{MountableFilesystem, MountedFilesystem, MountableKind};
@@ -224,7 +224,7 @@ mod tests {
         // Confirm that we see the lrv files before hand
         assert_eq!(mounted.files_matching_cleanup_extensions().len(), 2);
 
-        let mounted = mounted.stage_files_for_test("data", &dest).unwrap();
+        let mounted = mounted.stage_files_for_test("data", &dest).expect("Couldn't stage files");
         // TODO(richo) test harder
         let iter = fs::read_dir(&dest.staging_location()).unwrap();
         let files: Vec<_> = iter.collect();

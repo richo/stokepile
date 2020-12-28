@@ -1,6 +1,6 @@
 use crate::config::{LocalBackupConfig, MountableDeviceLocation};
 use crate::mountable::{MountableFilesystem, MountableKind, MountedFilesystem, MOUNTABLE_DEVICE_FOLDER};
-use crate::staging;
+use crate::staging::{self, DescriptorNameable};
 use crate::storage::{StorageAdaptor, StorageStatus};
 use dropbox_content_hasher;
 
@@ -95,7 +95,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::staging::UploadDescriptor;
+    use crate::staging::{UploadDescriptor, UploadDescriptorExt};
     use crate::test_helpers;
     use dropbox_content_hasher::DropboxContentHasher;
     use hashing_copy;

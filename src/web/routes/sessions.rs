@@ -184,7 +184,7 @@ mod tests {
 
     use rocket::http::{Header, ContentType, Status};
 
-    client_for_routes!(get_signin, signout, expire_key, refresh_token => client);
+    client_for_routes!(config: get_signin, signout, expire_key, refresh_token => client);
 
     #[test]
     fn test_signin() {
@@ -257,7 +257,7 @@ mod tests {
         assert!(get_set_cookie(&response, "sid").is_none());
         assert_eq!(
             get_set_cookie(&response, "_flash").unwrap(),
-            "_flash=5errorSignups%20are%20currently%20invite%20only.%20Try%20again%20soon%20or%20ask%20richo%20for%20one!; Path=/; Max-Age=300");
+            "_flash=5%3AerrorSignups%20are%20currently%20invite%20only.%20Try%20again%20soon%20or%20ask%20richo%20for%20one!; Path=/; Max-Age=300");
     }
 
     #[test]
@@ -273,7 +273,7 @@ mod tests {
         assert_eq!(response.headers().get_one("Location"), Some("/signin"));
         assert_eq!(
             get_set_cookie(&response, "_flash").unwrap(),
-            "_flash=5errorIncorrect%20username%20or%20password.; Path=/; Max-Age=300"
+            "_flash=5%3AerrorIncorrect%20username%20or%20password.; Path=/; Max-Age=300"
         );
     }
 

@@ -1,0 +1,13 @@
+[package]
+name = "stokepile-shared"
+version = "0.2.0"
+authors = ["Richo Healey <richo@psych0tik.net>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { version = "1.0.117", features = ["derive"] }
+chrono = { version = "0.4.19", features = ["serde"] }
+uuid = { version = "0.8.1", features = ["serde", "v4"] }
+failure = "0.1.8"

@@ -1,4 +1,6 @@
 /target
+/shared/target
+/wasm/target
 **/*.rs.bk
 *.swp
 /staging

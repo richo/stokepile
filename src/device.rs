@@ -48,14 +48,12 @@ impl Device<'_> {
 
     pub fn mass_storage_files(self) -> Result<Vec<mass_storage::MassStorageFile>, Error> {
         match self {
-            Device::Gopro(desc, gopro) => {
+            Device::Gopro(..) |
+            Device::Flysight(..) => {
                 unreachable!()
             },
-            Device::MassStorage(desc, mass_storage) => {
+            Device::MassStorage(_desc, mass_storage) => {
                 Mountable::mount(mass_storage)?.files()
-            },
-            Device::Flysight(desc, flysight) => {
-                unreachable!()
             },
         }
     }

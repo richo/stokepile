@@ -115,7 +115,7 @@ mod tests {
 
     use rocket::http::{ContentType, Status};
 
-    client_for_routes!(create_device, delete_device => client);
+    client_for_routes!(config: create_device, delete_device => client);
 
     #[test]
     fn test_create_devices() {

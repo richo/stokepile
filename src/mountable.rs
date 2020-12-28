@@ -287,3 +287,28 @@ pub trait MountableKind: Sized {
 
     fn from_mounted_parts(this: Self::This, mount: MountedFilesystem) -> Self;
 }
+
+/// This is something of a hack, otherwise we couldn't retain ownership of the tempdir and it'd be
+/// garbage collected. In essence, this actually does force the tempdir to be unmounted about when
+/// unmount() is called.
+#[cfg(test)]
+impl Unmounter for crate::test_helpers::TempDirUnmounter {
+    fn unmount(&mut self, _: &Path) {
+        info!("Not unmounting a tempdir although it should be free'd right about now");
+    }
+}
+
+#[cfg(test)]
+impl From<tempfile::TempDir> for MountedFilesystem {
+    fn from(temp: tempfile::TempDir) -> Self {
+        use crate::test_helpers::TempDirUnmounter;
+        // MountedFilesystem's require the 'stokepile' directory to exist:
+        fs::create_dir(temp.path().join(PathBuf::from("stokepile")))
+            .expect("create_dir");
+        MountedFilesystem {
+            mountpoint: temp.path().to_path_buf(),
+            device: temp.path().to_path_buf(),
+            mounter: Box::new(TempDirUnmounter::from(temp)),
+        }
+    }
+}

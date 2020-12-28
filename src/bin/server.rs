@@ -2,7 +2,7 @@
 
 use stokepile::web::db::run_migrations;
 use stokepile::cli::init_dotenv;
-use stokepile::web::configure_rocket;
+use stokepile::web::config_server::configure_rocket;
 
 fn main() {
     stokepile::cli::run(|| {

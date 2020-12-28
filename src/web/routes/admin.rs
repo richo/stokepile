@@ -56,7 +56,7 @@ mod tests {
 
     use rocket::http::Status;
 
-    client_for_routes!(index => client);
+    client_for_routes!(config: index => client);
 
     #[test]
     fn admin_loads_for_admins() {

@@ -1,0 +1,13 @@
+<video controls width="600" id="media-player">
+  <source src="{{this.video_source}}">
+  Sorry, your browser doesn't support embedded videos.
+</video>
+<div id="trim-slider"></div>
+<form action="/api/media/{{this.uuid}}/update" method="post">
+  <label for="name">Name: </label>
+  <input type="text" name="name" id="name" value="{{this.video_name}}"></input>
+  <input type="hidden" id="trim-start" name="trim_start"></input>
+  <input type="hidden" id="trim-end" name="trim_end"></input>
+  <input type="hidden" id="max-trim" name="max_trim"></input>
+  <input type="submit"></input>
+</form>

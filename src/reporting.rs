@@ -1,6 +1,8 @@
+use chrono::prelude::*;
 use std::collections::HashMap;
+use std::path::PathBuf;
 
-use crate::staging::UploadDescriptor;
+use crate::staging::{UploadDescriptor, DescriptorNameable, RemotePathDescriptor};
 use crate::formatting::human_readable_size;
 
 use failure::Error;
@@ -52,8 +54,50 @@ pub struct UploadReport {
 #[derive(Debug, Serialize)]
 pub struct ReportEntry {
     #[serde(serialize_with = "format_report")]
-    desc: UploadDescriptor,
+    desc: ReportEntryDescription,
     results: Vec<(String, UploadStatus)>,
+}
+
+/// Shadow struct for the parts of a UploadDescriptor that we care about
+#[derive(Debug)]
+pub struct ReportEntryDescription {
+    remote_path: RemotePathDescriptor,
+    size: u64,
+    device_name: String,
+}
+
+impl DescriptorNameable for ReportEntryDescription {
+    fn staging_name(&self) -> String {
+        let group = self.remote_path.group().replace("/", "-");
+        format!("{}-{}-{}", self.device_name, group, self.remote_path.name())
+    }
+
+    fn manifest_name(&self) -> String {
+        format!("{}.manifest", self.staging_name())
+    }
+
+    fn remote_path(&self) -> PathBuf {
+        match &self.remote_path {
+            RemotePathDescriptor::DateTime { .. } |
+            RemotePathDescriptor::DateName { .. } => {
+                format!(
+                    "/{group}/{device}/{name}",
+                    group = self.remote_path.group(),
+                    device = &self.device_name,
+                    name = self.remote_path.name()
+                ).into()
+            },
+            RemotePathDescriptor::SpecifiedPath {
+                group, ..
+            } => {
+                let mut buf = PathBuf::from("/");
+                buf.push(&self.device_name);
+                buf.push(group);
+                buf.push(self.remote_path.name());
+                buf
+            }
+        }
+    }
 }
 
 // We serialize with a custom serializer here, in order to use our date representation in the
@@ -61,20 +105,34 @@ pub struct ReportEntry {
 //
 // This naively seems like it'd be easier to implement on the UploadDescriptor, but it's
 // `Serialize` impl is responsible for making sure it round trips the disc safely.
-fn format_report<S>(desc: &UploadDescriptor, serializer: S) -> Result<S::Ok, S::Error>
+fn format_report<S>(desc: &ReportEntryDescription, serializer: S) -> Result<S::Ok, S::Error>
     where S: Serializer,
 {
     let mut ser = serializer.serialize_struct("UploadDescriptor", 3)?;
     ser.serialize_field("remote_path", &desc.remote_path())?;
     ser.serialize_field("size", &human_readable_size(desc.size))?;
+    ser.serialize_field("device_name", &desc.device_name)?;
     ser.end()
 
 }
 
+impl From<&UploadDescriptor> for ReportEntryDescription {
+    fn from(desc: &UploadDescriptor) -> ReportEntryDescription {
+        ReportEntryDescription {
+            remote_path: desc.path.clone(),
+            size: desc.size,
+            device_name: desc.device_name.clone(),
+        }
+    }
+}
+
 impl ReportEntry {
     /// Bind an UploadDescriptor to this entry, returning the finalised ReportEntry.
-    pub fn new(desc: UploadDescriptor, results: Vec<(String, UploadStatus)>) -> ReportEntry {
-        ReportEntry { desc, results }
+    pub fn new(desc: &UploadDescriptor, results: Vec<(String, UploadStatus)>) -> ReportEntry {
+        ReportEntry {
+            desc: desc.into(),
+            results,
+        }
     }
 }
 
@@ -125,6 +183,7 @@ impl UploadReport {
 mod tests {
     use super::*;
     use chrono::prelude::*;
+    use crate::staging::UploadDescriptorExt;
 
     fn dummy_report() -> UploadReport {
         let mut report: UploadReport = Default::default();
@@ -133,7 +192,7 @@ mod tests {
             .date_time(Local.ymd(2018, 8, 24).and_hms(9, 55, 30), "mp4".to_string());
         desc.size = 15487;
         report.record_activity(ReportEntry::new(
-                desc,
+                &desc,
                 vec![
                     ("vimeo".into(), UploadStatus::Succeeded),
                     ("youtube".into(), UploadStatus::Succeeded),
@@ -144,7 +203,7 @@ mod tests {
                 .date_time(Local.ymd(2018, 8, 24).and_hms(12, 30, 30), "mp4".to_string());
         desc.size = 2900000;
         report.record_activity(ReportEntry::new(
-                desc,
+                &desc,
                 vec![
                     ("vimeo".into(), UploadStatus::Succeeded),
                     ("youtube".into(), UploadStatus::Errored(format_err!("Something bad happened"))),
@@ -152,10 +211,10 @@ mod tests {
         ));
 
         let mut desc = UploadDescriptor::build("Flock n Dock".to_string())
-                .manual_file("richo/double sled.mp4".into());
+                .manual_file("richo".into(), "double sled", "mp4");
         desc.size = 16000000;
         report.record_activity(ReportEntry::new(
-                desc,
+                &desc,
                 vec![
                     ("vimeo".into(), UploadStatus::Succeeded),
                     ("youtube".into(), UploadStatus::Succeeded),
@@ -163,10 +222,10 @@ mod tests {
         ));
 
         let mut desc = UploadDescriptor::build("Flock n Dock".to_string())
-                .manual_file("richo/gigantic video.mp4".into());
+                .manual_file("richo".into(), "gigantic video", "mp4");
         desc.size = 38 * 1024 * 1024 * 1024;
         report.record_activity(ReportEntry::new(
-                desc,
+                &desc,
                 vec![
                     ("vimeo".into(), UploadStatus::Succeeded),
                     ("youtube".into(), UploadStatus::AlreadyUploaded),
@@ -185,142 +244,85 @@ mod tests {
     #[test]
     fn test_deals_with_large_totals() {
         let mut report: UploadReport = Default::default();
+        let device = "testing";
         for i in 0..20 {
-           let name = format!("Dummy-file{}.mp4", i);
-           let path = format!("richo/Dummy-file{}.mp4", i);
-           let mut desc = UploadDescriptor::build(name)
-               .manual_file(path.into());
-           desc.size = 138 * 1024 * 1024 * 1024;
+            let filename = format!("Dummy-file{}", i);
+            let mut desc = UploadDescriptor::build(device.into())
+                .manual_file("richo".into(), filename, "mp4");
+            desc.size = 138 * 1024 * 1024 * 1024;
             report.record_activity(ReportEntry::new(
-                    desc,
+                    &desc,
                     vec![
-                        ("provider".into(), UploadStatus::Succeeded),
+                    ("provider".into(), UploadStatus::Succeeded),
                     ],
-                    ));
+            ));
         }
 
         let expected = format!("\
 STOKEPILE UPLOAD REPORT
 =======================
 
-Dummy-file0.mp4
-===============
+testing
+=======
 
-    /Dummy-file0.mp4/richo/Dummy-file0.mp4 (138gb)
+    /testing/richo/Dummy-file0.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file1.mp4
-===============
-
-    /Dummy-file1.mp4/richo/Dummy-file1.mp4 (138gb)
+    /testing/richo/Dummy-file1.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file10.mp4
-================
-
-    /Dummy-file10.mp4/richo/Dummy-file10.mp4 (138gb)
+    /testing/richo/Dummy-file2.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file11.mp4
-================
-
-    /Dummy-file11.mp4/richo/Dummy-file11.mp4 (138gb)
+    /testing/richo/Dummy-file3.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file12.mp4
-================
-
-    /Dummy-file12.mp4/richo/Dummy-file12.mp4 (138gb)
+    /testing/richo/Dummy-file4.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file13.mp4
-================
-
-    /Dummy-file13.mp4/richo/Dummy-file13.mp4 (138gb)
+    /testing/richo/Dummy-file5.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file14.mp4
-================
-
-    /Dummy-file14.mp4/richo/Dummy-file14.mp4 (138gb)
+    /testing/richo/Dummy-file6.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file15.mp4
-================
-
-    /Dummy-file15.mp4/richo/Dummy-file15.mp4 (138gb)
+    /testing/richo/Dummy-file7.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file16.mp4
-================
-
-    /Dummy-file16.mp4/richo/Dummy-file16.mp4 (138gb)
+    /testing/richo/Dummy-file8.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file17.mp4
-================
-
-    /Dummy-file17.mp4/richo/Dummy-file17.mp4 (138gb)
+    /testing/richo/Dummy-file9.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file18.mp4
-================
-
-    /Dummy-file18.mp4/richo/Dummy-file18.mp4 (138gb)
+    /testing/richo/Dummy-file10.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file19.mp4
-================
-
-    /Dummy-file19.mp4/richo/Dummy-file19.mp4 (138gb)
+    /testing/richo/Dummy-file11.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file2.mp4
-===============
-
-    /Dummy-file2.mp4/richo/Dummy-file2.mp4 (138gb)
+    /testing/richo/Dummy-file12.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file3.mp4
-===============
-
-    /Dummy-file3.mp4/richo/Dummy-file3.mp4 (138gb)
+    /testing/richo/Dummy-file13.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file4.mp4
-===============
-
-    /Dummy-file4.mp4/richo/Dummy-file4.mp4 (138gb)
+    /testing/richo/Dummy-file14.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file5.mp4
-===============
-
-    /Dummy-file5.mp4/richo/Dummy-file5.mp4 (138gb)
+    /testing/richo/Dummy-file15.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file6.mp4
-===============
-
-    /Dummy-file6.mp4/richo/Dummy-file6.mp4 (138gb)
+    /testing/richo/Dummy-file16.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file7.mp4
-===============
-
-    /Dummy-file7.mp4/richo/Dummy-file7.mp4 (138gb)
+    /testing/richo/Dummy-file17.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file8.mp4
-===============
-
-    /Dummy-file8.mp4/richo/Dummy-file8.mp4 (138gb)
+    /testing/richo/Dummy-file18.mp4 (138gb)
     # provider: Succeeded
 
-Dummy-file9.mp4
-===============
-
-    /Dummy-file9.mp4/richo/Dummy-file9.mp4 (138gb)
+    /testing/richo/Dummy-file19.mp4 (138gb)
     # provider: Succeeded
 
 Uploaded Data

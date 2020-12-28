@@ -98,7 +98,7 @@ mod tests {
 
     use crate::config::{Config, FlysightConfig, MountableDeviceLocation};
 
-    client_for_routes!(get_config => client);
+    client_for_routes!(config: get_config => client);
 
     #[test]
     fn test_anon_get_config() {

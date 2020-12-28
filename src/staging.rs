@@ -9,22 +9,21 @@ use dropbox_content_hasher::DropboxContentHasher;
 use crate::formatting;
 use failure::{Error, ResultExt};
 use hashing_copy;
-use serde::{Deserialize, Serialize};
 use serde_json;
+use uuid::Uuid;
 
 use crate::config::{MountableDeviceLocation, StagingConfig};
 use crate::mountable::{MountedFilesystem, MountableFilesystem, MountableKind, MOUNTABLE_DEVICE_FOLDER};
+use crate::reporting::ReportEntryDescription;
+use crate::trimmer::FFMpegTrimmer;
 
-#[derive(Eq, PartialEq, Debug, Serialize, Deserialize)]
-pub enum RemotePathDescriptor {
-    DateTime {
-        capture_time: DateTime<Local>,
-        extension: String,
-    },
-    SpecifiedPath {
-        path: PathBuf,
-    },
-}
+pub use stokepile_shared::staging::{
+    StagedFile,
+    UploadDescriptor,
+    RemotePathDescriptor,
+    TrimDetail,
+    Trimmer,
+};
 
 impl MountableFilesystem for StagingConfig {
     type Target = MountedStaging;
@@ -78,6 +77,8 @@ pub trait StorableFile {
             content_hash: [0; 32],
             device_name: name.to_string(),
             size: self.size()?,
+            uuid: Uuid::new_v4(),
+            trim: None,
         })
     }
 }
@@ -116,7 +117,7 @@ impl<T> StorableFile for T where T: DateTimeUploadable {
     }
 }
 
-fn stage_file<T, U>(file: &mut T, destination: &U, name: &str) -> Result<(), Error>
+fn stage_file<T, U>(file: &mut T, destination: &U, name: &str) -> Result<StagedFile, Error>
 where T: StorableFile,
       U: StagingLocation,
 {
@@ -126,6 +127,8 @@ where T: StorableFile,
     let manifest_name = desc.manifest_name();
 
     let mut options = fs::OpenOptions::new();
+    // TODO(richo) create_new would be a lot less scary here.
+    // Currently a duplicate file mtime will overwrite data
     let options = options.write(true).create(true).truncate(true);
 
     let staging_path = destination.path_for_name(&staging_name);
@@ -133,7 +136,8 @@ where T: StorableFile,
 
     info!("Staging {} to {:?}", &staging_name, &staging_path);
     {
-        let mut staged = options.open(&staging_path)?;
+        let mut staged = options.open(&staging_path)
+            .context(format!("Open staging path: {:?}", &staging_path))?;
         let (size, hash) = hashing_copy::copy_and_hash::<_, _, DropboxContentHasher>(
             file.reader(),
             &mut staged,
@@ -152,7 +156,11 @@ where T: StorableFile,
         serde_json::to_writer(&mut staged, &desc)?;
     }
 
-    Ok(())
+    Ok(StagedFile {
+        content_path: staging_path,
+        manifest_path,
+        descriptor: desc,
+    })
 }
 
 /// The contract of StageableLocation is a directory with a bunch of flat files under it. Doing
@@ -192,7 +200,7 @@ pub trait StagingLocation: Debug + Sync + Send {
     fn read_dir(&self) -> Result<fs::ReadDir, io::Error>;
 
     // TODO(richo) iterator
-    fn staged_files(&self) -> Result<Vec<(StagedFile, UploadDescriptor)>, Error> {
+    fn staged_files(&self) -> Result<Vec<StagedFile>, Error> {
         let mut out = vec![];
         for entry in self.read_dir().context("Reading staged files")? {
             // Find manifests and work backward
@@ -207,11 +215,12 @@ pub trait StagingLocation: Debug + Sync + Send {
             let manifest = File::open(&manifest_path)
                 .context("Reading manifest")?;
 
-            let manifest: UploadDescriptor = serde_json::from_reader(manifest)?;
-            out.push((StagedFile {
+            let descriptor: UploadDescriptor = serde_json::from_reader(manifest)?;
+            out.push(StagedFile {
                 content_path,
                 manifest_path,
-            }, manifest));
+                descriptor,
+            });
         }
         Ok(out)
     }
@@ -227,23 +236,66 @@ impl<T: StagingLocation> StagingLocation for Box<T> {
     }
 }
 
-#[derive(Debug)]
-pub struct StagedFile {
-    pub content_path: PathBuf,
-    manifest_path: PathBuf,
+pub trait StagedFileExt {
+    fn delete(self) -> Result<(), io::Error>;
+    fn content_handle(&self) -> Result<File, io::Error>;
+    fn add_trim(&mut self, detail: TrimDetail) -> Result<(), Error>;
+    fn apply_trim(self) -> Result<StagedFile, (StagedFile, Error)>;
+    fn update_name(&mut self, new_name: &str) -> Result<(), Error>;
 }
 
-impl StagedFile {
-    pub fn delete(self) -> Result<(), io::Error> {
-        info!("removing {:?}", &self.manifest_path);
+impl StagedFileExt for StagedFile {
+    fn delete(self) -> Result<(), io::Error> { info!("removing {:?}", &self.manifest_path);
         fs::remove_file(&self.manifest_path)?;
         info!("removing {:?}", &self.content_path);
         fs::remove_file(&self.content_path)?;
         Ok(())
     }
 
-    pub fn content_handle(&self) -> Result<File, io::Error> {
+    fn content_handle(&self) -> Result<File, io::Error> {
         File::open(&self.content_path)
+    }
+
+    /// Trim the file, if applicable
+    fn apply_trim(self) -> Result<StagedFile, (StagedFile, Error)> {
+        let trimmer = FFMpegTrimmer::new()
+            .expect("Trimmer");
+            // .map_err(|e| (self, e.into()))?;
+        if let Some(detail) = self.trim.clone() {
+            trimmer.trim(self, &detail)
+        } else {
+            Ok(self)
+        }
+    }
+
+    fn add_trim(&mut self, detail: TrimDetail) -> Result<(), Error> {
+        self.descriptor.trim = Some(detail);
+        self.rewrite_manifest()
+    }
+
+    fn update_name(&mut self, new_name: &str) -> Result<(), Error> {
+        self.rename(new_name.into());
+        self.rewrite_manifest()
+    }
+}
+
+trait StagedFileHelpers {
+    fn rewrite_manifest(&mut self) -> Result<(), Error>;
+}
+
+impl StagedFileHelpers for StagedFile {
+    fn rewrite_manifest(&mut self) -> Result<(), Error> {
+        let mut options = fs::OpenOptions::new();
+        // TODO(richo) create_new would be a lot less scary here.
+        // Currently a duplicate file mtime will overwrite data
+        let options = options.write(true).create(true).truncate(true);
+
+        // TODO(richo) Dedupe all of this logic
+        info!("Opening manifest to add transform: {:?}", &self.manifest_path);
+        let mut staged = options.open(&self.manifest_path)
+            .context("Opening manifest")?;
+        serde_json::to_writer(&mut staged, &self.descriptor)?;
+        Ok(())
     }
 }
 
@@ -295,16 +347,16 @@ impl<T: StagingLocation> Stager<T> {
         }
     }
 
-    pub fn stage<F>(&self, mut file: F, name: &str) -> Result<(), Error>
+    pub fn stage<F>(&self, mut file: F, name: &str) -> Result<StagedFile, Error>
         where F: StorableFile
     {
-        stage_file(&mut file, &self.location, name)?;
+        let res = stage_file(&mut file, &self.location, name)?;
 
         if self.destructive {
             file.delete()?;
         }
 
-        Ok(())
+        Ok(res)
     }
 
     pub fn staging_location(&self) -> &T {
@@ -317,7 +369,7 @@ impl<T: StagingLocation> Stager<T> {
     }
 }
 pub trait StageFromDevice: Sized {
-    type FileType: StorableFile;
+    type FileType: StorableFile + Debug;
 
     /// List all stageable files on this device.
     fn files(&self) -> Result<Vec<Self::FileType>, Error>;
@@ -339,7 +391,8 @@ pub trait StageFromDevice: Sized {
     /// setting.
     #[cfg(test)]
     fn stage_files_for_test<T: StagingLocation>(self, name: &str, stager: &Stager<T>) -> Result<Self, Error> {
-        for file in self.files()? {
+        for file in self.files()
+            .context("Locate files")? {
             stager.stage(file, name)?;
         }
         self.cleanup()?;
@@ -351,13 +404,6 @@ pub trait StageFromDevice: Sized {
     }
 }
 
-#[derive(PartialEq, Debug, Serialize, Deserialize)]
-pub struct UploadDescriptor {
-    pub(crate) path: RemotePathDescriptor,
-    pub device_name: String,
-    pub content_hash: [u8; 32],
-    pub size: u64,
-}
 
 #[derive(Debug)]
 pub struct UploadDescriptorBuilder {
@@ -374,83 +420,51 @@ impl UploadDescriptorBuilder {
             content_hash: Default::default(),
             device_name: self.device_name,
             size: 0,
+            uuid: Uuid::new_v4(),
+            trim: None,
         }
     }
 
-    pub fn manual_file(self, path: PathBuf) -> UploadDescriptor {
+    pub fn manual_file<S1, S2>(self, group: PathBuf, name: S1, extension: S2) -> UploadDescriptor
+    where S1: Into<String>,
+          S2: Into<String> {
+        let name = name.into();
+        let extension = extension.into();
+
         UploadDescriptor {
             path: RemotePathDescriptor::SpecifiedPath {
-                path,
+                group, name, extension,
             },
             content_hash: Default::default(),
             device_name: self.device_name,
             size: 0,
+            uuid: Uuid::new_v4(),
+            trim: None,
         }
     }
 }
 
-impl UploadDescriptor {
-    pub fn build(device_name: String) -> UploadDescriptorBuilder {
+pub trait UploadDescriptorExt {
+    fn build(device_name: String) -> UploadDescriptorBuilder;
+    #[cfg(test)]
+    fn test_descriptor() -> Self;
+}
+
+pub trait DescriptorNameable {
+    fn staging_name(&self) -> String;
+    fn manifest_name(&self) -> String;
+    fn remote_path(&self) -> PathBuf;
+}
+
+impl UploadDescriptorExt for UploadDescriptor {
+    fn build(device_name: String) -> UploadDescriptorBuilder {
         UploadDescriptorBuilder {
             device_name,
         }
     }
 
-    pub fn staging_name(&self) -> String {
-        match &self.path {
-            RemotePathDescriptor::DateTime {
-                capture_time, extension
-            } => {
-                format!(
-                    "{}-{}.{}",
-                    &self.device_name, capture_time, extension
-                )
-            },
-            RemotePathDescriptor::SpecifiedPath {
-                path
-            } => {
-                format!(
-                    "{}-{}",
-                    &self.device_name,
-                    path.to_str().expect("path wasn't valid utf8").replace("/", "-"),
-                )
-            }
-        }
-    }
-
-    pub fn manifest_name(&self) -> String {
-        format!("{}.manifest", self.staging_name())
-    }
-
-    pub fn remote_path(&self) -> PathBuf {
-        match &self.path {
-            RemotePathDescriptor::DateTime {
-                capture_time, extension,
-            } => {
-                format!(
-                    "/{year:04}/{month:02}/{day:02}/{device}/{filename}.{extension}",
-                    year = capture_time.year(),
-                    month = capture_time.month(),
-                    day = capture_time.day(),
-                    device= &self.device_name,
-                    filename = capture_time.format("%H-%M-%S"),
-                    extension = extension,
-                ).into()
-            },
-            RemotePathDescriptor::SpecifiedPath {
-                path
-            } => {
-                let mut buf = PathBuf::from("/");
-                buf.push(&self.device_name);
-                assert!(!path.is_absolute());
-                buf.extend(path);
-                buf
-            }
-        }
-    }
-
     #[cfg(test)]
-    pub fn test_descriptor() -> Self {
+    fn test_descriptor() -> Self {
         UploadDescriptor {
             path: RemotePathDescriptor::DateTime {
                 capture_time: Local.ymd(2018, 8, 26).and_hms(14, 30, 0),
@@ -459,7 +473,23 @@ impl UploadDescriptor {
             device_name: "test-device".into(),
             content_hash: Default::default(),
             size: 1024,
+            uuid: Uuid::new_v4(),
+            transforms: vec![],
         }
+    }
+}
+
+impl DescriptorNameable for UploadDescriptor {
+    fn staging_name(&self) -> String {
+        ReportEntryDescription::from(self).staging_name()
+    }
+
+    fn manifest_name(&self) -> String {
+        ReportEntryDescription::from(self).manifest_name()
+    }
+
+    fn remote_path(&self) -> PathBuf {
+        ReportEntryDescription::from(self).remote_path()
     }
 }
 
@@ -500,6 +530,8 @@ mod tests {
             device_name: "test".to_string(),
             content_hash: [0; 32],
             size: 0,
+            uuid: Uuid::new_v4(),
+            transforms: vec![],
         };
 
         assert_eq!(
@@ -520,6 +552,8 @@ mod tests {
             device_name: "test".to_string(),
             content_hash: [0; 32],
             size: 0,
+            uuid: Uuid::new_v4(),
+            transforms: vec![],
         };
 
         assert_eq!(
@@ -540,6 +574,8 @@ mod tests {
             device_name: "test".to_string(),
             content_hash: [0; 32],
             size: 0,
+            uuid: Uuid::new_v4(),
+            transforms: vec![],
         };
 
         let serialized = serde_json::to_string(&original).expect("Couldn't serialize test vector");
@@ -611,6 +647,18 @@ impl StagingLocation for tempfile::TempDir {
 
     fn read_dir(&self) -> Result<fs::ReadDir, io::Error> {
         fs::read_dir(self.path())
+    }
+}
+
+#[cfg(test)]
+impl From<tempfile::TempDir> for MountedStaging {
+    fn from(temp: tempfile::TempDir) -> Self {
+        MountedStaging {
+            staging: StagingConfig {
+                location: MountableDeviceLocation::Location(temp.path().to_path_buf()),
+            },
+            mount: MountedFilesystem::from(temp),
+        }
     }
 }
 

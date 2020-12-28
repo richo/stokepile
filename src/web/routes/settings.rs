@@ -98,7 +98,7 @@ mod tests {
     use rocket::http::{ContentType, Status};
     use serde_urlencoded;
 
-    client_for_routes!(get_settings, post_settings => client);
+    client_for_routes!(config: get_settings, post_settings => client);
 
     #[test]
     fn test_can_set_and_unset_settings() {
