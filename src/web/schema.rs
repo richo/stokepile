@@ -111,6 +111,8 @@ table! {
         staging_data -> Nullable<Varchar>,
         preserve_device_files -> Bool,
         admin -> Bool,
+        certificate -> Varchar,
+        seal -> Nullable<Varchar>,
     }
 }
 

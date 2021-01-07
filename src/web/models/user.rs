@@ -21,6 +21,8 @@ pub struct User {
     pub staging_data: Option<String>,
     pub preserve_device_files: bool,
     admin: bool,
+    pub certificate: String,
+    pub seal: Option<String>,
 }
 
 #[derive(Debug, DbEnum, Serialize, PartialEq)]
