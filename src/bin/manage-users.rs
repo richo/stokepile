@@ -1,13 +1,12 @@
 #[macro_use]
 extern crate log;
 
-use stokepile::cli::self;
 use stokepile::web::db::db_connection;
 use stokepile::web::models::{User, NewInvite};
 
 use clap::{App, Arg, SubCommand};
 
-fn cli_opts<'a, 'b>(base: App) -> App<'a, 'b> {
+fn cli_opts<'a, 'b>(base: App<'a, 'b>) -> App<'a, 'b> {
     base.subcommand(SubCommand::with_name("invite")
         .about("Creates an invite code")
         .arg(Arg::with_name("EMAIL")
