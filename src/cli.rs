@@ -34,14 +34,15 @@ fn init_logging() {
     pretty_env_logger::init();
 }
 
-/// Run a given closure with logging configured, and deal with any errors. This allows you to have
-/// a fairly simple main, eg:
+/// Run a given closure with logging configured, and the result of parsing cli arguments, and deal
+/// with any errors. This allows you to have a fairly simple main. Run accepts a function to
+/// configure the clap cli, you can just pass it back without consequence.
 ///
 /// ```
 /// use stokepile::cli::run;
 ///
 /// fn main() {
-///     run(|| {
+///     run(|clap| clap, |_matches| {
 ///         // Do stuff here, including using the ? operator with reckless abandon.
 ///         // ...
 ///         // You must however return Ok(())
