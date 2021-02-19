@@ -3,22 +3,18 @@ extern crate log;
 
 use clap::App;
 
-use stokepile::cli;
 use stokepile::config;
 use stokepile::client;
 
 use std::fs::File;
 use std::io::Write;
 
-fn cli_opts<'a, 'b>() -> App<'a, 'b> {
-    cli::base_opts()
-        .about("Fetches configuration from upstream")
+fn cli_opts<'a, 'b>(base: App<'a, 'b>) -> App<'a, 'b> {
+    base.about("Fetches configuration from upstream")
 }
 
 fn main() {
-    stokepile::cli::run(|| {
-        let matches = cli_opts().get_matches();
-
+    stokepile::cli::run(cli_opts, |matches| {
         let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("stokepile.toml"));
 
         let base = match cfg {

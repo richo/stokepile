@@ -1,20 +1,19 @@
 #[macro_use]
 extern crate log;
 
-use stokepile::cli::{self, init_dotenv};
+use stokepile::cli::self;
 use stokepile::web::db::db_connection;
 use stokepile::web::models::{User, NewInvite};
 
 use clap::{App, Arg, SubCommand};
 
-fn cli_opts<'a, 'b>() -> App<'a, 'b> {
-    cli::base_opts()
-        .subcommand(SubCommand::with_name("invite")
-            .about("Creates an invite code")
-            .arg(Arg::with_name("EMAIL")
-                .help("Email address to invite")
-                .required(true)
-                .index(1)))
+fn cli_opts<'a, 'b>(base: App) -> App<'a, 'b> {
+    base.subcommand(SubCommand::with_name("invite")
+        .about("Creates an invite code")
+        .arg(Arg::with_name("EMAIL")
+            .help("Email address to invite")
+            .required(true)
+            .index(1)))
 
         .subcommand(SubCommand::with_name("promote")
             .about("Promotes a user to admin")
@@ -32,11 +31,7 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
 }
 
 fn main() {
-    stokepile::cli::run(|| {
-        init_dotenv()?;
-
-        let matches = cli_opts().get_matches();
-
+    stokepile::cli::run(cli_opts, |matches| {
         let conn = db_connection()?;
 
         if let Some(matches) = matches.subcommand_matches("invite") {
