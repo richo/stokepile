@@ -1,0 +1,42 @@
+{{> common/header }}
+
+<div class="pure-g">
+  <div class="pure-u-1">
+    <h2>Settings</h2>
+    {{> common/flash-message}}
+    <div>
+      <form method="POST" class="pure-form" id="settings_form">
+      <table class="pure-table pure-table-horizontal device-list pure-table-striped">
+        <thead>
+          <tr>
+            <th>setting</th>
+            <th>value</th>
+            <th>help</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Certificate</td>
+            <td><input class="settings-text-input" type="text" name="certificate" form="settings_form" placeholder="PENDING"
+              {{#if this.user.certificate}}value="{{this.user.certificate}}"{{/if}}
+              /></td>
+            <td>Your certificate#</td>
+          </tr>
+          <tr>
+            <td>Seal</td>
+            <td><input class="settings-text-input" type="text" name="seal" form="settings_form" placeholder="WTF"
+              {{#if this.user.seal}}value="{{this.user.seal}}"{{/if}}
+              /></td>
+            <td>Your seal letters</td>
+          </tr>
+        </tbody>
+      </table>
+      </form>
+    </div>
+    <div class="save-button">
+      <button type="submit" form="settings_form" class="button-big pure-button pure-button-primary">Save</button>
+    </div>
+  </div>
+</div>
+
+{{> common/footer }}

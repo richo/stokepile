@@ -128,6 +128,9 @@ pub fn configure_rocket() -> Rocket {
                 routes::rigging::equipment_detail,
                 routes::rigging::repack_create,
                 routes::rigging::service_bulletins,
+
+                routes::rigging::settings::get_settings,
+                routes::rigging::settings::post_settings,
             ]
         )
         .mount("/static", StaticFiles::from("web/static"))

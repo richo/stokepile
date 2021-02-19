@@ -171,23 +171,11 @@ impl User {
         })
     }
 
-    pub fn update_settings(&self, settings: &SettingsForm, conn: &PgConnection) -> QueryResult<usize> {
-        use diesel::update;
-        use crate::web::schema::users::dsl::*;
-
-        let (ty, data) = settings.staging()
-            .map(|x| (x.kind_for_db(), Some(x.data_for_db())))
-            .unwrap_or_else(|| (StagingKind::None, None));
-        update(self)
-            .set((
-                    notify_email.eq(settings.notification_email()),
-                    notify_pushover.eq(settings.notification_pushover()),
-                    staging_type.eq(ty),
-                    staging_data.eq(data),
-                    preserve_device_files.eq(settings.preserve_device_files)
-            ))
-            .execute(conn)
+    // TODO(richo) This can leave you with a stale User object, unless we reload it in place.
+    pub fn update_from_settings<S: SettingsUpdatable>(&self, settings: &S, conn: &PgConnection) -> QueryResult<usize> {
+        settings.merge(&self, conn)
     }
+
 
     pub fn update_staging(&self, staging: &StagingConfig, conn: &PgConnection) -> QueryResult<usize> {
         use diesel::update;
@@ -252,6 +240,46 @@ impl<'a> NewUser<'a> {
             .get_result::<User>(conn)
     }
 }
+
+pub trait SettingsUpdatable {
+    fn merge(&self, user: &User, conn: &PgConnection) -> QueryResult<usize>;
+}
+
+impl SettingsUpdatable for crate::web::routes::rigging::settings::SettingsForm {
+    fn merge(&self, user: &User, conn: &PgConnection) -> QueryResult<usize> {
+        use diesel::update;
+        use crate::web::schema::users::dsl::*;
+
+        update(user)
+            .set((
+                    certificate.eq(&self.certificate),
+                    seal.eq(&self.seal),
+            ))
+            .execute(conn)
+    }
+}
+
+impl SettingsUpdatable for crate::web::routes::settings::SettingsForm {
+    fn merge(&self, user: &User, conn: &PgConnection) -> QueryResult<usize> {
+        use diesel::update;
+        use crate::web::schema::users::dsl::*;
+
+        let (ty, data) = self.staging()
+            .map(|x| (x.kind_for_db(), Some(x.data_for_db())))
+            .unwrap_or_else(|| (StagingKind::None, None));
+        update(user)
+            .set((
+                    notify_email.eq(self.notification_email()),
+                    notify_pushover.eq(self.notification_pushover()),
+                    staging_type.eq(ty),
+                    staging_data.eq(data),
+                    preserve_device_files.eq(self.preserve_device_files)
+            ))
+            .execute(conn)
+    }
+}
+
+
 
 #[cfg(test)]
 mod tests {
