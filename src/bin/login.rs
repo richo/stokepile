@@ -4,20 +4,16 @@ extern crate log;
 use clap::App;
 use rpassword;
 
-use stokepile::cli;
 use stokepile::config;
 use stokepile::client;
 use std::io::{self, Write};
 
-fn cli_opts<'a, 'b>() -> App<'a, 'b> {
-    cli::base_opts()
-        .about("Logs into the stokepile web interface for configuration management")
+fn cli_opts<'a, 'b>(base: App<'a, 'b>) -> App<'a, 'b> {
+    base.about("Logs into the stokepile web interface for configuration management")
 }
 
 fn main() {
-    stokepile::cli::run(|| {
-        let matches = cli_opts().get_matches();
-
+    stokepile::cli::run(cli_opts, |matches| {
         let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("stokepile.toml"));
 
         let base = match cfg {

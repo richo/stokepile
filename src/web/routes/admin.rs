@@ -8,9 +8,9 @@ use crate::web::auth::AdminUser;
 use crate::web::context::AdminContext;
 use crate::web::models::{NewInvite, User};
 
-#[get("/admin")]
+#[get("/")]
 pub fn index(user: AdminUser, flash: Option<FlashMessage<'_, '_>>) -> Template {
-    let context = AdminContext::for_user(user)
+    let context = AdminContext::for_user(user, ())
         .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
     Template::render("admin", context)
 }
@@ -20,7 +20,12 @@ pub struct InviteForm {
     email: String,
 }
 
-#[post("/admin/invite", data = "<invite>")]
+#[derive(Serialize, Debug)]
+pub struct AdminView {
+    user_list: Vec<User>,
+}
+
+#[post("/invite", data = "<invite>")]
 pub fn create_invite(user: AdminUser, conn: DbConn, invite: Form<InviteForm>) -> Flash<Redirect> {
     match NewInvite::new(&invite.email).create(&*conn) {
         Ok(_) => {
@@ -38,12 +43,15 @@ pub fn create_invite(user: AdminUser, conn: DbConn, invite: Form<InviteForm>) ->
     }
 }
 
-#[get("/admin/users")]
+#[get("/users")]
 pub fn users(user: AdminUser, conn: DbConn, flash: Option<FlashMessage<'_, '_>>) -> Template {
     let users = User::all(&conn).expect("loool");
-    let context = AdminContext::for_user(user)
+    let view_data = AdminView {
+        user_list: users,
+    };
+
+    let context = AdminContext::for_user(user, view_data)
         // TODO(richo) error handling.
-        .set_user_list(users)
         .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
     Template::render("admin/users", context)
 }
@@ -66,7 +74,7 @@ mod tests {
         let _session = signin(&client, "test1%40email.com", "p%4055w0rd").unwrap();
 
         let response = client
-            .get("/admin")
+            .get("/")
             .dispatch();
         assert_eq!(response.status(), Status::Ok);
     }
@@ -79,7 +87,7 @@ mod tests {
         let _session = signin(&client, "test1%40email.com", "p%4055w0rd").unwrap();
 
         let response = client
-            .get("/admin")
+            .get("/")
             .dispatch();
         assert_eq!(response.status(), Status::Unauthorized);
     }

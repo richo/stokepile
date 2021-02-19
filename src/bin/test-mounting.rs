@@ -6,11 +6,9 @@ use clap::{App, Arg};
 use stokepile::config;
 use stokepile::ctx::Ctx;
 use stokepile::mountable;
-use stokepile::cli;
 
-fn cli_opts<'a, 'b>() -> App<'a, 'b> {
-    cli::base_opts()
-        .about("Smoke test the mounting infrastructure")
+fn cli_opts<'a, 'b>(base: App<'a, 'b>) -> App<'a, 'b> {
+    base.about("Smoke test the mounting infrastructure")
         .arg(Arg::with_name("LABEL")
              .help("Label of the device to test mount")
              .required(true)
@@ -19,11 +17,9 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
 
 
 fn main() {
-    stokepile::cli::run(|| {
-        let matches = cli_opts().get_matches();
-
+    stokepile::cli::run(cli_opts, |matches| {
         let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("stokepile.toml"));
-        let ctx = Ctx::create_without_lock(cfg?)?;
+        let _ctx = Ctx::create_without_lock(cfg?)?;
 
         let mut pb = PathBuf::from("/dev/disk/by-label");
         pb.push(matches.value_of("LABEL").expect("no label"));

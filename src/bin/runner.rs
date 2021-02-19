@@ -3,7 +3,6 @@ extern crate log;
 
 use clap::{App, Arg};
 
-use stokepile::cli;
 use stokepile::config;
 use stokepile::ctx::Ctx;
 use stokepile::device;
@@ -14,25 +13,22 @@ use stokepile::storage;
 
 use std::io;
 
-fn cli_opts<'a, 'b>() -> App<'a, 'b> {
-    cli::base_opts()
-        .about("Performs a single run, uploading footage from all connected devices")
+fn cli_opts<'a, 'b>(base: App<'a, 'b>) -> App<'a, 'b> {
+    base.about("Performs a single run, uploading footage from all connected devices")
         .arg(
             Arg::with_name("no-cron")
             .long("no-cron")
             .help("Don't invoke any of the locking machinery to ensure only one stokepile runs at a time")
-            )
+        )
         .arg(
             Arg::with_name("stage-only")
             .long("stage-only")
             .help("Only stage files, do not process uploads")
-            )
+        )
 }
 
 fn main() {
-    stokepile::cli::run(|| {
-        let matches = cli_opts().get_matches();
-
+    stokepile::cli::run(cli_opts, |matches| {
         let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("stokepile.toml"));
         let is_cron = !matches.is_present("no-cron");
 

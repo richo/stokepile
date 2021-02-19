@@ -13,7 +13,7 @@ use crate::web::models::extra::StagingKind;
 
 #[get("/settings")]
 pub fn get_settings(user: WebUser) -> Template {
-    let context = Context::default()
+    let context = Context::media(())
         .set_user(Some(user));
     Template::render("settings", context)
 }
@@ -21,7 +21,7 @@ pub fn get_settings(user: WebUser) -> Template {
 #[post("/settings",  data = "<settings>")]
 pub fn post_settings(user: WebUser, conn: DbConn, settings: Form<SettingsForm>) -> Flash<Redirect> {
 
-    match user.user.update_settings(&settings, &conn) {
+    match user.user.update_from_settings(&*settings, &conn) {
         Ok(_) => {
             Flash::success(
                 Redirect::to("/"),

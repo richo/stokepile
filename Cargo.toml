@@ -84,3 +84,13 @@ required-features = ["web"]
 name = "run_migrations"
 path = "src/bin/run_migrations.rs"
 required-features = ["web"]
+
+[[bin]]
+name = "manage-users"
+path = "src/bin/manage-users.rs"
+required-features = ["web"]
+
+[[bin]]
+name = "rigging-cron"
+path = "src/bin/rigging-cron.rs"
+required-features = ["web"]
