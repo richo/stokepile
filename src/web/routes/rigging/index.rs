@@ -139,13 +139,7 @@ pub fn due_equipment(user: WebUser, conn: DbConn, flash: Option<FlashMessage<'_,
         .expect("30 days from now")
         .date();
 
-    let list = list.into_iter().filter(|asm| {
-        if let Some(due) = asm.next_due {
-            due < filter_date
-        } else {
-            true
-        }
-    });
+    let list = list.into_iter().filter(|asm| asm.due_before(filter_date));
 
     let equipment = EquipmentView {
         equipment: list.collect(),

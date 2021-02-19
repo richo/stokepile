@@ -41,4 +41,13 @@ impl Assembly {
             .collect();
         return reserve.pop()
     }
+
+    pub fn due_before(&self, date: NaiveDate) -> bool {
+        if let Some(due) = self.next_due {
+            due < date
+        } else {
+            true
+        }
+    }
+
 }
