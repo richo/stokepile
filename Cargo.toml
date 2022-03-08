@@ -14,7 +14,8 @@ identifier = "net.psych0tik.richo.stokepile"
 default = [ "usb" ]
 "web" = [
   "rocket",
-  # "rocket_contrib",
+  "rocket_dyn_templates",
+  "rocket_sync_db_pools",
   "diesel",
   "diesel-derive-enum",
   "diesel_migrations",
@@ -29,8 +30,9 @@ default = [ "usb" ]
 
 
 [dependencies]
-rocket = { version = "0.5.0-rc.1", optional = true, features = ["tls"] }
-#rocket_contrib = { version = "0.5.0-rc.1", optional = true, default_features = false, features = ["handlebars_templates", "json", "serve"] }
+rocket = { version = "0.5.0-rc.1", optional = true, features = ["tls", "json"] }
+rocket_dyn_templates = { version = "0.1.0-rc.1", optional = true, features = ["handlebars"] }
+rocket_sync_db_pools = { version = "0.1.0-rc.1", optional = true, features = ["diesel_postgres_pool"] }
 diesel = { version = "1.4.3", features = ["postgres", "r2d2", "serde_json", "chrono"], optional = true }
 diesel-derive-enum = { version = "0.4.4", optional = true, features = ["postgres"] }
 diesel_migrations = { version = "1.4.0", optional = true }
