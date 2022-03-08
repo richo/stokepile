@@ -277,7 +277,7 @@ mod tests {
 
         {
             let conn = db_conn(&client);
-            user.update_settings(&SettingsForm {
+            user.update_from_settings(&SettingsForm {
                 notification_email: "test@email.com".into(),
                 notification_pushover: "fake-api-key".into(),
                 staging_data: "/tmp/whatever".into(),
@@ -300,7 +300,7 @@ mod tests {
 
         {
             let conn = db_conn(&client);
-            user.update_settings(&SettingsForm {
+            user.update_from_settings(&SettingsForm {
                 notification_email: "test@email.com".into(),
                 notification_pushover: "fake-api-key".into(),
                 staging_data: "".into(),
@@ -334,7 +334,7 @@ mod tests {
 
         {
             let conn = db_conn(&client);
-            user.update_settings(&SettingsForm {
+            user.update_from_settings(&SettingsForm {
                 notification_email: "test@email.com".into(),
                 notification_pushover: "fake-api-key".into(),
                 staging_data: "/tmp/whatever".into(),

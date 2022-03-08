@@ -1,12 +1,44 @@
 #![allow(proc_macro_derive_resolution_fallback)]
 
 table! {
+    components (id) {
+        id -> Int4,
+        equipment_id -> Int4,
+        kind -> Varchar,
+        manufacturer -> Varchar,
+        model -> Varchar,
+        serial -> Varchar,
+        manufactured -> Date,
+        data -> Jsonb,
+    }
+}
+
+table! {
+    customers (id) {
+        id -> Int4,
+        user_id -> Int4,
+        name -> Varchar,
+        address -> Varchar,
+        phone_number -> Varchar,
+        email -> Varchar,
+    }
+}
+
+table! {
     devices (id) {
         id -> Int4,
         user_id -> Int4,
         name -> Varchar,
         kind -> Varchar,
         identifier -> Varchar,
+    }
+}
+
+table! {
+    equipment (id) {
+        id -> Int4,
+        user_id -> Int4,
+        customer_id -> Int4,
     }
 }
 
@@ -47,6 +79,17 @@ table! {
 }
 
 table! {
+    repacks (id) {
+        id -> Int4,
+        rigger -> Int4,
+        equipment -> Int4,
+        date -> Date,
+        service -> Varchar,
+        location -> Varchar,
+    }
+}
+
+table! {
     sessions (id) {
         id -> Varchar,
         user_id -> Int4,
@@ -68,20 +111,32 @@ table! {
         staging_data -> Nullable<Varchar>,
         preserve_device_files -> Bool,
         admin -> Bool,
+        certificate -> Varchar,
+        seal -> Nullable<Varchar>,
     }
 }
 
+joinable!(components -> equipment (equipment_id));
+joinable!(customers -> users (user_id));
 joinable!(devices -> users (user_id));
+joinable!(equipment -> customers (customer_id));
+joinable!(equipment -> users (user_id));
 joinable!(integrations -> users (user_id));
 joinable!(keys -> users (user_id));
+joinable!(repacks -> equipment (equipment));
+joinable!(repacks -> users (rigger));
 joinable!(sessions -> users (user_id));
 
 allow_tables_to_appear_in_same_query!(
+    components,
+    customers,
     devices,
+    equipment,
     global_settings,
     integrations,
     invites,
     keys,
+    repacks,
     sessions,
     users,
 );

@@ -1,0 +1,61 @@
+{{> common/rigging-header }}
+
+<div class="pure-g">
+  <div class="pure-u-1">
+    {{> common/flash-message}}
+
+    <table class="pure-table pure-table-horizontal device-list pure-table-striped">
+      <thead>
+        <tr>
+          <th>manufacturer</th>
+          <th>model</th>
+          <th>serial</th>
+          <th>dom</th>
+        </tr>
+      </thead>
+      <!-- TODO(richo) breaks between rigs -->
+      {{#each data.equipment.components}}
+      <tr>
+        <td>{{this.manufacturer}}</td>
+        <td>{{this.model}}</td>
+        <td>{{this.serial}}</td>
+        <td>{{this.manufactured}}</td>
+      </tr>
+      {{/each}}
+    </table>
+    <table class="pure-table pure-table-horizontal device-list pure-table-striped">
+      <thead>
+        <tr>
+          <th>date</th>
+          <th>rigger</th>
+          <th>certificate</th>
+          <th>seal</th>
+          <th>location</th>
+        </tr>
+      </thead>
+      <!-- TODO(richo) breaks between rigs -->
+      {{#each data.repacks}}
+      <tr>
+        <td>{{this.date}}</td>
+        <td>{{this.rigger}}</td>
+        <td>this.certificate</td>
+        <td>this.seal</td>
+        <td>{{this.location}}</td>
+      </tr>
+      {{/each}}
+    </table>
+      <form method="POST" class="pure-form" action="/rigging/equipment/{{data.equipment.equipment.id}}/repack">
+        <fieldset>
+          <legend>Create repack record</legend>
+          <input type="text" name="place" placeholder="Place">
+          <!-- TODO(richo) Populate seal and serial automatically -->
+          <input type="text" name="certificate" placeholder="Certificate">
+          <input type="text" name="seal" placeholder="Seal">
+          <input type="textbox" name="service" placeholder="service">
+          <input type="date" name="date" placeholder="Date" value={{data.today}}>
+        </fieldset>
+        <button type="submit" class="pure-button pure-button-primary">repack</button>
+      </form>
+  </div>
+</div>
+{{> common/footer }}

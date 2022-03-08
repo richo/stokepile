@@ -21,6 +21,8 @@ pub struct User {
     pub staging_data: Option<String>,
     pub preserve_device_files: bool,
     admin: bool,
+    pub certificate: String,
+    pub seal: Option<String>,
 }
 
 #[derive(Debug, DbEnum, Serialize, PartialEq)]
@@ -64,6 +66,12 @@ impl User {
         }
     }
 
+    pub fn by_email(conn: &PgConnection, email: &str) -> QueryResult<User> {
+        use crate::web::schema::users::dsl::{email as user_email, users};
+
+        users.filter(user_email.eq(email)).get_result::<User>(conn)
+    }
+
     // TODO(richo) paginate
     pub fn all(conn: &PgConnection) -> QueryResult<Vec<User>> {
         use crate::web::schema::users::dsl::*;
@@ -88,6 +96,36 @@ impl User {
         use crate::web::schema::keys::dsl::*;
 
         keys.filter(user_id.eq(self.id)).load::<Key>(conn)
+    }
+
+    pub fn customers(&self, conn: &PgConnection) -> QueryResult<Vec<Customer>> {
+        use crate::web::schema::customers::dsl::*;
+
+        customers.filter(user_id.eq(self.id)).load::<Customer>(conn)
+    }
+
+    pub fn customer_by_id(&self, conn: &PgConnection, customer_id: i32) -> QueryResult<Customer> {
+        use crate::web::schema::customers::dsl::*;
+
+        customers
+            .filter(user_id.eq(self.id))
+            .filter(id.eq(&customer_id))
+            .get_result::<Customer>(conn)
+    }
+
+    pub fn equipment_by_id(&self, conn: &PgConnection, equipment_id: i32) -> QueryResult<Equipment> {
+        use crate::web::schema::equipment::dsl::*;
+
+        equipment
+            .filter(user_id.eq(self.id))
+            .filter(id.eq(&equipment_id))
+            .get_result::<Equipment>(conn)
+    }
+
+    pub fn equipment(&self, conn: &PgConnection) -> QueryResult<Vec<Equipment>> {
+        use crate::web::schema::equipment::dsl::*;
+
+        equipment.filter(user_id.eq(self.id)).load::<Equipment>(conn)
     }
 
     pub fn integration_by_id(
@@ -133,23 +171,11 @@ impl User {
         })
     }
 
-    pub fn update_settings(&self, settings: &SettingsForm, conn: &PgConnection) -> QueryResult<usize> {
-        use diesel::update;
-        use crate::web::schema::users::dsl::*;
-
-        let (ty, data) = settings.staging()
-            .map(|x| (x.kind_for_db(), Some(x.data_for_db())))
-            .unwrap_or_else(|| (StagingKind::None, None));
-        update(self)
-            .set((
-                    notify_email.eq(settings.notification_email()),
-                    notify_pushover.eq(settings.notification_pushover()),
-                    staging_type.eq(ty),
-                    staging_data.eq(data),
-                    preserve_device_files.eq(settings.preserve_device_files)
-            ))
-            .execute(conn)
+    // TODO(richo) This can leave you with a stale User object, unless we reload it in place.
+    pub fn update_from_settings<S: SettingsUpdatable>(&self, settings: &S, conn: &PgConnection) -> QueryResult<usize> {
+        settings.merge(&self, conn)
     }
+
 
     pub fn update_staging(&self, staging: &StagingConfig, conn: &PgConnection) -> QueryResult<usize> {
         use diesel::update;
@@ -165,6 +191,25 @@ impl User {
 
     pub fn is_admin(&self) -> bool {
         self.admin
+    }
+
+    pub fn promote(&self, conn: &PgConnection) -> QueryResult<usize> {
+        self.set_admin(conn, true)
+    }
+
+    pub fn demote(&self, conn: &PgConnection) -> QueryResult<usize> {
+        self.set_admin(conn, false)
+    }
+
+    fn set_admin(&self, conn: &PgConnection, value: bool) -> QueryResult<usize> {
+        use diesel::update;
+        use crate::web::schema::users::dsl::*;
+
+        update(self)
+            .set((
+                    admin.eq(value),
+            ))
+            .execute(conn)
     }
 }
 
@@ -195,6 +240,46 @@ impl<'a> NewUser<'a> {
             .get_result::<User>(conn)
     }
 }
+
+pub trait SettingsUpdatable {
+    fn merge(&self, user: &User, conn: &PgConnection) -> QueryResult<usize>;
+}
+
+impl SettingsUpdatable for crate::web::routes::rigging::settings::SettingsForm {
+    fn merge(&self, user: &User, conn: &PgConnection) -> QueryResult<usize> {
+        use diesel::update;
+        use crate::web::schema::users::dsl::*;
+
+        update(user)
+            .set((
+                    certificate.eq(&self.certificate),
+                    seal.eq(&self.seal),
+            ))
+            .execute(conn)
+    }
+}
+
+impl SettingsUpdatable for crate::web::routes::settings::SettingsForm {
+    fn merge(&self, user: &User, conn: &PgConnection) -> QueryResult<usize> {
+        use diesel::update;
+        use crate::web::schema::users::dsl::*;
+
+        let (ty, data) = self.staging()
+            .map(|x| (x.kind_for_db(), Some(x.data_for_db())))
+            .unwrap_or_else(|| (StagingKind::None, None));
+        update(user)
+            .set((
+                    notify_email.eq(self.notification_email()),
+                    notify_pushover.eq(self.notification_pushover()),
+                    staging_type.eq(ty),
+                    staging_data.eq(data),
+                    preserve_device_files.eq(self.preserve_device_files)
+            ))
+            .execute(conn)
+    }
+}
+
+
 
 #[cfg(test)]
 mod tests {

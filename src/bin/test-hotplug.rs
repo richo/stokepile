@@ -106,7 +106,7 @@ lazy_static! {
 }
 
 fn main() {
-    stokepile::cli::run(|| {
+    stokepile::cli::run(|base| base, |_matches| {
         trace!("Creating device state");
         let mut state: DeviceState = Default::default();
 

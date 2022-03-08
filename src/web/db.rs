@@ -73,6 +73,13 @@ impl Deref for DbConn {
     }
 }
 
+/// Get a connection to the database. This is only for use in a standalone context, not within the
+/// web server.
+pub fn db_connection() -> Result<PgConnection, Error> {
+    let conn = PgConnection::establish(&DATABASE_URL)?;
+    Ok(conn)
+}
+
 pub fn run_migrations() -> Result<(), Error> {
     let mut conn = PgConnection::establish(&DATABASE_URL)?;
     diesel_migrations::run_pending_migrations(&mut conn)?;

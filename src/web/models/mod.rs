@@ -1,6 +1,18 @@
 #![allow(proc_macro_derive_resolution_fallback)]
 use rand;
 
+mod assembly;
+pub use self::assembly::Assembly;
+
+mod customer;
+pub use self::customer::{NewCustomer, Customer};
+
+mod component;
+pub use self::component::{NewComponent, Component};
+
+mod equipment;
+pub use self::equipment::{NewCompleteEquipment, Equipment};
+
 mod invite;
 pub use self::invite::{NewInvite, Invite};
 
@@ -18,6 +30,9 @@ pub use self::device::{Device, NewDevice};
 
 mod key;
 pub use self::key::{Key, NewKey};
+
+mod repack;
+pub use self::repack::{Repack, NewRepack};
 
 mod global_settings;
 pub use self::global_settings::GlobalSetting;

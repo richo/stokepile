@@ -5,7 +5,7 @@ use crate::web::context::Context;
 
 #[get("/healthcheck")]
 pub fn healthcheck(_conn: DbConn) -> Template {
-    Template::render("healthcheck", Context::default())
+    Template::render("healthcheck", Context::other())
 }
 
 #[cfg(test)]

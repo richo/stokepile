@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use rocket::http::Status;
 use rocket::request::{self, FromRequest, Request};
 use rocket::Outcome;
@@ -24,6 +26,11 @@ pub struct AdminUser {
 impl WebUser {
     pub fn new(user: User, session: Session) -> Self {
         WebUser { user, session }
+    }
+
+    // TODO(richo) move this into a trait?
+    pub fn id(&self) -> i32 {
+        self.user.id
     }
 }
 
@@ -142,5 +149,21 @@ impl<'a, 'r> FromRequest<'a, 'r> for AuthenticatedUser {
             return Outcome::Success(AuthenticatedUser::Api(api));
         }
         return Outcome::Failure((Status::Unauthorized, ()));
+    }
+}
+
+impl Deref for WebUser {
+    type Target = User;
+
+    fn deref(&self) -> &Self::Target {
+        &self.user
+    }
+}
+
+impl Deref for AdminUser {
+    type Target = User;
+
+    fn deref(&self) -> &Self::Target {
+        &self.user
     }
 }

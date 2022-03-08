@@ -122,3 +122,22 @@ pub fn session_from_cookie(client: &Client, session_cookie: String) -> Option<Se
         .ok()
         .map(|(session, _)| session)
 }
+
+pub mod rigging {
+    use diesel::prelude::*;
+    use crate::web::models::{
+        Customer, NewCustomer,
+        User
+    };
+
+    pub fn create_customer(user: &User, conn: &PgConnection) -> Customer {
+        // TODO(richo) Random details here?
+        NewCustomer {
+            user_id: user.id,
+            name: "name",
+            address: "address",
+            phone_number: "phone",
+            email: "email",
+        }.create(conn).expect("Couldn't create test customer")
+    }
+}

@@ -6,7 +6,7 @@ use rocket_contrib::templates::Template;
 
 #[get("/help")]
 pub fn help(user: WebUser, _conn: DbConn) -> Template {
-    let context = Context::default()
+    let context = Context::other()
         .set_user(Some(user));
 
     Template::render("help", context)
@@ -14,7 +14,7 @@ pub fn help(user: WebUser, _conn: DbConn) -> Template {
 
 #[get("/beta")]
 pub fn beta(user: WebUser, _conn: DbConn) -> Template {
-    let context = Context::default()
+    let context = Context::other()
         .set_user(Some(user));
 
     Template::render("beta", context)

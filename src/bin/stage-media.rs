@@ -4,7 +4,6 @@ extern crate log;
 use clap::{App, Arg};
 use std::path::PathBuf;
 
-use stokepile::cli;
 use stokepile::config;
 use stokepile::ctx::Ctx;
 use stokepile::manual_file::ManualFile;
@@ -12,9 +11,8 @@ use stokepile::staging::{Stager, StagedFileExt};
 use stokepile::mountable::Mountable;
 use stokepile_shared::staging::TrimDetail;
 
-fn cli_opts<'a, 'b>() -> App<'a, 'b> {
-    cli::base_opts()
-        .about("Stages media from the local filesystem for the next upload run")
+fn cli_opts<'a, 'b>(base: App<'a, 'b>) -> App<'a, 'b> {
+    base.about("Stages media from the local filesystem for the next upload run")
         .arg(Arg::with_name("PATH")
             .help("Path to upload from")
             .required(true)
@@ -29,9 +27,7 @@ fn cli_opts<'a, 'b>() -> App<'a, 'b> {
 }
 
 fn main() {
-    stokepile::cli::run(|| {
-        let matches = cli_opts().get_matches();
-
+    stokepile::cli::run(cli_opts, |matches| {
         let cfg = config::Config::from_file(matches.value_of("config").unwrap_or("stokepile.toml"));
         let ctx = Ctx::create(cfg?)?;
 
