@@ -27,7 +27,7 @@ impl WebUser {
     }
 }
 
-impl<'a, 'r> FromRequest<'a, 'r> for WebUser {
+impl<'r> FromRequest<'r> for WebUser {
     type Error = ();
 
     fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
@@ -50,7 +50,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for WebUser {
     }
 }
 
-impl<'a, 'r> FromRequest<'a, 'r> for AdminUser {
+impl<'r> FromRequest<'r> for AdminUser {
     type Error = ();
 
     fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
@@ -86,7 +86,7 @@ impl ApiUser {
     }
 }
 
-impl<'a, 'r> FromRequest<'a, 'r> for ApiUser {
+impl<'r> FromRequest<'r> for ApiUser {
     type Error = ();
 
     fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {

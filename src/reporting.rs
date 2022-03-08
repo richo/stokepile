@@ -388,7 +388,6 @@ static UPLOAD_REPORT_TEMPLATE: &'static str = "\
 {{/each}}\
 {{/each}}
 {{/each}}\
-
 {{header \"Uploaded Data\"}}
 {{#each uploaded_tally}}
 {{@key}}: {{human_readable_size this}}\

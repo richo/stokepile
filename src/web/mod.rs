@@ -18,7 +18,7 @@ mod form_hacks;
 mod logging;
 mod range;
 
-pub use range::RangeResponder;
+pub use self::range::RangeResponder;
 
 pub mod media_server;
 pub mod config_server;
