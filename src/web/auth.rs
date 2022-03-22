@@ -30,7 +30,7 @@ impl WebUser {
 impl<'r> FromRequest<'r> for WebUser {
     type Error = ();
 
-    fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
+    fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
         let conn = request.guard::<DbConn>()?;
 
         let current_user = {
@@ -50,10 +50,11 @@ impl<'r> FromRequest<'r> for WebUser {
     }
 }
 
+#[rocket::async_trait]
 impl<'r> FromRequest<'r> for AdminUser {
     type Error = ();
 
-    fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
+    fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
         let user = WebUser::from_request(request)?;
         if user.user.is_admin() {
             // Transmute the User into an Admin
@@ -86,10 +87,11 @@ impl ApiUser {
     }
 }
 
+#[rocket::async_trait]
 impl<'r> FromRequest<'r> for ApiUser {
     type Error = ();
 
-    fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
+    fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
         let conn = request.guard::<DbConn>()?;
 
         let current_user = {
@@ -131,10 +133,11 @@ impl AuthenticatedUser {
     }
 }
 
-impl<'a, 'r> FromRequest<'a, 'r> for AuthenticatedUser {
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for AuthenticatedUser {
     type Error = ();
 
-    fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
+    fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
         if let Outcome::Success(web) = WebUser::from_request(request) {
             return Outcome::Success(AuthenticatedUser::Web(web));
         }

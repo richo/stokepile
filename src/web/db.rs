@@ -53,10 +53,11 @@ impl DbConn {
     }
 }
 
-impl<'a, 'r> FromRequest<'a, 'r> for DbConn {
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for DbConn {
     type Error = ();
 
-    fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
+    fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
         let pool = request.guard::<State<'_, PgPool>>()?;
         match pool.get() {
             Ok(conn) => Outcome::Success(DbConn(conn)),
