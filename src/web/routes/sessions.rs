@@ -10,8 +10,8 @@ use rocket::http::RawStr;
 use rocket::http::{Cookie, Cookies, SameSite};
 use rocket::request::{FlashMessage, Form, FromFormValue};
 use rocket::response::{Flash, Redirect};
-use rocket_contrib::json::Json;
-use rocket_contrib::templates::Template;
+use rocket::Json;
+use rocket::Template;
 
 use crate::web::models::{
     NewKey, NewSession, NewUser, User, Invite
