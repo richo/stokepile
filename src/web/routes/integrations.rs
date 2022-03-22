@@ -1,5 +1,5 @@
 use failure::Error;
-use rocket::request::Form;
+use rocket::form::Form;
 use rocket::response::{Flash, Redirect};
 
 use oauth2::prelude::*;

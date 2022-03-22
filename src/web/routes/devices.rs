@@ -1,5 +1,5 @@
 use rocket::http::RawStr;
-use rocket::request::{Form, FromFormValue};
+use rocket::form::{Form, FromFormValue};
 use rocket::response::{Flash, Redirect};
 
 use crate::web::auth::WebUser;

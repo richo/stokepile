@@ -44,7 +44,7 @@ impl Fairing for RequestLogger {
     }
 
     // Spit out some structured logs about who's making this request
-    fn on_request(&self, request: &mut Request<'_>, _: &Data) {
+    fn on_request(&self, request: &mut Request<'_>, _: &Data<'_>) {
         // We don't want to log requests for statics.
         if request.uri().path().starts_with("/static/") {
             return

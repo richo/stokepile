@@ -1,6 +1,6 @@
-use rocket_contrib::json::Json;
+use rocket::serde::json::Json;
 use rocket::State;
-use rocket::request::{Form};
+use rocket::form::Form;
 use rocket::response::{Stream, Redirect};
 
 use stokepile_shared::staging::{UploadDescriptor, TrimDetail};

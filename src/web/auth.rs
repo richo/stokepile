@@ -1,6 +1,5 @@
 use rocket::http::Status;
-use rocket::request::{self, FromRequest, Request};
-use rocket::Outcome;
+use rocket::request::{self, Outcome, FromRequest, Request};
 
 use crate::web::db::DbConn;
 use crate::web::models::{Key, Session, User};

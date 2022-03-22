@@ -1,5 +1,5 @@
 use rocket::Rocket;
-use rocket_contrib::serve::StaticFiles;
+use rocket::fs::FileServer;
 
 use crate::web::routes::media_server as routes;
 use crate::ctx::Ctx;
@@ -53,6 +53,6 @@ pub fn configure_rocket() -> Rocket {
     )
     .manage(ctx)
     .manage(staging)
-    .mount("/wasm", StaticFiles::from("wasm/pkg"))
-    .mount("/vendor", StaticFiles::from("web/vendor"))
+    .mount("/wasm", FileServer::from("wasm/pkg"))
+    .mount("/vendor", FileServer::from("web/vendor"))
 }

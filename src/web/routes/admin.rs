@@ -1,7 +1,8 @@
 use rocket::{get, post};
-use rocket::request::{FlashMessage, Form};
+use rocket::form::Form;
+use rocket::request::FlashMessage;
 use rocket::response::{Flash, Redirect};
-use rocket_contrib::templates::Template;
+use rocket_dyn_templates::Template;
 
 use crate::web::db::DbConn;
 use crate::web::auth::AdminUser;

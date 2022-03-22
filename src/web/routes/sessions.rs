@@ -8,10 +8,11 @@ use oauth2::TokenResponse;
 
 use rocket::http::RawStr;
 use rocket::http::{Cookie, Cookies, SameSite};
-use rocket::request::{FlashMessage, Form, FromFormValue};
+use rocket::request::FlashMessage;
+use rocket::form::{Form, FromFormField};
 use rocket::response::{Flash, Redirect};
 use rocket::Json;
-use rocket::Template;
+use rocket_dyn_templates::Template;
 
 use crate::web::models::{
     NewKey, NewSession, NewUser, User, Invite
@@ -31,10 +32,10 @@ pub enum UserAction {
     SignUp,
 }
 
-impl<'v> FromFormValue<'v> for UserAction {
+impl<'v> FromFormField<'v> for UserAction {
     type Error = String;
 
-    fn from_form_value(form_value: &'v RawStr) -> Result<UserAction, Self::Error> {
+    fn from_form(form_value: &'v RawStr) -> Result<UserAction, Self::Error> {
         let decoded = form_value.url_decode();
         match decoded {
             Ok(ref action) if action == "signin" => Ok(UserAction::SignIn),

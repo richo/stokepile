@@ -2,7 +2,7 @@ use crate::web::db::DbConn;
 use crate::web::auth::WebUser;
 use crate::web::context::Context;
 
-use rocket_contrib::templates::Template;
+use rocket_dyn_templates::Template;
 
 #[get("/help")]
 pub fn help(user: WebUser, _conn: DbConn) -> Template {

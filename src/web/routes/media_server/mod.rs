@@ -1,7 +1,7 @@
 pub mod api;
 
 use rocket::request::FlashMessage;
-use rocket_contrib::templates::Template;
+use rocket_dyn_templates::Template;
 
 #[derive(Serialize)]
 struct MediaContext {}

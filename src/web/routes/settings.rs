@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
 use rocket::{get, post};
-use rocket_contrib::templates::Template;
+use rocket_dyn_templates::Template;
 use rocket::response::{Flash, Redirect};
-use rocket::request::Form;
+use rocket::form::Form;
 
 use crate::config::{MountableDeviceLocation, StagingConfig};
 use crate::web::auth::WebUser;

@@ -1,7 +1,6 @@
 use rocket::{Rocket, Route};
-use rocket::config::Environment;
-use rocket_contrib::serve::StaticFiles;
-use rocket_contrib::templates::Template;
+use rocket::fs::FileServer;
+use rocket_dyn_templates::Template;
 
 use crate::web::db::{init_pool, DbConn};
 
@@ -23,10 +22,6 @@ pub use self::range::RangeResponder;
 pub mod media_server;
 pub mod config_server;
 
-lazy_static! {
-    pub static ref ROCKET_ENV: Environment = Environment::active().expect("Could not get ROCKET_ENV.");
-}
-
 handlebars_helper!(maybe_selected: |field: str, active: str| {
     if field== active {
         format!("selected")
@@ -46,12 +41,12 @@ handlebars_helper!(maintainer_info: |kind: str| {
 });
 
 fn configure_rocket(routes: Vec<Route>) -> Rocket {
-    rocket::ignite()
+    rocket::build()
         .mount(
             "/",
             routes
         )
-        .mount("/static", StaticFiles::from("web/static"))
+        .mount("/static", FileServer::from("web/static"))
         .register(catchers![routes::index::not_found])
         .attach(RequestLogger::new())
         .attach(Template::custom(|engines| {

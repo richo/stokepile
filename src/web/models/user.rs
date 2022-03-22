@@ -7,7 +7,7 @@ use crate::web::routes::settings::SettingsForm;
 use crate::config::{MountableDeviceLocation, StagingConfig};
 
 use rocket::http::RawStr;
-use rocket::request::FromFormValue;
+use rocket::form::FromFormValue;
 
 #[derive(Identifiable, Queryable, Debug, Serialize)]
 pub struct User {

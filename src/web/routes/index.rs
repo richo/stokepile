@@ -3,7 +3,7 @@ use crate::web::auth::WebUser;
 use crate::web::context::{Context, PossibleIntegration};
 
 use rocket::request::FlashMessage;
-use rocket_contrib::templates::Template;
+use rocket_dyn_templates::Template;
 
 use crate::messages::Oauth2Provider;
 

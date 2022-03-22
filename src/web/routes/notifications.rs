@@ -1,6 +1,6 @@
 use std::env;
 
-use rocket_contrib::json::Json;
+use rocket::Json;
 
 use crate::messages::{SendNotification, SendNotificationResp};
 use crate::web::auth::ApiUser;

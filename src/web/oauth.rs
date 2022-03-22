@@ -4,7 +4,7 @@ use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, Scope, TokenUrl};
 use oauth2::TokenResponse;
 
 use rocket::http::RawStr;
-use rocket::request::{FromFormValue, FromParam};
+use rocket::form::{FromFormValue, FromParam};
 
 use failure::Error;
 
