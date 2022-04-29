@@ -11,7 +11,7 @@ use rocket::http::{Cookie, Cookies, SameSite};
 use rocket::request::FlashMessage;
 use rocket::form::{Form, FromFormField};
 use rocket::response::{Flash, Redirect};
-use rocket::Json;
+use rocket::serde::json::Json;
 use rocket_dyn_templates::Template;
 
 use crate::web::models::{

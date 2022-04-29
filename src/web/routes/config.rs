@@ -1,7 +1,6 @@
 use failure::Error;
 
 use rocket::get;
-use rocket::response::content::Content;
 use rocket::http::ContentType;
 use rocket::response::{Flash, Redirect};
 
@@ -11,7 +10,7 @@ use crate::web::db::DbConn;
 use crate::messages::Oauth2Provider;
 
 #[get("/config")]
-pub fn get_config(user: AuthenticatedUser, conn: DbConn) -> Result<Content<String>, Flash<Redirect>> {
+pub fn get_config(user: AuthenticatedUser, conn: DbConn) -> Result<(ContentType, String), Flash<Redirect>> {
     let mut config = Config::build();
 
     let integrations = user.user().integrations(&*conn).map_err(|e| {
