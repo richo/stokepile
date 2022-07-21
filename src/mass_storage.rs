@@ -102,6 +102,14 @@ impl MountedMassStorage {
         WalkDir::new(&self.mount.path())
             .into_iter()
             .filter_map(move |entry| {
+                // .Trashes does some weird OSX thing, nfi why. We'll just have a peek
+                // To answer the TODO below this block, yes.
+                if let Err(ref e) = entry {
+                    if e.path().map(|x| x.ends_with(".Trashes")) == Some(true) {
+                        return None
+                    }
+                }
+
                 // TODO(richo) Do we think this actually can fail?
                 let entry = entry.unwrap();
                 if entry.file_type().is_dir() {
