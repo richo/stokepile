@@ -105,8 +105,10 @@ impl MountedMassStorage {
                 // .Trashes does some weird OSX thing, nfi why. We'll just have a peek
                 // To answer the TODO below this block, yes.
                 if let Err(ref e) = entry {
-                    if e.path().map(|x| x.ends_with(".Trashes")) == Some(true) {
-                        return None
+                    for protected in &[".Trashes", ".Spotlight-V100"] {
+                        if e.path().map(|x| x.ends_with(protected)) == Some(true) {
+                            return None
+                        }
                     }
                 }
 
