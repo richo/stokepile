@@ -30,7 +30,7 @@ default = [ "usb" ]
 
 
 [dependencies]
-rocket = { version = "0.5.0-rc.1", optional = true, features = ["tls", "json"] }
+rocket = { version = "0.5.0-rc.2", optional = true, features = ["tls", "json"] }
 rocket_dyn_templates = { version = "0.1.0-rc.1", optional = true, features = ["handlebars"] }
 rocket_sync_db_pools = { version = "0.1.0-rc.1", optional = true, features = ["diesel_postgres_pool"] }
 diesel = { version = "1.4.3", features = ["postgres", "r2d2", "serde_json", "chrono"], optional = true }
