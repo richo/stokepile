@@ -44,7 +44,7 @@ impl fmt::Debug for DbConn {
 }
 
 impl DbConn {
-    pub fn maybe_from_rocket(rocket: &Rocket) -> Option<DbConn> {
+    pub fn maybe_from_rocket<T>(rocket: &Rocket<T>) -> Option<DbConn> {
         let pool = rocket.state::<PgPool>()?;
         match pool.get() {
             Ok(conn) => Some(DbConn(conn)),

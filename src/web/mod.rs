@@ -40,7 +40,7 @@ handlebars_helper!(maintainer_info: |kind: str| {
     }
 });
 
-fn configure_rocket(routes: Vec<Route>) -> Rocket {
+fn configure_rocket<T>(routes: Vec<Route>) -> Rocket<T> {
     rocket::build()
         .mount(
             "/",

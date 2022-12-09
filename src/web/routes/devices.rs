@@ -1,5 +1,5 @@
 use rocket::http::RawStr;
-use rocket::form::{Form, FromFormValue};
+use rocket::form::{Form, FromFormField};
 use rocket::response::{Flash, Redirect};
 
 use crate::web::auth::WebUser;
@@ -15,7 +15,7 @@ pub enum DeviceKind {
     MassStorage,
 }
 
-impl<'v> FromFormValue<'v> for DeviceKind {
+impl<'v> FromFormField<'v> for DeviceKind {
     type Error = String;
 
     fn from_form_value(form_value: &'v RawStr) -> Result<DeviceKind, Self::Error> {
