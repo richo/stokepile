@@ -7,7 +7,7 @@ use rocket_dyn_templates::Template;
 struct MediaContext {}
 
 #[get("/")]
-pub fn index(flash: Option<FlashMessage<'_, '_>>) -> Template {
+pub fn index(flash: Option<FlashMessage<'_>>) -> Template {
     let ctx = MediaContext {};
     Template::render("media_server/index", ctx)
 }

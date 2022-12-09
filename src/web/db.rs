@@ -58,7 +58,7 @@ impl<'r> FromRequest<'r> for DbConn {
     type Error = ();
 
     fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
-        let pool = request.guard::<State<'_, PgPool>>()?;
+        let pool = request.guard::<State<PgPool>>()?;
         match pool.get() {
             Ok(conn) => Outcome::Success(DbConn(conn)),
             Err(_) => Outcome::Failure((Status::ServiceUnavailable, ())),

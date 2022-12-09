@@ -1,7 +1,8 @@
 use rocket::serde::json::Json;
 use rocket::State;
 use rocket::form::Form;
-use rocket::response::{Stream, Redirect};
+use rocket::response::Redirect;
+use rocket::response::stream::stream;
 
 use stokepile_shared::staging::{UploadDescriptor, TrimDetail};
 use crate::staging::{MountedStaging, StagingLocation, StagedFileExt, StagedFile};
@@ -15,7 +16,7 @@ use failure::Error;
 use std::fs::File;
 
 #[get("/api/media")]
-pub fn get_media(staging: State<'_, MountedStaging>) -> Json<Vec<UploadDescriptor>> {
+pub fn get_media(staging: State<MountedStaging>) -> Json<Vec<UploadDescriptor>> {
     let files = staging.staged_files()
         .expect("Couldn't load staged_files")
         .into_iter()
@@ -25,7 +26,7 @@ pub fn get_media(staging: State<'_, MountedStaging>) -> Json<Vec<UploadDescripto
 }
 
 #[get("/api/media/<uuid>")]
-pub fn stream_media(staging: State<'_, MountedStaging>, uuid: UuidParam) -> Option<RangeResponder<File>> {
+pub fn stream_media(staging: State<MountedStaging>, uuid: UuidParam) -> Option<RangeResponder<File>> {
     staging.staged_files()
         .expect("Couldn't load staged_files")
         .iter()
@@ -54,7 +55,7 @@ impl UpdateForm {
 
 // this lives in /api but isn't really an api per se since it's meant to be hit wiht a form post
 #[post("/api/media/<uuid>/update", data = "<update>")]
-pub fn update_media(staging: State<'_, MountedStaging>, uuid: UuidParam, update: Form<UpdateForm>) -> Option<Redirect> {
+pub fn update_media(staging: State<MountedStaging>, uuid: UuidParam, update: Form<UpdateForm>) -> Option<Redirect> {
     // TODO(richo) add Flash to show the user success
     file_by_uuid(&staging, *uuid)
         .map(|mut file| {
@@ -79,7 +80,7 @@ fn file_by_uuid(staging: &MountedStaging, uuid: Uuid) -> Option<StagedFile> {
 }
 
 #[post("/api/media/apply_transforms")]
-pub fn apply_trims(staging: State<'_, MountedStaging>) -> Result<(), Error> {
+pub fn apply_trims(staging: State<MountedStaging>) -> Result<(), Error> {
     for file in staging.staged_files()? {
         let _ = file.apply_trim();
     }

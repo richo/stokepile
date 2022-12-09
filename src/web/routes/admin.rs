@@ -10,7 +10,7 @@ use crate::web::context::AdminContext;
 use crate::web::models::{NewInvite, User};
 
 #[get("/admin")]
-pub fn index(user: AdminUser, flash: Option<FlashMessage<'_, '_>>) -> Template {
+pub fn index(user: AdminUser, flash: Option<FlashMessage<'_>>) -> Template {
     let context = AdminContext::for_user(user)
         .flash(flash.map(|ref msg| (msg.name().into(), msg.msg().into())));
     Template::render("admin", context)

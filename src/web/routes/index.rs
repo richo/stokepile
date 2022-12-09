@@ -8,7 +8,7 @@ use rocket_dyn_templates::Template;
 use crate::messages::Oauth2Provider;
 
 #[get("/")]
-pub fn index(user: Option<WebUser>, conn: DbConn, flash: Option<FlashMessage<'_, '_>>) -> Template {
+pub fn index(user: Option<WebUser>, conn: DbConn, flash: Option<FlashMessage<'_>>) -> Template {
     let mut possible_integrations = vec![];
     let mut devices = vec![];
     let mut keys = vec![];

@@ -23,30 +23,19 @@ pub struct User {
     admin: bool,
 }
 
-#[derive(Debug, DbEnum, Serialize, PartialEq)]
+#[derive(Debug, DbEnum, Serialize, PartialEq, FromFormField)]
 // We can't reuse this directly, without pulling all of the web stuff into the client, so instead
 // we're going to have a mirror struct and some smoke unit tests that break if they're not kept in
 // sync
 pub enum StagingKind {
+    #[field(value = "None")]
     None,
+    #[field(value = "Mountpoint")]
     Mountpoint,
+    #[field(value = "Label")]
     Label,
+    #[field(value = "Location")]
     Location,
-}
-
-impl<'v> FromFormValue<'v> for StagingKind {
-    type Error = String;
-
-    fn from_form_value(form_value: &'v RawStr) -> Result<StagingKind, Self::Error> {
-        let decoded = form_value.url_decode();
-        match decoded {
-            Ok(ref kind) if kind == "None" => Ok(StagingKind::None),
-            Ok(ref kind) if kind == "Label" => Ok(StagingKind::Label),
-            Ok(ref kind) if kind == "Mountpoint" => Ok(StagingKind::Mountpoint),
-            Ok(ref kind) if kind == "Location" => Ok(StagingKind::Location),
-            _ => Err(format!("unknown staging_kind {}", form_value)),
-        }
-    }
 }
 
 impl User {

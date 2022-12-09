@@ -263,10 +263,8 @@ pub fn exchange_oauth_code<'a>(provider: &Oauth2Provider, code: &str) -> Result<
     Ok(("test_access_token".into(), Some("test_refresh_token".into())))
 }
 
-impl<'v> FromFormValue<'v> for Oauth2Provider {
-    type Error = String;
-
-    fn from_form_value(form_value: &'v RawStr) -> Result<Oauth2Provider, Self::Error> {
+impl<'v> FromFormField<'v> for Oauth2Provider {
+    fn from_value(form_value: &'v RawStr) -> Result<Oauth2Provider, Self::Error> {
         Self::parse(form_value)
     }
 }

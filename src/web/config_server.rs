@@ -2,7 +2,7 @@ use rocket::Rocket;
 use crate::web::routes;
 use crate::web::db::{init_pool, DbConn};
 
-pub fn configure_rocket() -> Rocket {
+pub fn configure_rocket()<P> -> Rocket<P> {
     super::configure_rocket(
         routes![
         routes::admin::index,

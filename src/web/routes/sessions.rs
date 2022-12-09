@@ -1,6 +1,6 @@
 use crate::web::db::DbConn;
 use crate::web::auth::{WebUser, ApiUser};
-use crate::web::{ROCKET_ENV, global_state};
+use crate::web::global_state;
 use crate::web::context::Context;
 use crate::messages::{self, Oauth2Provider, RefreshToken};
 use oauth2::prelude::*;
@@ -69,7 +69,7 @@ pub fn post_signin(
             let session = NewSession::new(&user).create(&*conn).unwrap();
             cookies.add(
                 Cookie::build("sid", session.id)
-                    .secure(!ROCKET_ENV.is_dev())
+                    .secure(true) // TODO(richo) Do we care about this in dev?
                     .http_only(true)
                     .same_site(SameSite::Lax)
                     .finish(),
@@ -81,7 +81,7 @@ pub fn post_signin(
 }
 
 #[get("/signin")]
-pub fn get_signin<'r>(flash: Option<FlashMessage<'_, '_>>) -> Template {
+pub fn get_signin<'r>(flash: Option<FlashMessage<'_>>) -> Template {
     let context = Context::default().set_signin_error(flash.map(|msg| msg.msg().into()));
     Template::render("signin", context)
 }

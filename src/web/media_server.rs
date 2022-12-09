@@ -37,7 +37,7 @@ fn get_ctx() -> Result<Ctx, Error> {
     Ok(Ctx::create_without_lock(cfg?)?)
 }
 
-pub fn configure_rocket() -> Rocket {
+pub fn configure_rocket<P>() -> Rocket<P> {
     let ctx = get_ctx().expect("Couldn't get ctx");
     let staging = ctx.staging().mount().expect("Couldn't mount staging");
     let status = OperationalStatus::new();
