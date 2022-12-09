@@ -26,23 +26,10 @@ pub struct SignInUpForm {
     action: UserAction,
 }
 
-#[derive(Debug)]
+#[derive(Debug, FromFormField)]
 pub enum UserAction {
     SignIn,
     SignUp,
-}
-
-impl<'v> FromFormField<'v> for UserAction {
-    type Error = String;
-
-    fn from_form(form_value: &'v RawStr) -> Result<UserAction, Self::Error> {
-        let decoded = form_value.url_decode();
-        match decoded {
-            Ok(ref action) if action == "signin" => Ok(UserAction::SignIn),
-            Ok(ref action) if action == "signup" => Ok(UserAction::SignUp),
-            _ => Err(format!("expected signin/signup not {}", form_value)),
-        }
-    }
 }
 
 // TODO: CSRF.

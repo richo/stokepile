@@ -8,25 +8,12 @@ use crate::web::models::{
     NewDevice,
 };
 
-#[derive(Debug)]
+#[derive(Debug, FromFormField)]
 pub enum DeviceKind {
     Ptp,
     Flysight,
+    #[field(value = "mass_storage")]
     MassStorage,
-}
-
-impl<'v> FromFormField<'v> for DeviceKind {
-    type Error = String;
-
-    fn from_form_value(form_value: &'v RawStr) -> Result<DeviceKind, Self::Error> {
-        let decoded = form_value.url_decode();
-        match decoded {
-            Ok(ref kind) if kind == "ptp" => Ok(DeviceKind::Ptp),
-            Ok(ref kind) if kind == "flysight" => Ok(DeviceKind::Flysight),
-            Ok(ref kind) if kind == "mass_storage" => Ok(DeviceKind::MassStorage),
-            _ => Err(format!("unknown provider {}", form_value)),
-        }
-    }
 }
 
 impl DeviceKind {
