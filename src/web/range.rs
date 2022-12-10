@@ -42,7 +42,7 @@ pub struct RangeResponder<R: Debug> {
 	original: R,
 }
 
-impl<'r, 'o, R: Responder<'r, 'o> + Debug> RangeResponder<R> {
+impl<'r, 'o: 'r, R: Responder<'r, 'o> + Debug> RangeResponder<R> {
 	pub fn new(original: R) -> RangeResponder<R> {
 		RangeResponder { original }
 	}
@@ -105,7 +105,7 @@ fn truncate_range(range: &PartialFileRange, file_length: &Option<u64>) -> Option
 	}
 }
 
-impl<'r, 'o> Responder<'r, 'o> for RangeResponder<File> {
+impl<'r, 'o: 'r> Responder<'r, 'o> for RangeResponder<File> {
 	fn respond_to(mut self, request: &rocket::request::Request<'_>) -> response::Result<'r> {
 		let metadata: Option<_> = self.original.metadata().ok();
 		let file_length: Option<u64> = metadata.map(|m| m.len());
