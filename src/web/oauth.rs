@@ -264,7 +264,7 @@ pub fn exchange_oauth_code<'a>(provider: &Oauth2Provider, code: &str) -> Result<
 }
 
 impl<'v> FromFormField<'v> for Oauth2Provider {
-    fn from_value(form_value: &'v RawStr) -> Result<Oauth2Provider, Self::Error> {
+    fn from_value(form_value: &'v RawStr) -> Result<Oauth2Provider, Self> {
         Self::parse(form_value)
     }
 }

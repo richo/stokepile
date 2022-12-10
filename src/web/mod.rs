@@ -1,4 +1,4 @@
-use rocket::{Rocket, Route};
+use rocket::{self, Rocket, Route};
 use rocket::fs::FileServer;
 use rocket_dyn_templates::Template;
 
@@ -40,7 +40,7 @@ handlebars_helper!(maintainer_info: |kind: str| {
     }
 });
 
-fn configure_rocket<T>(routes: Vec<Route>) -> Rocket<T> {
+fn configure_rocket<P: rocket::Phase>(routes: Vec<Route>) -> Rocket<P> {
     rocket::build()
         .mount(
             "/",

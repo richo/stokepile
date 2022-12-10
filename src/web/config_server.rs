@@ -1,8 +1,8 @@
-use rocket::Rocket;
+use rocket::{self, Rocket};
 use crate::web::routes;
 use crate::web::db::{init_pool, DbConn};
 
-pub fn configure_rocket()<P> -> Rocket<P> {
+pub fn configure_rocket()<P: rocket::Phase> -> Rocket<P> {
     super::configure_rocket(
         routes![
         routes::admin::index,

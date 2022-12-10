@@ -9,7 +9,7 @@ use diesel::Connection;
 
 use rocket::http::Status;
 use rocket::request::{self, Outcome, FromRequest};
-use rocket::{Request, Rocket, State};
+use rocket::{self, Request, Rocket, State};
 
 pub type PgPool = Pool<ConnectionManager<PgConnection>>;
 
@@ -44,7 +44,7 @@ impl fmt::Debug for DbConn {
 }
 
 impl DbConn {
-    pub fn maybe_from_rocket<T>(rocket: &Rocket<T>) -> Option<DbConn> {
+    pub fn maybe_from_rocket<P: rocket::Phase>(rocket: &Rocket<P>) -> Option<DbConn> {
         let pool = rocket.state::<PgPool>()?;
         match pool.get() {
             Ok(conn) => Some(DbConn(conn)),
