@@ -3,6 +3,7 @@ use failure::Error;
 use crate::config;
 use crate::client::StokepileClient;
 use crate::pushover_notifier::Notify;
+use crate::async_hacks;
 
 #[derive(Debug)]
 pub struct WebNotifier {
@@ -23,7 +24,7 @@ impl WebNotifier {
 
 impl Notify for WebNotifier {
     fn notify(&self, msg: &str) -> Result<(), Error> {
-        self.client.send_notification(msg)
+        async_hacks::block_on(self.client.send_notification(msg))
     }
 }
 

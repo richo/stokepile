@@ -10,6 +10,8 @@ use url::Url;
 use crate::staging::{self, DescriptorNameable};
 use crate::storage::{StorageAdaptor, StorageStatus};
 
+use crate::async_hacks;
+
 /// A client for the vimeo API
 #[derive(RedactedDebug)]
 pub struct VimeoClient {
@@ -65,14 +67,14 @@ impl VimeoClient {
 
         // Create our request object
         let client = reqwest::Client::new();
-        let text = client
+        let resp = async_hacks::block_on(client
             .post(api_endpoint)
             .body(json.to_string())
             .headers(headers)
-            .send()?
-            .text()?;
+            .send())?;
+        let text = async_hacks::block_on(resp.text())?;
         let response: CreateVideoResponse = serde_json::from_str(&text)
-            .map_err(|e| format_err!("create_upload_handle: {:?} {}", e, text))?;
+            .map_err(|e| format_err!("create_upload_handle: {:?} {}", e, &text))?;
         Ok(UploadHandle {
             url: response.upload.upload_link.parse()?,
             complete: false,
@@ -107,7 +109,7 @@ impl StorageAdaptor<File> for VimeoClient {
 
         let headers = self.default_headers(size);
         let tusclient = tus::Client::new(handle.url.clone(), headers);
-        let _sent = tusclient.upload(file)?;
+        let _sent = async_hacks::block_on(tusclient.upload(file))?;
 
         // TODO(richo) look through sent and confirm it really sent
 

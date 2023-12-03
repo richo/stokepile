@@ -30,9 +30,9 @@ default = [ "usb" ]
 
 
 [dependencies]
-rocket = { version = "0.5.0-rc.2", optional = true, features = ["tls", "json", "secrets"] }
-rocket_dyn_templates = { version = "0.1.0-rc.1", optional = true, features = ["handlebars"] }
-rocket_sync_db_pools = { version = "0.1.0-rc.1", optional = true, features = ["diesel_postgres_pool"] }
+rocket = { version = "0.5.0", optional = true, features = ["tls", "json", "secrets"] }
+rocket_dyn_templates = { version = "0.1.0", optional = true, features = ["handlebars"] }
+rocket_sync_db_pools = { version = "0.1.0", optional = true, features = ["diesel_postgres_pool"] }
 diesel = { version = "1.4.3", features = ["postgres", "r2d2", "serde_json", "chrono"], optional = true }
 diesel-derive-enum = { version = "0.4.4", optional = true, features = ["postgres"] }
 diesel_migrations = { version = "1.4.0", optional = true }
@@ -54,7 +54,7 @@ failure = "0.1.6"
 lazy_static = "1.4.0"
 chrono = { version = "0.4.19", features = ["serde"] }
 regex = "1.3.1"
-reqwest = "0.11.9"
+reqwest = { version = "0.11.9", features = ["json"] }
 log = "0.4.8"
 pretty_env_logger = "0.3.1"
 hashing-copy = "0.3.0"
@@ -65,9 +65,9 @@ digest = "0.8.1"
 sha2 = "0.8.0"
 handlebars = "1.1.0"
 sendgrid = "0.9.0"
-url = "1.7.0"
+url = "2.5.0"
 rand = "0.7.2"
-tus = "0.3.0"
+tus = "2.0.0-rc.0"
 failure_derive = "0.1.6"
 filetime = "0.2.7"
 rpassword = "4.0.1"
@@ -78,6 +78,7 @@ lockfile = "0.2.1"
 redacted_debug = "0.1.0"
 pshovr = "0.2.0"
 uuid = { version = "0.8.1", features = ["serde", "v4"] }
+tokio = { version = "1.34.0", features = ["full"] }
 
 [[bin]]
 name = "server"

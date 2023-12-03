@@ -50,6 +50,9 @@ macro_rules! client_for_routes {
     };
 }
 
+/// Transition module for async. Always used unqualified to make grepping easier later;
+pub mod async_hacks;
+
 /// A client to the web interface.
 pub mod client;
 

@@ -8,6 +8,7 @@ use reqwest::header::{HeaderMap, HeaderValue};
 
 use crate::config;
 use crate::messages;
+use crate::async_hacks;
 
 /// A client to the web interface
 
@@ -53,27 +54,30 @@ impl StokepileClient {
         Ok(())
     }
 
-    pub fn fetch_config(&self) -> Result<config::Config, Error> {
+    pub async fn fetch_config(&self) -> Result<config::Config, Error> {
         let mut endpoint = self.base.clone();
         endpoint.set_path("/config");
 
         let headers = self.add_authorization(HeaderMap::new())?;
 
-        let mut resp = self
+        let resp = self
             .client
             .get(endpoint)
             // TODO(richo) we can actually reuse the web stuff for this
             .headers(headers)
-            .send()?;
+            .send()
+            .await?;
 
-        if resp.status() == 500 {
-            Err(ClientError::ServerError(resp.text()?))?;
+        let status = resp.status();
+        let text = resp.text().await?;
+        if status == 500 {
+            return Err(ClientError::ServerError(text).into());
         }
 
-        Ok(resp.text()?.parse()?)
+        Ok(text.parse()?)
     }
 
-    pub fn send_notification(&self, msg: &str) -> Result<(), Error> {
+    pub async fn send_notification(&self, msg: &str) -> Result<(), Error> {
         let mut endpoint = self.base.clone();
         endpoint.set_path("/notification/send");
 
@@ -85,19 +89,20 @@ impl StokepileClient {
             message: msg.into(),
         };
 
-        let mut resp = self
+        let resp = self
             .client
             .post(endpoint)
             // TODO(richo) we can actually reuse the web stuff for this
             .body(serde_json::to_string(&payload)?)
             .headers(headers)
-            .send()?;
+            .send()
+            .await?;
 
         if resp.status() == 500 {
-            Err(ClientError::ServerError(resp.text()?))?;
+            return Err(ClientError::ServerError(resp.text().await?).into());
         }
 
-        let resp: messages::SendNotificationResp = resp.json()?;
+        let resp: messages::SendNotificationResp = resp.json().await?;
         match resp {
             messages::SendNotificationResp::Sent |
             messages::SendNotificationResp::NotConfigured => {
@@ -109,7 +114,7 @@ impl StokepileClient {
         }
     }
 
-    pub fn login(&self, email: &str, password: &str) -> Result<SessionToken, Error> {
+    pub async fn login(&self, email: &str, password: &str) -> Result<SessionToken, Error> {
         let mut endpoint = self.base.clone();
         endpoint.set_path("/json/signin");
 
@@ -124,19 +129,19 @@ impl StokepileClient {
             password: password.into(),
         };
 
-        let mut resp = self
+        let resp = async_hacks::block_on(self
             .client
             .post(endpoint)
             // TODO(richo) we can actually reuse the web stuff for this
             .body(serde_json::to_string(&payload)?)
             .headers(headers)
-            .send()?;
+            .send())?;
 
         if resp.status() == 500 {
-            Err(ClientError::ServerError(resp.text()?))?;
+            return Err(ClientError::ServerError(resp.text().await?).into());
         }
 
-        let resp: messages::JsonSignInResp = resp.json()?;
+        let resp: messages::JsonSignInResp = resp.json().await?;
         match resp {
             messages::JsonSignInResp::Token(s) => Ok(s),
             messages::JsonSignInResp::Error(error) => {

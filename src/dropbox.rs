@@ -8,6 +8,7 @@ use std::path::Path;
 use crate::staging::{self, DescriptorNameable};
 use crate::storage::{StorageAdaptor, StorageStatus};
 use crate::version;
+use crate::async_hacks;
 
 use failure::Error;
 use hex::FromHex;
@@ -178,13 +179,13 @@ impl DropboxFilesClient {
             })?,
         );
 
-        self.client
+        async_hacks::block_on(self.client
             .post(&url)
             .body(match body {
                 DropboxBody::JSON(vec) | DropboxBody::Binary(vec) => vec,
             })
             .headers(headers)
-            .send()
+            .send())
             .map_err(|e| format_err!("HTTP error: {:?}", e))
     }
 
@@ -195,10 +196,10 @@ impl DropboxFilesClient {
         })?;
         let headers = HeaderMap::new();
         let mut res = self.request(("api", "2/files/get_metadata"), JSON(req), headers)?;
-        let text = res.text()?;
+        let text = async_hacks::block_on(res.text())?;
         match serde_json::from_str(&text) {
             Ok(meta) => Ok(meta),
-            Err(_) => Err(format_err!("Dropbox error: {}", text)),
+            Err(_) => Err(format_err!("Dropbox error: {}", &text)),
         }
     }
 
@@ -223,7 +224,7 @@ impl DropboxFilesClient {
             Binary(vec![]),
             headers,
         )?;
-        let text = &res.text()?;
+        let text = async_hacks::block_on(res.text())?;
         match serde_json::from_str(&text) {
             Ok(meta) => Ok(meta),
             Err(_) => Err(format_err!("Dropbox error: {}", text)),
@@ -243,7 +244,7 @@ impl DropboxFilesClient {
             Binary(data.to_vec()),
             headers,
         )?;
-        res.text()?;
+        async_hacks::block_on(res.text())?;
         Ok(())
     }
 
@@ -268,7 +269,7 @@ impl DropboxFilesClient {
             Binary(data.to_vec()),
             headers,
         )?;
-        let text = res.text()?;
+        let text = async_hacks::block_on(res.text())?;
         match serde_json::from_str(&text) {
             Ok(meta) => Ok(meta),
             Err(_) => Err(format_err!("Dropbox error: {}", text)),
