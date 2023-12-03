@@ -474,7 +474,7 @@ impl UploadDescriptorExt for UploadDescriptor {
             content_hash: Default::default(),
             size: 1024,
             uuid: Uuid::new_v4(),
-            transforms: vec![],
+            trim: None,
         }
     }
 }
@@ -531,7 +531,7 @@ mod tests {
             content_hash: [0; 32],
             size: 0,
             uuid: Uuid::new_v4(),
-            transforms: vec![],
+            trim: None,
         };
 
         assert_eq!(
@@ -553,7 +553,7 @@ mod tests {
             content_hash: [0; 32],
             size: 0,
             uuid: Uuid::new_v4(),
-            transforms: vec![],
+            trim: None,
         };
 
         assert_eq!(
@@ -575,7 +575,7 @@ mod tests {
             content_hash: [0; 32],
             size: 0,
             uuid: Uuid::new_v4(),
-            transforms: vec![],
+            trim: None,
         };
 
         let serialized = serde_json::to_string(&original).expect("Couldn't serialize test vector");
