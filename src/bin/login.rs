@@ -9,12 +9,16 @@ use stokepile::config;
 use stokepile::client;
 use std::io::{self, Write};
 
+use tokio;
+use stokepile::async_hacks;
+
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
     cli::base_opts()
         .about("Logs into the stokepile web interface for configuration management")
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     stokepile::cli::run(|| {
         let matches = cli_opts().get_matches();
 
@@ -39,7 +43,7 @@ fn main() {
         stdin.read_line(&mut email)?;
         password = rpassword::prompt_password_stdout("password: ")?;
         println!("Logging in");
-        let token = client.login(email.trim_end(), &password)?;
+        let token = async_hacks::block_on(client.login(email.trim_end(), &password))?;
         println!("Token recieved, saving to ~/{}", config::TOKEN_FILE_NAME);
 
         // TODO(richo) rewrite config including token

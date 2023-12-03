@@ -6,16 +6,20 @@ use clap::App;
 use stokepile::cli;
 use stokepile::config;
 use stokepile::client;
+use stokepile::async_hacks;
 
 use std::fs::File;
 use std::io::Write;
+
+use tokio;
 
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
     cli::base_opts()
         .about("Fetches configuration from upstream")
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     stokepile::cli::run(|| {
         let matches = cli_opts().get_matches();
 
@@ -34,7 +38,7 @@ fn main() {
         let mut client = client::StokepileClient::new(&base)?;
         client.load_token()?;
         info!("Fetching config from {}", &base);
-        let config = client.fetch_config()?;
+        let config = async_hacks::block_on(client.fetch_config())?;
         let filename = matches.value_of("config").unwrap_or("stokepile.toml");
         let mut fh = File::create(&filename)?;
         fh.write_all(config.to_toml()?.as_bytes())?;
