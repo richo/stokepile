@@ -3,6 +3,7 @@ use rocket::fs::FileServer;
 use rocket_dyn_templates::Template;
 
 use crate::web::db::{init_pool, DbConn};
+use rocket_dyn_templates::handlebars::handlebars_helper;
 
 use logging::RequestLogger;
 

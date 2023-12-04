@@ -6,13 +6,15 @@ use crate::staging::{UploadDescriptor, DescriptorNameable, RemotePathDescriptor}
 use crate::formatting::human_readable_size;
 
 use failure::Error;
-use handlebars::{Handlebars, TemplateRenderError};
+use handlebars::{Handlebars, RenderError};
 use serde::ser::{Serialize, Serializer, SerializeStruct};
+
+use handlebars::handlebars_helper;
 
 handlebars_helper!(header: |v: str| format!("{}\n{}", v, str::repeat("=", v.len())));
 handlebars_helper!(human_size: |v: u64| format!("{}b", human_readable_size(v)));
 
-fn handlebars() -> Handlebars {
+fn handlebars() -> Handlebars<'static> {
     let mut handlebars = Handlebars::new();
     handlebars.register_helper("header", Box::new(header));
     handlebars.register_helper("human_readable_size", Box::new(human_size));
@@ -167,7 +169,7 @@ impl UploadReport {
         uploads.push(entry);
     }
 
-    pub fn to_plaintext(&self) -> Result<String, TemplateRenderError> {
+    pub fn to_plaintext(&self) -> Result<String, RenderError> {
         handlebars().render_template(UPLOAD_REPORT_TEMPLATE, &self)
     }
 
