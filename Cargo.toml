@@ -87,7 +87,7 @@ dropbox-content-hasher = "0.3.0"
 lockfile = "0.2.1"
 redacted_debug = "0.1.0"
 pshovr = "0.2.0"
-uuid = { version = "0.8.1", features = ["serde", "v4"] }
+uuid = { version = "1.6.1", features = ["serde", "v4"] }
 
 [[bin]]
 name = "server"

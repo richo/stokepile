@@ -14,7 +14,7 @@ use serde::{Serialize, Deserialize};
 
 use handlebars::Handlebars;
 thread_local! {
-        static HANDLEBARS: Handlebars = {
+        static HANDLEBARS: Handlebars<'static> = {
             let mut handlebars = Handlebars::new();
             handlebars.register_template_string("media-view", include_str!("../../web/templates/media_server/media-view.html.hbs"))
                 .expect("registrating template");
@@ -74,7 +74,7 @@ pub async fn load_staged_media() {
                     val.set_inner_html(&media.name());
                     val.set_class_name("pure-menu-item media-list-item");
                     val.set_attribute("data-content-hash", &hex::encode(&media.content_hash)).unwrap();
-                    val.set_attribute("data-uuid", media.uuid.to_hyphenated().encode_lower(&mut Uuid::encode_buffer())).unwrap();
+                    val.set_attribute("data-uuid", media.uuid.as_hyphenated().encode_lower(&mut Uuid::encode_buffer())).unwrap();
                     media_list.append_child(&val).expect("append");
                 }
             }

@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-serde = { version = "1.0.117", features = ["derive"] }
-chrono = { version = "0.4.19", features = ["serde"] }
-uuid = { version = "0.8.1", features = ["serde", "v4"] }
+serde = { version = "1.0.193", features = ["derive"] }
+chrono = { version = "0.4.31", features = ["serde"] }
+uuid = { version = "1.6.1", features = ["serde", "v4"] }
 failure = "0.1.8"
