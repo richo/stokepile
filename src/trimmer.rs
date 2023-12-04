@@ -196,30 +196,30 @@ mod tests {
     use crate::staging::StagingLocation;
     use uuid::Uuid;
 
-    // #[test]
-    // fn test_can_calc_name() {
-    //     let pb: PathBuf = "/path/to/file.ext".into();
-    //     let trim = pb.with_modification(&MediaTransform::trim(3, 6));
-    //     let trimmed: PathBuf = "/path/to/file-trim-3:6.ext".into();
-    //     assert_eq!(trimmed, trim);
-    // }
+    #[test]
+    fn test_can_calc_name() {
+        let pb: PathBuf = "/path/to/file.ext".into();
+        let trim = pb.with_modification(&TrimDetail { start: 3, end: 6 });
+        let trimmed: PathBuf = "/path/to/file-trim-3:6.ext".into();
+        assert_eq!(trimmed, trim);
+    }
 
-    // #[test]
-    // fn test_path_calculation() {
-    //     // stage a file
-    //     let data = staged_data(1).expect("staged_data");
-    //     let file = &data.staged_files().expect("staged_files")[0];
-    //     let detail = MediaTransform::trim(1, 2);
-    //     let new_path = file.content_path.with_modification(&detail);
+    #[test]
+    fn test_path_calculation() {
+        // stage a file
+        let data = staged_data(1).expect("staged_data");
+        let file = &data.staged_files().expect("staged_files")[0];
+        let detail = TrimDetail { start: 1, end: 2 };
+        let new_path = file.content_path.with_modification(&detail);
 
-    //     let mut content_hash = [0; 32];
-    //     let descriptor = UploadDescriptor {
-    //         path: file.descriptor.path.with_modification(&detail),
-    //         device_name: "".into(),
-    //         content_hash,
-    //         size: 0,
-    //         uuid: Uuid::new_v4(),
-    //         trim: Some(detail),
-    //     };
-    // }
+        let mut content_hash = [0; 32];
+        let descriptor = UploadDescriptor {
+            path: file.descriptor.path.with_modification(&detail),
+            device_name: "".into(),
+            content_hash,
+            size: 0,
+            uuid: Uuid::new_v4(),
+            trim: Some(detail),
+        };
+    }
 }
