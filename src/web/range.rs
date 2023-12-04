@@ -1,6 +1,5 @@
 use log::warn;
 use rocket;
-use rocket::http::hyper::header::*;
 use rocket::http::Status;
 use rocket::response::{self, Responder};
 use rocket::Response;
@@ -11,31 +10,33 @@ use std::io::{Read, Seek, SeekFrom};
 use std::str::FromStr;
 use std::fmt::Debug;
 
-#[derive(Debug)]
-pub enum PartialFileRange {
-	AllFrom(u64),
-	FromTo(u64, u64),
-	Last(u64),
-}
+use headers::ContentRange;
 
-impl From<ByteRangeSpec> for PartialFileRange {
-	fn from(b: ByteRangeSpec) -> PartialFileRange {
-		match b {
-			ByteRangeSpec::AllFrom(from) => PartialFileRange::AllFrom(from),
-			ByteRangeSpec::FromTo(from, to) => PartialFileRange::FromTo(from, to),
-			ByteRangeSpec::Last(last) => PartialFileRange::Last(last),
-		}
-	}
-}
+// #[derive(Debug)]
+// pub enum PartialFileRange {
+// 	AllFrom(u64),
+// 	FromTo(u64, u64),
+// 	Last(u64),
+// }
 
-impl From<Vec<ByteRangeSpec>> for PartialFileRange {
-	fn from(v: Vec<ByteRangeSpec>) -> PartialFileRange {
-		match v.into_iter().next() {
-			None => PartialFileRange::AllFrom(0),
-			Some(byte_range) => PartialFileRange::from(byte_range),
-		}
-	}
-}
+// impl From<ByteRangeSpec> for PartialFileRange {
+// 	fn from(b: ByteRangeSpec) -> PartialFileRange {
+// 		match b {
+// 			ByteRangeSpec::AllFrom(from) => PartialFileRange::AllFrom(from),
+// 			ByteRangeSpec::FromTo(from, to) => PartialFileRange::FromTo(from, to),
+// 			ByteRangeSpec::Last(last) => PartialFileRange::Last(last),
+// 		}
+// 	}
+// }
+
+// impl From<Vec<ByteRangeSpec>> for PartialFileRange {
+// 	fn from(v: Vec<ByteRangeSpec>) -> PartialFileRange {
+// 		match v.into_iter().next() {
+// 			None => PartialFileRange::AllFrom(0),
+// 			Some(byte_range) => PartialFileRange::from(byte_range),
+// 		}
+// 	}
+// }
 
 #[derive(Debug)]
 pub struct RangeResponder<R: Debug> {

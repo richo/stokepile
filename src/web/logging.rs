@@ -5,6 +5,8 @@ use rocket::fairing::{Fairing, Info, Kind};
 use serde_json;
 use std::net::IpAddr;
 
+use async_trait::async_trait;
+
 
 #[derive(Debug)]
 pub struct RequestLogger {
@@ -35,6 +37,7 @@ impl<'a> LoggedRequest<'a> {
     }
 }
 
+#[async_trait]
 impl Fairing for RequestLogger {
     fn info(&self) -> Info {
         Info {
@@ -44,7 +47,7 @@ impl Fairing for RequestLogger {
     }
 
     // Spit out some structured logs about who's making this request
-    fn on_request(&self, request: &mut Request<'_>, _: &Data<'_>) {
+    async fn on_request(&self, request: &mut Request<'_>, _: &mut Data<'_>) {
         // We don't want to log requests for statics.
         if request.uri().path().starts_with("/static/") {
             return

@@ -141,28 +141,28 @@ pub struct StagingConfig {
     pub(crate) location: MountableDeviceLocation,
 }
 
-#[cfg(feature = "web")]
-use crate::web::models::extra::StagingKind;
+// #[cfg(feature = "web")]
+// use crate::web::models::extra::StagingKind;
 
-impl StagingConfig {
-    #[cfg(feature = "web")]
-    pub fn data_for_db(&self) -> String {
-        match &self.location {
-            MountableDeviceLocation::Label(buf) => buf.to_string(),
-            MountableDeviceLocation::Location(buf) |
-            MountableDeviceLocation::Mountpoint(buf) => buf.to_string_lossy().into(),
-        }
-    }
+// impl StagingConfig {
+//     #[cfg(feature = "web")]
+//     pub fn data_for_db(&self) -> String {
+//         match &self.location {
+//             MountableDeviceLocation::Label(buf) => buf.to_string(),
+//             MountableDeviceLocation::Location(buf) |
+//             MountableDeviceLocation::Mountpoint(buf) => buf.to_string_lossy().into(),
+//         }
+//     }
 
-    #[cfg(feature = "web")]
-    pub fn kind_for_db(&self) -> StagingKind {
-        match &self.location {
-            MountableDeviceLocation::Label(_) => StagingKind::Label,
-            MountableDeviceLocation::Location(_) => StagingKind::Location,
-            MountableDeviceLocation::Mountpoint(_) => StagingKind::Mountpoint,
-        }
-    }
-}
+//     #[cfg(feature = "web")]
+//     pub fn kind_for_db(&self) -> StagingKind {
+//         match &self.location {
+//             MountableDeviceLocation::Label(_) => StagingKind::Label,
+//             MountableDeviceLocation::Location(_) => StagingKind::Location,
+//             MountableDeviceLocation::Mountpoint(_) => StagingKind::Mountpoint,
+//         }
+//     }
+// }
 
 #[derive(Default, Serialize, Deserialize, Debug, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]

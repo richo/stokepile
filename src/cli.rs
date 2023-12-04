@@ -52,18 +52,21 @@ pub fn init_logging() {
 ///
 /// Even in our post Termination world, this is valuable in order to assert that logging is setup,
 /// and in future that we have a panic handler.
-pub fn run(main: fn() -> Result<(), ::failure::Error>) {
+pub fn run<T>(main: fn() -> Result<T, ::failure::Error>) -> T {
     init_logging();
-    if let Err(e) = main() {
-        error!("Error running stokepile");
-        error!("{:?}", e);
-        if ::std::env::var("STOKEPILE_BACKTRACE").is_ok() {
-            error!("Backtrace information:");
-            error!("{:?}", e.backtrace());
-        } else {
-            info!("Set STOKEPILE_BACKTRACE for more information");
+    match main() {
+        Ok(r) => r,
+        Err(e) => {
+            error!("Error running stokepile");
+            error!("{:?}", e);
+            if ::std::env::var("STOKEPILE_BACKTRACE").is_ok() {
+                error!("Backtrace information:");
+                error!("{:?}", e.backtrace());
+            } else {
+                info!("Set STOKEPILE_BACKTRACE for more information");
+            }
+            ::std::process::exit(1);
         }
-        ::std::process::exit(1);
     }
 }
 

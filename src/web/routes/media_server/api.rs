@@ -3,10 +3,11 @@ use rocket::State;
 use rocket::form::Form;
 use rocket::response::Redirect;
 use rocket::response::stream::stream;
+use rocket_seek_stream::SeekStream;
+
 
 use stokepile_shared::staging::{UploadDescriptor, TrimDetail};
 use crate::staging::{MountedStaging, StagingLocation, StagedFileExt, StagedFile};
-use crate::web::RangeResponder;
 use crate::web::form_hacks::UuidParam;
 
 use uuid::Uuid;
@@ -16,7 +17,7 @@ use failure::Error;
 use std::fs::File;
 
 #[get("/api/media")]
-pub fn get_media(staging: State<MountedStaging>) -> Json<Vec<UploadDescriptor>> {
+pub fn get_media(staging: &State<MountedStaging>) -> Json<Vec<UploadDescriptor>> {
     let files = staging.staged_files()
         .expect("Couldn't load staged_files")
         .into_iter()
@@ -26,14 +27,13 @@ pub fn get_media(staging: State<MountedStaging>) -> Json<Vec<UploadDescriptor>> 
 }
 
 #[get("/api/media/<uuid>")]
-pub fn stream_media(staging: State<MountedStaging>, uuid: UuidParam) -> Option<RangeResponder<File>> {
+pub fn stream_media<'a>(staging: &State<MountedStaging>, uuid: UuidParam) -> Option<SeekStream<'a>> {
     staging.staged_files()
         .expect("Couldn't load staged_files")
         .iter()
         .filter(|file| file.descriptor.uuid == *uuid)
         .next()
-        .and_then(|file| File::open(&file.content_path).ok())
-        .map(|fh| RangeResponder::new(fh))
+        .and_then(|file| SeekStream::from_path(&file.content_path).ok())
 }
 
 #[derive(Debug, FromForm, Deserialize)]
@@ -55,7 +55,7 @@ impl UpdateForm {
 
 // this lives in /api but isn't really an api per se since it's meant to be hit wiht a form post
 #[post("/api/media/<uuid>/update", data = "<update>")]
-pub fn update_media(staging: State<MountedStaging>, uuid: UuidParam, update: Form<UpdateForm>) -> Option<Redirect> {
+pub fn update_media(staging: &State<MountedStaging>, uuid: UuidParam, update: Form<UpdateForm>) -> Option<Redirect> {
     // TODO(richo) add Flash to show the user success
     file_by_uuid(&staging, *uuid)
         .map(|mut file| {
@@ -79,12 +79,13 @@ fn file_by_uuid(staging: &MountedStaging, uuid: Uuid) -> Option<StagedFile> {
         .next()
 }
 
+// TODO(richo) both of these returns are wrong.
 #[post("/api/media/apply_transforms")]
-pub fn apply_trims(staging: State<MountedStaging>) -> Result<(), Error> {
-    for file in staging.staged_files()? {
+pub fn apply_trims(staging: &State<MountedStaging>) -> Option<()> {
+    for file in staging.staged_files().ok()? {
         let _ = file.apply_trim();
     }
-    Ok(())
+    Some(())
 }
 
 #[cfg(test)]

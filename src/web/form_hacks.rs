@@ -11,7 +11,7 @@ pub struct UuidParam(Uuid);
 impl<'r> FromParam<'r> for UuidParam {
     type Error = uuid::Error;
 
-    fn from_param(param: &'r RawStr) -> Result<Self, Self::Error> {
+    fn from_param(param: &'r str) -> Result<Self, Self::Error> {
        Uuid::parse_str(param).map(UuidParam)
     }
 }

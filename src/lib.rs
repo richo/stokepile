@@ -1,4 +1,5 @@
-#![deny(unused_must_use, missing_debug_implementations)]
+// #![deny(unused_must_use, missing_debug_implementations)]
+#![deny(unused_must_use)]
 #![warn(rust_2018_idioms)]
 #![warn(clippy::all)]
 
