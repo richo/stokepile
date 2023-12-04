@@ -1,4 +1,4 @@
-use time::Duration;
+use chrono::Duration;
 
 /// Convert an integer number of bytes to something a human being might reasonably intepret. Allows
 /// for one place of decimal precision for low quanta of a given denomination.
@@ -30,7 +30,7 @@ pub fn human_readable_size(bytes: u64) -> String {
 /// Format a given `Duration` as a formatted amount of time a human might reasonably interpret.
 /// ```rust
 /// # use stokepile::formatting::human_readable_time;
-/// use time::Duration;
+/// use chrono::Duration;
 ///
 /// assert_eq!(human_readable_time(Duration::seconds(45)), "45s".to_string());
 /// assert_eq!(human_readable_time(Duration::seconds(45311)), "12h35m11s".to_string());
