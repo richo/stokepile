@@ -43,7 +43,7 @@ pub fn configure_rocket() -> Rocket<rocket::Build> {
     let status = OperationalStatus::new();
 
     super::configure_rocket(
-        routes![
+        rocket::routes![
             routes::index,
             routes::api::get_media,
             routes::api::stream_media,

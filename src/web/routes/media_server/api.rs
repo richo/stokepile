@@ -1,6 +1,6 @@
+use rocket::{self, State};
 use rocket::serde::json::Json;
-use rocket::State;
-use rocket::form::Form;
+use rocket::form::{Form, FromForm};
 use rocket::response::Redirect;
 use rocket::response::stream::stream;
 use rocket_seek_stream::SeekStream;
@@ -16,7 +16,7 @@ use failure::Error;
 
 use std::fs::File;
 
-#[get("/api/media")]
+#[rocket::get("/api/media")]
 pub fn get_media(staging: &State<MountedStaging>) -> Json<Vec<UploadDescriptor>> {
     let files = staging.staged_files()
         .expect("Couldn't load staged_files")
@@ -26,7 +26,7 @@ pub fn get_media(staging: &State<MountedStaging>) -> Json<Vec<UploadDescriptor>>
     Json(files)
 }
 
-#[get("/api/media/<uuid>")]
+#[rocket::get("/api/media/<uuid>")]
 pub fn stream_media<'a>(staging: &State<MountedStaging>, uuid: UuidParam) -> Option<SeekStream<'a>> {
     staging.staged_files()
         .expect("Couldn't load staged_files")
@@ -36,7 +36,9 @@ pub fn stream_media<'a>(staging: &State<MountedStaging>, uuid: UuidParam) -> Opt
         .and_then(|file| SeekStream::from_path(&file.content_path).ok())
 }
 
+// TODO(richo) This absolutely has a debug impl
 #[derive(Debug, FromForm, Deserialize)]
+#[allow(missing_debug_implementations)]
 pub struct UpdateForm {
     name: String,
     trim_start: u32,
@@ -54,7 +56,7 @@ impl UpdateForm {
 }
 
 // this lives in /api but isn't really an api per se since it's meant to be hit wiht a form post
-#[post("/api/media/<uuid>/update", data = "<update>")]
+#[rocket::post("/api/media/<uuid>/update", data = "<update>")]
 pub fn update_media(staging: &State<MountedStaging>, uuid: UuidParam, update: Form<UpdateForm>) -> Option<Redirect> {
     // TODO(richo) add Flash to show the user success
     file_by_uuid(&staging, *uuid)
@@ -80,7 +82,7 @@ fn file_by_uuid(staging: &MountedStaging, uuid: Uuid) -> Option<StagedFile> {
 }
 
 // TODO(richo) both of these returns are wrong.
-#[post("/api/media/apply_transforms")]
+#[rocket::post("/api/media/apply_transforms")]
 pub fn apply_trims(staging: &State<MountedStaging>) -> Option<()> {
     for file in staging.staged_files().ok()? {
         let _ = file.apply_trim();
