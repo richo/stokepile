@@ -45,6 +45,10 @@ pub struct ExternallyMounted {
 pub struct UdisksMounter {
 }
 
+#[derive(Debug)]
+pub struct MountMounter {
+}
+
 impl UdisksMounter {
     /// Returns either a MountedFilesystem or an error failing to mount. This will not prepend any
     /// path information.
@@ -79,15 +83,14 @@ impl UdisksMounter {
 }
 
 trait Unmounter: Debug + Sync + Send {
+    // TODO(richo) This should be fallible but that is.. bad in the face of being a part of the
+    // drop interface.
     fn unmount(&mut self, device: &Path);
 }
 
-impl Unmounter for UdisksMounter {
-    fn unmount(&mut self, device: &Path) {
-        info!("Unmounting device at {:?}", &device);
-        info!("Syncing first");
-        match Command::new("sync")
-            .status()
+fn sync() {
+    match Command::new("sync")
+        .status()
         {
             Ok(status) => {
                 if status.success() {
@@ -98,11 +101,43 @@ impl Unmounter for UdisksMounter {
             },
             Err(e) => warn!("sync failed, continuing: {:?}", e),
         }
+}
+
+impl Unmounter for UdisksMounter {
+    fn unmount(&mut self, device: &Path) {
+        info!("Unmounting device at {:?}", &device);
+        info!("Syncing first");
+        sync();
+
 
         match Command::new("udisksctl")
             .arg("unmount")
             .arg("--no-user-interaction")
             .arg("-b")
+            .arg(device)
+            .output()
+        {
+            Ok(child) => {
+                if !child.status.success() {
+                    error!("Couldn't unmount device: {}", String::from_utf8_lossy(&child.stderr));
+                } else {
+                    info!("Successfully umounted");
+                }
+            },
+            Err(e) => {
+                error!("Couldn't launch unmount: {:?}", e);
+                return;
+            }
+
+        }
+
+    }
+}
+
+impl Unmounter for MountMounter {
+    fn unmount(&mut self, device: &Path) {
+        sync();
+        match Command::new("umount")
             .arg(device)
             .output()
         {
