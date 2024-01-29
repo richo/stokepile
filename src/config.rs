@@ -194,6 +194,8 @@ pub enum MountableDeviceLocation {
     Mountpoint(PathBuf),
     #[serde(rename = "location")]
     Location(PathBuf),
+    #[serde(rename = "device")]
+    Device(PathBuf),
     #[serde(rename = "label")]
     Label(String),
 }
@@ -201,6 +203,10 @@ pub enum MountableDeviceLocation {
 impl MountableDeviceLocation {
     pub fn from_mountpoint(pb: PathBuf) -> MountableDeviceLocation {
         MountableDeviceLocation::Mountpoint(pb)
+    }
+
+    pub fn from_device(pb: PathBuf) -> MountableDeviceLocation {
+        MountableDeviceLocation::Device(pb)
     }
 
     pub fn from_label(lbl: String) -> MountableDeviceLocation {
@@ -216,6 +222,9 @@ impl fmt::Display for MountableDeviceLocation {
             },
             MountableDeviceLocation::Location(path) => {
                 write!(f, "Location({:?})", path)
+            },
+            MountableDeviceLocation::Device(path) => {
+                write!(f, "Device({:?})", path)
             },
             MountableDeviceLocation::Label(label) => {
                 write!(f, "Label({})", label)
@@ -286,7 +295,7 @@ pub struct GoproConfig {
 
 #[derive(Fail, Debug, PartialEq)]
 pub enum ConfigError {
-    #[fail(display = "Must have at least one of dropbox and vimeo configured.")]
+    #[fail(display = "Must have at least one of dropbox and vimeo configured or some local_backups.")]
     MissingBackend,
     #[fail(display = "Must have either a `staging_path` or `staging_device` set.")]
     MissingStaging,
@@ -337,7 +346,7 @@ impl Config {
     }
 
     fn check_config(config: Config) -> Result<Config, ConfigError> {
-        if config.dropbox.is_none() && config.vimeo.is_none() {
+        if config.dropbox.is_none() && config.vimeo.is_none() && config.mass_storages().is_empty() {
             Err(ConfigError::MissingBackend)?;
         }
 
@@ -357,6 +366,7 @@ impl Config {
     fn check_staging(staging: &StagingConfig) -> Result<(), ConfigError> {
         match &staging.location {
             MountableDeviceLocation::Mountpoint(pb) |
+            MountableDeviceLocation::Device(pb) |
             MountableDeviceLocation::Location(pb) => {
                 if pb.is_relative() {
                     return Err(ConfigError::RelativeStaging.into());

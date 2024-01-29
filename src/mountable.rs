@@ -63,7 +63,7 @@ impl UdisksMounter {
             .arg(device.as_ref())
             .output()?;
 
-        let regex = Regex::new(r"^Mounted (.+) at (.+)\.")
+        let regex = Regex::new(r"^Mounted (.+) at (.+)\.?")
             .expect("Couldn't compile regex");
 
         if child.status.success() {
@@ -223,6 +223,9 @@ pub trait MountableFilesystem: Sized {
                 let device = device_for_label(&lbl);
                 UdisksMounter::mount(device)?
             },
+            MountableDeviceLocation::Device(dev) => {
+                UdisksMounter::mount(dev)?
+            },
             MountableDeviceLocation::Mountpoint(_) => unimplemented!(),
             MountableDeviceLocation::Location(path) => MountedFilesystem::new_externally_mounted(path.to_owned())
         };
@@ -282,6 +285,9 @@ pub trait MountableFilesystem: Sized {
                 attached_by_label(&lbl[..])
             },
             MountableDeviceLocation::Location(path) => {
+                path.exists()
+            }
+            MountableDeviceLocation::Device(path) => {
                 path.exists()
             }
             MountableDeviceLocation::Mountpoint(path) => {
