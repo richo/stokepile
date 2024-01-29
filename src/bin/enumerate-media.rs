@@ -14,17 +14,7 @@ use stokepile::storage;
 
 fn cli_opts<'a, 'b>() -> App<'a, 'b> {
     cli::base_opts()
-        .about("Performs a single run, uploading footage from all connected devices")
-        .arg(
-            Arg::with_name("no-cron")
-            .long("no-cron")
-            .help("Don't invoke any of the locking machinery to ensure only one stokepile runs at a time")
-            )
-        .arg(
-            Arg::with_name("stage-only")
-            .long("stage-only")
-            .help("Only stage files, do not process uploads")
-            )
+        .about("Prints what would happen on a run")
 }
 
 fn main() {
